@@ -29,6 +29,7 @@ from publish import (  # noqa: E402
     content_type_for,
     is_unchanged,
     load_config,
+    s3_client,
     split_s3_uri,
     unedited_sentinels,
     upload_all,
@@ -177,9 +178,11 @@ class FakeSession:
         self.calls: list = []
         self.clients = 0
         self.fail_key = fail_key
+        self.client_kwargs: dict = {}
 
-    def client(self, name):
+    def client(self, name, **kwargs):
         self.clients += 1
+        self.client_kwargs = kwargs
         return FakeClient(self.calls, self.fail_key)
 
 
@@ -259,6 +262,37 @@ cfg = load_config()
 check(cfg.get("endpoint_url") == "https://data.source.coop", "endpoint_url is read from catalog.publish.yaml")
 check(cfg.get("profile") == "source-coop", "profile is read from catalog.publish.yaml")
 check(unedited_sentinels(cfg) == [], "no template sentinels survive in catalog.publish.yaml")
+
+# endpoint_url in the config is not enough on its own; it has to reach
+# session.client(...). s3_client is the one place every client in this
+# script is built, so cover it directly first.
+with_endpoint = FakeSession()
+s3_client(with_endpoint, endpoint_url="https://data.source.coop")
+check(
+    with_endpoint.client_kwargs.get("endpoint_url") == "https://data.source.coop",
+    "s3_client passes endpoint_url to session.client when one is set",
+)
+
+without_endpoint = FakeSession()
+s3_client(without_endpoint)
+check(
+    without_endpoint.client_kwargs.get("endpoint_url") is None,
+    "s3_client passes no endpoint_url when none is configured",
+)
+
+# End to end: upload_all is the code path main() drives with the loaded
+# config's endpoint_url (`upload_all(session, bucket, changed,
+# config.get("endpoint_url"))`). Confirm it reaches session.client(...) from
+# the actual value load_config() reads out of catalog.publish.yaml.
+end_to_end_session = FakeSession()
+one_upload = [Upload(Path("unused.json"), "k", "application/json")]
+out, err = io.StringIO(), io.StringIO()
+with redirect_stdout(out), redirect_stderr(err):
+    upload_all(end_to_end_session, "a-bucket", one_upload, cfg["endpoint_url"])
+check(
+    end_to_end_session.client_kwargs.get("endpoint_url") == cfg["endpoint_url"],
+    "upload_all passes the configured endpoint_url through to session.client",
+)
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
