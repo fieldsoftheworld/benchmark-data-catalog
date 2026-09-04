@@ -4,36 +4,17 @@
   "stac_extensions": [
     "https://schemas.portolan-sdi.org/portolan/v0.1.1/schema.json"
   ],
-  "id": "example-catalog",
-  "title": "Example Catalog",
-  "description": "TODO(setup): one or two sentences saying what this catalog holds, who produced the data, and who it is for. A person and an agent both read this first.",
+  "id": "benchmark-data",
+  "title": "Fields of the World Benchmark Data",
+  "description": "Training and evaluation chips for field boundary delineation models: Sentinel-2 imagery paired with instance and semantic label masks, cut from harmonized (fiboa) field boundary data by Fields of the World. Each collection is one country or region with train, validation and test splits. Start with the [agent guide](AGENTS.md).",
   "links": [
-    {
-      "rel": "root",
-      "href": "./catalog.json",
-      "type": "application/json"
-    },
-    {
-      "rel": "describedby",
-      "href": "./README.md",
-      "type": "text/markdown",
-      "title": "Catalog README"
-    },
-    {
-      "rel": "agents",
-      "href": "./AGENTS.md",
-      "type": "text/markdown",
-      "title": "Catalog agent guide"
-    },
-    {
-      "rel": "vcs",
-      "href": "https://github.com/TODO(setup)",
-      "title": "Source repository"
-    },
-    {
-      "rel": "issues",
-      "href": "https://github.com/TODO(setup)/issues",
-      "title": "Issue tracker"
-    }
+    {"rel": "root", "href": "./catalog.json", "type": "application/json"},
+    {"rel": "describedby", "href": "./README.md", "type": "text/markdown", "title": "Catalog README"},
+    {"rel": "agents", "href": "./AGENTS.md", "type": "text/markdown", "title": "Catalog agent guide"},
+    {"rel": "llms", "href": "./llms.txt", "type": "text/plain", "title": "llms.txt"},
+    {"rel": "about", "href": "https://fieldsofthe.world", "type": "text/html", "title": "Fields of the World"},
+    {"rel": "cite-as", "href": "https://arxiv.org/abs/2409.16252", "type": "text/html", "title": "Fields of The World: A Machine Learning Benchmark Dataset For Global Agricultural Field Boundary Segmentation"},
+    {"rel": "vcs", "href": "https://github.com/fieldsoftheworld/benchmark-data-catalog", "title": "Source repository"},
+    {"rel": "issues", "href": "https://github.com/fieldsoftheworld/benchmark-data-catalog/issues", "title": "Issue tracker"}
   ]
 }

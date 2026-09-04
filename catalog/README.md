@@ -1,32 +1,32 @@
-# Example Catalog
+# Fields of the World Benchmark Data
 
-TODO(setup): replace this file. It is the front door to the published catalog,
-the page people land on at the public base URL. It is not the same document as
-the README in the repository root, which is never published.
+Training and evaluation chips for field boundary delineation models. Each
+collection is one country or region: Sentinel-2 imagery for two seasons paired
+with instance and semantic label masks on a fixed grid, with train, validation
+and test splits assigned per chip.
 
-## What is here
+The chips are cut from the [harmonized field boundary
+catalog](https://source.coop/ftw/harmonized-field-data) with
+[ftw-dataset-tools](https://github.com/fieldsoftheworld/ftw-dataset-tools). The
+recipe for every collection is a config file in the [source
+repository](https://github.com/fieldsoftheworld/benchmark-data-catalog), so
+each one can be rebuilt.
 
-TODO(setup): the datasets, in one paragraph. Say what each collection covers,
-the area and the time range, and what a reader can do with it.
+This is version 2.0 of the benchmark described in [Fields of The World
+(2024)](https://arxiv.org/abs/2409.16252). Version 1.0 remains at
+[kerner-lab/fields-of-the-world](https://source.coop/kerner-lab/fields-of-the-world).
+
+## Collections
+
+No collections are published yet. The first three (Austria, Slovenia,
+Luxembourg) are a reviewer sample and will appear here when built.
 
 ## License
 
-TODO(setup): the SPDX identifier, or `other` with a link to the terms. Say who
-holds the rights and what a reuser has to attribute.
+Each collection carries the license of its source field boundary data; see the
+collection page. The masks and imagery chips derived from them are published
+under the same terms as the source. Sentinel-2 data is Copernicus, free and open.
 
-## Provenance
+## Contact
 
-TODO(setup): where the data came from. Say whether this catalog is the official
-publication from the producing organization, or a mirror of someone else's data.
-If it is a mirror, link the upstream and say how often it syncs.
-
-## Access
-
-TODO(setup): one query someone can run without downloading anything, against a
-real published file. Run it before you paste it.
-
-```sql
--- Example shape. Replace the URL and the columns with your own.
-INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
-SELECT count(*) FROM 'https://example.invalid/prefix/collection/data.parquet';
-```
+Open an [issue](https://github.com/fieldsoftheworld/benchmark-data-catalog/issues).

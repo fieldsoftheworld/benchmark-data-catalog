@@ -31,6 +31,9 @@ a dry run still works offline. It never silently skips.
 Both AWS calls go through one session, built by ``aws_session`` from the
 optional ``profile`` and ``region`` keys. Source Cooperative wants a named
 profile, and the default session can select the wrong account without one.
+Clients built from that session honour the optional ``endpoint_url`` key too
+(see ``s3_client``), which addresses Source Cooperative through its data
+proxy instead of AWS's own S3 endpoints.
 
 Uploads run on a bounded thread pool of MAX_UPLOAD_WORKERS threads. A failed
 object is named on stderr and the run exits non-zero. One failure does not
@@ -105,7 +108,9 @@ def load_config(path: Path = CONFIG) -> dict[str, str]:
     nesting to it.
 
     ``write_prefix``, ``public_base`` and ``publish_dir`` are required.
-    ``region`` and ``profile`` are optional scalars and may be absent or empty.
+    ``region``, ``profile`` and ``endpoint_url`` are optional scalars and may
+    be absent or empty; every key present in the file passes through
+    unfiltered, so no key needs whitelisting here to reach ``aws_session``.
     """
     config: dict[str, str] = {}
     for line in path.read_text().splitlines():
@@ -211,6 +216,11 @@ def aws_session(config: dict[str, str]):
     "let boto3 decide", which is the behavior this script had before profiles
     existed. Raises ImportError when boto3 is missing, and ProfileNotFound
     when the named profile is not in the AWS config.
+
+    Returns a ``boto3.Session``, not a client: ``endpoint_url`` is a
+    per-client argument, not a session one, so it is applied where clients
+    are actually built (``remote_index`` and ``upload_all``) via
+    ``s3_client`` below, rather than here.
     """
     import boto3
 
@@ -220,12 +230,27 @@ def aws_session(config: dict[str, str]):
     )
 
 
+def s3_client(session, endpoint_url: str | None = None):
+    """An S3 client from ``session``, honouring an optional ``endpoint_url``.
+
+    Source Cooperative is addressed through its data proxy (``endpoint_url``
+    in ``catalog.publish.yaml``) rather than AWS's own S3 endpoints. Passing
+    ``endpoint_url=None`` to boto3 is safe and means "use the default", but
+    the keyword is added only when a value is actually set so that test
+    doubles standing in for ``session`` (which only need to support the
+    single-argument call boto3 itself accepts) keep working unchanged.
+    """
+    if endpoint_url:
+        return session.client("s3", endpoint_url=endpoint_url)
+    return session.client("s3")
+
+
 def remote_index(
     bucket: str, prefix: str, config: dict[str, str]
 ) -> dict[str, tuple[int, str]]:
     """Size and ETag for every object under the prefix, or {} when unreadable."""
     try:
-        client = aws_session(config).client("s3")
+        client = s3_client(aws_session(config), config.get("endpoint_url"))
         index = {}
         paginator = client.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
@@ -241,7 +266,9 @@ def remote_index(
         return {}
 
 
-def upload_all(session, bucket: str, uploads: list[Upload]) -> list[str]:
+def upload_all(
+    session, bucket: str, uploads: list[Upload], endpoint_url: str | None = None
+) -> list[str]:
     """Upload every object on a bounded pool. Returns the keys that failed.
 
     Every upload is attempted. One failure does not cancel the rest, so the
@@ -249,7 +276,9 @@ def upload_all(session, bucket: str, uploads: list[Upload]) -> list[str]:
 
     A botocore client is safe to *call* from many threads, but the Session is
     not safe to create clients from concurrently. So each worker thread builds
-    its own client once, and a lock covers only that creation.
+    its own client once, and a lock covers only that creation. ``endpoint_url``
+    is optional so a caller (and a test double standing in for ``session``)
+    that never sets it sees no change in behavior.
     """
     thread_state = threading.local()
     new_client = threading.Lock()
@@ -259,7 +288,7 @@ def upload_all(session, bucket: str, uploads: list[Upload]) -> list[str]:
         if existing is not None:
             return existing
         with new_client:
-            thread_state.client = session.client("s3")
+            thread_state.client = s3_client(session, endpoint_url)
         return thread_state.client
 
     def put(upload: Upload) -> None:
@@ -351,7 +380,7 @@ def main() -> int:
     except Exception as exc:  # noqa: BLE001 - stop before any upload
         sys.exit(f"cannot build an AWS session: {exc}")
 
-    failed = upload_all(session, bucket, changed)
+    failed = upload_all(session, bucket, changed, config.get("endpoint_url"))
     if failed:
         print(f"\n{len(failed)} of {len(changed)} file(s) failed:",
               file=sys.stderr)

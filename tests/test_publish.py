@@ -28,6 +28,7 @@ from publish import (  # noqa: E402
     collect_uploads,
     content_type_for,
     is_unchanged,
+    load_config,
     split_s3_uri,
     unedited_sentinels,
     upload_all,
@@ -252,6 +253,12 @@ else:
 
         empty = aws_session({"profile": "", "region": ""})
         check(empty.profile_name == "default", "an empty profile is no profile")
+
+# --- endpoint support ------------------------------------------------------
+cfg = load_config()
+check(cfg.get("endpoint_url") == "https://data.source.coop", "endpoint_url is read from catalog.publish.yaml")
+check(cfg.get("profile") == "source-coop", "profile is read from catalog.publish.yaml")
+check(unedited_sentinels(cfg) == [], "no template sentinels survive in catalog.publish.yaml")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
