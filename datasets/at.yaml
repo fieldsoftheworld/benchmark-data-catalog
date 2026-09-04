@@ -1,0 +1,55 @@
+# ftwd recipe for Austria. Input is the harmonized (fiboa) collection.
+# Build with: ftwd run datasets/at.yaml   (tools/build.py wraps this)
+version: 1
+
+fields_file: https://data.source.coop/ftw/harmonized-field-data/at/latest/at.parquet
+source_via: https://data.source.coop/ftw/harmonized-field-data/at/collection.json
+output_dir: staging/at
+name: at
+# The 2025 edition's growing season is complete, so year equals the edition year.
+year: 2025
+
+metadata:
+  title: Austria
+  description: >
+    Benchmark chips for Austria cut from the harmonized field boundary
+    collection for Austria (edition 2025).
+  license: CC-BY-4.0
+  version: 2.0.0-alpha.1
+  attribution: "Agrarmarkt Austria"
+  keywords: [field-boundaries, benchmark, austria]
+  providers:
+    - name: Agrarmarkt Austria
+      roles: [producer, licensor]
+      url: https://geometadatensuche.inspire.gv.at/metadatensuche/inspire/api/records/9db8a0c3-e92a-4df4-9d55-8210e326a7ed
+    - name: Fields of the World
+      roles: [processor]
+      url: https://fieldsofthe.world
+
+stages:
+  chips:
+    min_coverage: 0.01
+    drop_border_chips: false
+  splits:
+    split_type: block3x3
+    split_percents: [80, 10, 10]
+    random_seed: 42
+  masks:
+    mask_types: [instance, semantic_2_class, semantic_3_class]
+    resolution: 10.0
+    workers: null
+    presence_only: false
+    class_filter: filters/at.yaml
+  stac:
+    checksums: false
+  select_images:
+    enabled: true
+    cloud_cover_chip: 2.0
+    nodata_max: 0.0
+    buffer_days: 14
+    num_buffer_expansions: 3
+    buffer_expansion_size: 14
+  download_images:
+    enabled: false
+    bands: [red, green, blue, nir]
+    resolution: 10.0

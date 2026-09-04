@@ -1,0 +1,55 @@
+# ftwd recipe for Slovenia. Input is the harmonized (fiboa) collection.
+# Build with: ftwd run datasets/si.yaml   (tools/build.py wraps this)
+version: 1
+
+fields_file: https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet
+source_via: https://data.source.coop/ftw/harmonized-field-data/si/collection.json
+output_dir: staging/si
+name: si
+# The 2024 edition's growing season is complete, so year equals the edition year.
+year: 2024
+
+metadata:
+  title: Slovenia
+  description: >
+    Benchmark chips for Slovenia cut from the harmonized field boundary
+    collection for Slovenia (edition 2024).
+  license: other
+  license_url: https://rkg.gov.si/vstop/
+  version: 2.0.0-alpha.1
+  attribution: "Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)"
+  keywords: [field-boundaries, benchmark, slovenia]
+  providers:
+    - name: Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)
+      roles: [producer, licensor]
+      url: https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-kmetijstvo-gozdarstvo-in-prehrano/
+    - name: Fields of the World
+      roles: [processor]
+      url: https://fieldsofthe.world
+
+stages:
+  chips:
+    min_coverage: 0.01
+    drop_border_chips: false
+  splits:
+    split_type: block3x3
+    split_percents: [80, 10, 10]
+    random_seed: 42
+  masks:
+    mask_types: [instance, semantic_2_class, semantic_3_class]
+    resolution: 10.0
+    workers: null
+    presence_only: false
+  stac:
+    checksums: false
+  select_images:
+    enabled: true
+    cloud_cover_chip: 2.0
+    nodata_max: 0.0
+    buffer_days: 14
+    num_buffer_expansions: 3
+    buffer_expansion_size: 14
+  download_images:
+    enabled: false
+    bands: [red, green, blue, nir]
+    resolution: 10.0

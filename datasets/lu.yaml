@@ -1,0 +1,55 @@
+# ftwd recipe for Luxembourg. Input is the harmonized (fiboa) collection.
+# Build with: ftwd run datasets/lu.yaml   (tools/build.py wraps this)
+version: 1
+
+fields_file: https://data.source.coop/ftw/harmonized-field-data/lu/latest/lu.parquet
+source_via: https://data.source.coop/ftw/harmonized-field-data/lu/collection.json
+output_dir: staging/lu
+name: lu
+# The 2026 edition is a rolling download and the 2026 harvest is not yet
+# acquired on 2026-09-04, so year uses the prior (complete) growing season.
+year: 2025
+
+metadata:
+  title: Luxembourg
+  description: >
+    Benchmark chips for Luxembourg cut from the harmonized field boundary
+    collection for Luxembourg (edition 2026).
+  license: CC-BY-4.0
+  version: 2.0.0-alpha.1
+  attribution: "Administration des services techniques de l'agriculture"
+  keywords: [field-boundaries, benchmark, luxembourg]
+  providers:
+    - name: Administration des services techniques de l'agriculture
+      roles: [producer, licensor]
+      url: https://asta.etat.lu/en
+    - name: Fields of the World
+      roles: [processor]
+      url: https://fieldsofthe.world
+
+stages:
+  chips:
+    min_coverage: 0.01
+    drop_border_chips: false
+  splits:
+    split_type: block3x3
+    split_percents: [80, 10, 10]
+    random_seed: 42
+  masks:
+    mask_types: [instance, semantic_2_class, semantic_3_class]
+    resolution: 10.0
+    workers: null
+    presence_only: false
+  stac:
+    checksums: false
+  select_images:
+    enabled: true
+    cloud_cover_chip: 2.0
+    nodata_max: 0.0
+    buffer_days: 14
+    num_buffer_expansions: 3
+    buffer_expansion_size: 14
+  download_images:
+    enabled: true
+    bands: [red, green, blue, nir]
+    resolution: 10.0

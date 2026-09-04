@@ -1,0 +1,36 @@
+# The publication manifest: which benchmark datasets this catalog publishes and
+# the catalog-level facts a recipe does not carry. How a dataset is cut lives in
+# datasets/<id>.yaml (an ftwd config); this file only says WHAT is published.
+#
+# Keys per dataset:
+#   ftw1_name:  the FTW 1.0 folder name this collection supersedes, or "none".
+#   thumbnail:  framing for tools/thumbnail.py (next plan): style, zoom, rank.
+
+catalog:
+  id: benchmark-data
+  title: Fields of the World Benchmark Data
+  version: 2.0.0-alpha.1
+  public_base: https://data.source.coop/ftw/benchmark-data
+  human_base: https://source.coop/ftw/benchmark-data
+  repository: https://github.com/fieldsoftheworld/benchmark-data-catalog
+
+host:
+  name: Source Cooperative
+  url: https://source.coop
+  roles: [host]
+
+processor:
+  name: Fields of the World
+  url: https://fieldsofthe.world
+  roles: [processor]
+
+datasets:
+  at:
+    ftw1_name: austria
+    thumbnail: {style: dominant-crop, zoom: 12, rank: 1}
+  si:
+    ftw1_name: slovenia
+    thumbnail: {style: split, zoom: 11, rank: 1}
+  lu:
+    ftw1_name: luxembourg
+    thumbnail: {style: crops, zoom: 12, rank: 2}
