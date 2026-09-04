@@ -1,0 +1,23 @@
+[project]
+name = "benchmark-data-catalog"
+version = "0.1.0"
+description = "Git-backed Portolan catalog for the Fields of the World benchmark dataset"
+requires-python = ">=3.11"
+# The tooling has no package to install; this file only declares the environment.
+dependencies = [
+    # The dataset cutter. Pinned by commit while its Portolan conformance PRs
+    # are open; switch to "ftw-dataset-tools==X.Y.Z" once released on PyPI.
+    "ftw-dataset-tools @ git+https://github.com/fieldsoftheworld/ftw-dataset-tools@6f20fe114e3c86304d2b0226eef99f83b40f65bc",
+    # Validators, pinned to what CI runs (.github/workflows/ci.yml)
+    "rashid>=0.1.5,<0.2.0",
+    "stac-check>=1.6",
+    # Catalog tooling
+    "boto3>=1.35",
+    "pyyaml>=6.0",
+    "pillow>=10",
+    "duckdb>=1.1",
+    "pyflakes>=3.2",
+]
+
+[tool.uv]
+package = false
