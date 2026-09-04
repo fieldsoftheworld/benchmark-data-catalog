@@ -26,6 +26,8 @@ failed = []
 for name in TESTS:
     path = HERE / name
     if not path.exists():
+        print(f"error  missing gate: {name}")
+        failed.append(name)
         continue
     print(f"\n=== {name} " + "=" * (60 - len(name)), flush=True)
     if subprocess.run([sys.executable, str(path)]).returncode != 0:

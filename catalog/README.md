@@ -1,16 +1,16 @@
 # Fields of the World Benchmark Data
 
 Training and evaluation chips for field boundary delineation models. Each
-collection is one country or region: Sentinel-2 imagery for two seasons paired
-with instance and semantic label masks on a fixed grid, with train, validation
-and test splits assigned per chip.
+collection is one country or region: instance and semantic label masks on a
+fixed grid and, where imagery was downloaded, Sentinel-2 scenes for two
+seasons, with train, validation and test splits assigned per chip.
 
 The chips are cut from the [harmonized field boundary
 catalog](https://source.coop/ftw/harmonized-field-data) with
 [ftw-dataset-tools](https://github.com/fieldsoftheworld/ftw-dataset-tools). The
 recipe for every collection is a config file in the [source
 repository](https://github.com/fieldsoftheworld/benchmark-data-catalog), so
-each one can be rebuilt.
+each one can be rebuilt from the harmonized edition it names.
 
 This is version 2.0 of the benchmark described in [Fields of The World
 (2024)](https://arxiv.org/abs/2409.16252). Version 1.0 remains at

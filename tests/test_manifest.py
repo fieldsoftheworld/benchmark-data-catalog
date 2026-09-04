@@ -16,7 +16,11 @@ import json
 import sys
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    print("skip   PyYAML is not installed (uv sync to run this gate)")
+    raise SystemExit(0) from None
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
@@ -58,21 +62,49 @@ for dataset_id in sorted(declared & recipes):
     fields_file = str(recipe.get("fields_file") or "")
     if not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
         err(f"datasets/{dataset_id}.yaml: fields_file must be a harmonized-field-data URL")
+    expected_out = f"{config.get('data_dir', 'staging')}/{dataset_id}"
+    out = str(recipe.get("output_dir") or "")
+    if out != expected_out:
+        err(f"datasets/{dataset_id}.yaml: output_dir must be {expected_out!r}, got {out!r}")
     meta = recipe.get("metadata") or {}
     for key in ("title", "license"):
         if not meta.get(key):
             err(f"datasets/{dataset_id}.yaml: metadata.{key} is required for an official dataset")
     if meta.get("license") == "other" and not meta.get("license_url"):
         err(f"datasets/{dataset_id}.yaml: metadata.license 'other' requires metadata.license_url")
+    catalog_version = (MANIFEST.get("catalog") or {}).get("version")
+    if meta.get("version") != catalog_version:
+        err(
+            f"datasets/{dataset_id}.yaml: metadata.version {meta.get('version')!r} != "
+            f"datasets.yaml catalog.version {catalog_version!r}"
+        )
     if "TODO(attest)" in json.dumps(recipe):
         err(f"datasets/{dataset_id}.yaml: unattested value remains (TODO(attest))")
     spec = MANIFEST["datasets"][dataset_id] or {}
     if not spec.get("ftw1_name"):
         err(f"datasets.yaml: {dataset_id} needs ftw1_name (FTW 1.0 folder name, or 'none')")
+    thumb = spec.get("thumbnail") or {}
+    if not thumb.get("style"):
+        err(f"datasets.yaml: {dataset_id}.thumbnail needs style")
+    if not isinstance(thumb.get("zoom"), int):
+        err(f"datasets.yaml: {dataset_id}.thumbnail.zoom must be an int, got {thumb.get('zoom')!r}")
+    if not isinstance(thumb.get("rank"), int):
+        err(f"datasets.yaml: {dataset_id}.thumbnail.rank must be an int, got {thumb.get('rank')!r}")
 
 host = MANIFEST.get("host") or {}
 if host.get("name") != "Source Cooperative" or "host" not in (host.get("roles") or []):
     err("datasets.yaml: host must be Source Cooperative with role host")
+
+catalog_meta = MANIFEST.get("catalog") or {}
+for key in ("id", "title", "version", "public_base", "human_base", "repository"):
+    if not catalog_meta.get(key):
+        err(f"datasets.yaml: catalog.{key} is required")
+
+processor = MANIFEST.get("processor") or {}
+if not processor.get("name") or not processor.get("url"):
+    err("datasets.yaml: processor needs name and url")
+if "processor" not in (processor.get("roles") or []):
+    err("datasets.yaml: processor must have role processor")
 
 for e in errors:
     print(f"error  {e}")

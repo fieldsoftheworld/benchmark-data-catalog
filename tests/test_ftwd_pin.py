@@ -39,7 +39,15 @@ if git_pin:
     if not direct:
         print(f"error  pin is git commit {expected} but the installed ftwd has no direct_url.json (PyPI install?)")
         raise SystemExit(1)
-    actual = (json.loads(direct).get("vcs_info") or {}).get("commit_id", "")
+    direct_url = json.loads(direct)
+    vcs_info = direct_url.get("vcs_info")
+    if not vcs_info:
+        print(
+            f"error  installed ftwd is a local/editable install "
+            f"({direct_url.get('url')}), not the pinned commit {expected[:12]}"
+        )
+        raise SystemExit(1)
+    actual = vcs_info.get("commit_id", "")
     if not actual.startswith(expected):
         print(f"error  installed ftwd commit {actual[:12]} != pinned {expected[:12]}")
         raise SystemExit(1)

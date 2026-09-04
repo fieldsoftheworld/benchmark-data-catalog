@@ -145,7 +145,7 @@ def main() -> int:
         print("catalog.publish.yaml still carries template values:")
         for value in stale:
             print(f"  {value}")
-        print("\nEdit write_prefix and public_base, then see SETUP.md.")
+        print("\nEdit write_prefix and public_base, then see README.md.")
         return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
