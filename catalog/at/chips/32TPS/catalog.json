@@ -1,0 +1,47 @@
+{
+  "type": "Catalog",
+  "id": "32TPS",
+  "stac_version": "1.1.0",
+  "description": "Chips in MGRS 100 km square 32TPS",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-32TPS1294_2025/ftw-32TPS1294_2025.json",
+      "type": "application/geo+json",
+      "title": "ftw-32TPS1294_2025"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-32TPS1492_2025/ftw-32TPS1492_2025.json",
+      "type": "application/geo+json",
+      "title": "ftw-32TPS1492_2025"
+    },
+    {
+      "rel": "parent",
+      "href": "../../collection.json",
+      "type": "application/json",
+      "title": "Austria"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Square README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Square agent guide"
+    }
+  ],
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json"
+  ],
+  "title": "32TPS"
+}

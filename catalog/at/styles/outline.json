@@ -1,0 +1,35 @@
+{
+  "version": 8,
+  "name": "Field outlines",
+  "metadata": {
+    "description": "Every field in one colour with a thin outline; for reading the boundaries themselves."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": "#01665e",
+        "fill-opacity": 0.25
+      }
+    },
+    {
+      "id": "fields-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "#01665e",
+        "line-width": 0.8
+      }
+    }
+  ]
+}

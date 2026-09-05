@@ -1,0 +1,50 @@
+{
+  "version": 8,
+  "name": "Field coverage",
+  "metadata": {
+    "description": "Chips shaded light to dark by field_coverage_pct, with stops at the nice values nearest this collection's 20th/40th/60th/80th percentiles so each class holds a similar share of chips."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-coverage",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "step",
+          [
+            "get",
+            "field_coverage_pct"
+          ],
+          "#f7fcf5",
+          2,
+          "#c7e9c0",
+          10,
+          "#74c476",
+          30,
+          "#238b45",
+          50,
+          "#00441b"
+        ],
+        "fill-opacity": 0.8
+      }
+    },
+    {
+      "id": "chips-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.4)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

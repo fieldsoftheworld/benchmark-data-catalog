@@ -9,7 +9,7 @@ rather than a claim about the current state of `catalog/`.
 |---------|------|-------------|--------|--------|-------------------------|-------|---------------|---------------|-----------|
 | lu | 2026-09-05 | [`73142362`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/73142362) (PR [#60](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/60) head) | `lu/latest/lu.parquet` | 87,997 | 775 (601 / 79 / 95) | 2,325 | 7 (MGRS) | 92 MB | ~25 min through `stac` + ~1 min `docs`, on an M-series laptop |
 | si | 2026-09-05 | [`5f4a9191`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/5f4a9191) (PR [#61](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/61) head) | `si/latest/si.parquet` | 809,044 | 5,103 (4,078 / 512 / 513) | 15,309 | 7 (MGRS) | 1.5 GB | ~1 h 50 min through `stac` (batched coverage) + ~3 min `docs`; a 9 min masks rerun filled 2,298 masks lost to worker deaths (ftwd PR [#62](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/62)), on an M-series laptop |
-| at | building | | | | | | | | |
+| at | 2026-09-05 | [`5f4a9191`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/5f4a9191) build, [`74d0b341`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/74d0b341) masks rerun (PR [#62](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/62)) | `at/latest/at.parquet` | 2,944,405 (656,619 after `filters/at.yaml`) | 11,242 (9,018 / 1,153 / 1,071) | 33,726 | 24 (MGRS) | 2.2G | ~1 h 57 min through `stac` (batched coverage) + ~3 min `docs`; a 36 min masks rerun created 15,442 masks the first run lost (no instance masks: text ids; worker deaths), on an M-series laptop |
 
 ## Notes
 
