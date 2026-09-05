@@ -17,7 +17,8 @@ Resolution order for a relative href found in ``catalog/<rel_dir>/<doc>``:
 CI clones the metadata and not the bytes, because .gitignore keeps data out of
 git and staging/ is never checked out. Set CI_LIGHT=1 there: a href still
 missing after step 1 is *skipped* (counted, not checked against staging) when
-it is a ``rel: item`` link or a data-suffixed asset href — exactly the hrefs
+it is a ``rel: item`` link or a data-suffixed href (an asset, or a link such
+as ``rel: pmtiles``) — exactly the hrefs
 step 2 exists for. Every other missing href is still an error; CI_LIGHT never
 widens what structural links must resolve.
 
@@ -205,7 +206,7 @@ for path in documents:
         if not href or is_remote(href):
             continue
         status = resolve_href_status(
-            path, href, is_item=link.get("rel") == "item", is_data=False,
+            path, href, is_item=link.get("rel") == "item", is_data=is_data_href(href),
             base=BASE, staging=STAGING, ci_light=CI_LIGHT,
         )
         if status == "skip":
