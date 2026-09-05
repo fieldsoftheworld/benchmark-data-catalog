@@ -16,7 +16,7 @@ under `catalog/<id>/`.
 
 Run the gates before every commit:
 
-    python3 tests/run_all.py
+    uv run python tests/run_all.py
 
 ## Running the build and publish flow
 

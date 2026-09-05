@@ -32,3 +32,22 @@ locally and in CI: it resolves a `rel: item` link or other data-suffixed href
 against `staging/` when present, and under `CI_LIGHT=1` skips (counts, does
 not fail on) one still missing after that, since CI never checks out the data
 those hrefs point at.
+
+## stac-check exemption
+
+`tests/test_stac_valid.py` exempts one known stac-check failure: stac-validator
+hardcodes the JSON Schema 2020-12 dialect and ignores the `$schema` a schema
+declares. The Portolan profile schema is draft-07 and uses draft-07's tuple
+form of `items` in `valid_bbox`; under 2020-12 that keyword takes a single
+schema, so stac-validator hands a list to code expecting an object and raises
+`'list' object has no attribute 'get'`. The schema itself is correct draft-07
+and rashid validates it cleanly, so nothing on the Portolan side is wrong.
+Tracked upstream at https://github.com/stac-utils/stac-check/issues/159.
+
+The exemption is narrow — that exact message, and only when the failing
+schema is a Portolan profile schema — and self-expiring: the gate installs
+stac-check unpinned and fails once the crash stops happening on an object it
+can reach (a Collection or Feature that declares a Portolan extension), since
+that means the next stac-check release fixed the dialect handling and the
+exemption has outlived its bug. When that happens, delete the exemption from
+`tests/test_stac_valid.py` and this section together.
