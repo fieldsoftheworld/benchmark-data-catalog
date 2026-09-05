@@ -1026,6 +1026,30 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
 
+# --- a failed mirror write leaves no temp file and keeps the original ---------
+with tempfile.TemporaryDirectory() as tmp:
+    staging = Path(tmp) / "staging"
+    (staging / "lu").mkdir(parents=True)
+    build_items_parquet(staging / "lu" / "items.parquet")
+    before = (staging / "lu" / "items.parquet").read_bytes()
+    real_write = catalogize.pq.write_table
+
+    def _boom(*_a, **_k):
+        raise OSError("disk full")
+
+    catalogize.pq.write_table = _boom
+    try:
+        raised = False
+        try:
+            catalogize.rewrite_items_parquet("lu", staging=staging)
+        except OSError:
+            raised = True
+    finally:
+        catalogize.pq.write_table = real_write
+    check(raised, "a failing mirror write propagates the error")
+    check(not (staging / "lu" / "items.parquet.tmp").exists(), "no stray items.parquet.tmp after a failed write")
+    check((staging / "lu" / "items.parquet").read_bytes() == before, "the original mirror is untouched after a failed write")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)

@@ -346,7 +346,11 @@ def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
         table = table.replace_schema_metadata(schema.metadata)
 
     tmp_path = path.with_name(path.name + ".tmp")
-    pq.write_table(table, str(tmp_path))
+    try:
+        pq.write_table(table, str(tmp_path))
+    except BaseException:
+        tmp_path.unlink(missing_ok=True)
+        raise
     os.replace(tmp_path, path)
     return path
 
