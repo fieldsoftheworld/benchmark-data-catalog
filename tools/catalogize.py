@@ -25,6 +25,7 @@ those stay bucket-only, uploaded by ``tools/upload_data.py``.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from datetime import UTC, datetime
@@ -53,6 +54,10 @@ _SQUARE_RE = re.compile(r"^ftw-(?P<square>.+?)\d{4}(_|$)")
 # catalog/AGENTS.md and catalog/llms.txt.
 _MARK_START = "<!-- collections:start -->"
 _MARK_END = "<!-- collections:end -->"
+
+# The only document types rewrite_staging_items touches. Anything else under
+# staging/<id>/chips/ is not ftwd's own output and is left alone.
+_STAC_TYPES = {"Feature", "Catalog", "Collection"}
 
 
 # --- copying the git-owned slice of staging into the catalog --------------
@@ -118,17 +123,28 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
     first means the copy is already correct, so the git-owned-wins rule in
     ``upload_data.py`` skips a byte-identical staged copy rather than a
     differing one.
+
+    A JSON file under ``chips/`` that is not a dict with a STAC ``type``
+    (``Feature``, ``Catalog`` or ``Collection``) is not ftwd's own output and
+    is skipped rather than rewritten or made to error; the number skipped is
+    printed as a note.
     """
     chips_root = staging / dataset_id / "chips"
     touched = []
+    skipped = 0
     if not chips_root.is_dir():
         return touched
     for path in sorted(chips_root.rglob("*.json")):
-        rel = path.relative_to(staging / dataset_id)
         doc = read_json(path)
+        if not isinstance(doc, dict) or doc.get("type") not in _STAC_TYPES:
+            skipped += 1
+            continue
+        rel = path.relative_to(staging / dataset_id)
         rewrite_root_links(doc, depth=len(rel.parts))
         write_json(path, doc)
         touched.append(path)
+    if skipped:
+        print(f"note   rewrite_staging_items: skipped {skipped} non-STAC JSON file(s) under {chips_root}")
     return touched
 
 
@@ -169,34 +185,59 @@ def _rewrite_item_links(dataset_id: str, square: str, links: list[dict]) -> list
     return new_links
 
 
-def _rewrite_item_assets(dataset_id: str, item_id: str, square: str, assets):
+def _rewrite_item_assets(dataset_id: str, item_id: str, square: str, assets: dict) -> dict:
     """Rewrite every ``./file`` asset href to its public URL.
 
-    ``assets`` comes straight out of ``Column.to_pylist()`` and is either a
-    dict (a struct column) or a list of ``(key, value)`` pairs (a map
-    column); the same shape is returned so ``pa.array(..., type=...)`` can
-    rebuild the column against the original schema.
+    ``assets`` is a struct-of-structs, the shape rustac writes: a fixed set
+    of asset keys (e.g. ``instance_mask``) shared by every row, with a value
+    of ``None`` where that row has no such asset. A ``None`` asset is passed
+    through unchanged.
     """
     prefix = f"{dataset_id}/chips/{square}/{item_id}"
-    is_map = not isinstance(assets, dict)
-    pairs = assets if is_map else assets.items()
-    new_pairs = []
-    for key, asset in pairs:
+    new_assets = {}
+    for key, asset in assets.items():
         href = (asset or {}).get("href", "")
         if href.startswith("./"):
             asset = {**asset, "href": public_url(f"{prefix}/{href[2:]}")}
-        new_pairs.append((key, asset))
-    return new_pairs if is_map else dict(new_pairs)
+        new_assets[key] = asset
+    return new_assets
+
+
+def _geoparquet_metadata(existing: dict | None, *, geometry_column: str = "geometry") -> dict:
+    """Schema metadata with a GeoParquet 1.1 ``geo`` key added, everything else kept.
+
+    rustac writes ``geometry`` as WKB with Parquet's own ``GEOMETRY`` logical
+    type and no GeoParquet ``geo`` key; DuckDB reads that column as
+    ``GEOMETRY('OGC:CRS84')`` on the strength of that logical type alone.
+    pyarrow has no API for writing that logical type, so a plain
+    ``pq.write_table`` of a table read back with pyarrow silently downgrades
+    the column to a binary blob — confirmed against a real ``rustac``-written
+    file, where DuckDB reports ``BLOB`` after such a round trip. Writing the
+    ``geo`` key is the fix: any GeoParquet-aware reader, DuckDB included,
+    recognizes the column as geometry from that key just as well as from the
+    Parquet logical type. No ``crs`` entry means OGC:CRS84, which is what
+    ftwd writes.
+    """
+    meta = dict(existing or {})
+    meta[b"geo"] = json.dumps(
+        {
+            "version": "1.1.0",
+            "primary_column": geometry_column,
+            "columns": {geometry_column: {"encoding": "WKB", "geometry_types": []}},
+        }
+    ).encode()
+    return meta
 
 
 def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
     """Rewrite ``staging/<id>/items.parquet`` links and asset hrefs to public URLs.
 
     Reads the table, transforms the ``links`` and ``assets`` columns as plain
-    Python objects, and writes back with the original schema (including
-    ``schema.metadata``, which carries the GeoParquet ``geo`` key) — simpler
-    and safer than reconstructing the file through DuckDB's ``COPY``, which
-    would need the GeoParquet metadata re-attached by hand.
+    Python objects, and writes back with the original schema — simpler and
+    safer than reconstructing the file through DuckDB's ``COPY``. Existing
+    schema metadata is kept, and a GeoParquet ``geo`` key is added (see
+    ``_geoparquet_metadata``) so the ``geometry`` column stays recognizable
+    as geometry after the pyarrow round trip.
     """
     path = staging / dataset_id / "items.parquet"
     table = pq.read_table(path)
@@ -220,7 +261,10 @@ def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
     table = table.set_column(
         schema.get_field_index("assets"), assets_field, pa.array(new_assets, type=assets_field.type)
     )
-    table = table.replace_schema_metadata(schema.metadata)
+    if "geometry" in schema.names:
+        table = table.replace_schema_metadata(_geoparquet_metadata(schema.metadata))
+    else:
+        table = table.replace_schema_metadata(schema.metadata)
 
     pq.write_table(table, str(path))
     return path
@@ -461,8 +505,10 @@ def _replace_between_markers(path: Path, content: str) -> None:
 def regenerate_root(manifest: dict, *, catalog: Path = CATALOG, staging: Path = STAGING) -> list[Path]:
     """Regenerate the root catalog's child links and the root docs' tables.
 
-    Keeps every non-``child`` link in ``catalog/catalog.json`` exactly as it
-    is; rebuilds only the ``child`` links, sorted by dataset id. Sets
+    Keeps every fixed link in ``catalog/catalog.json`` exactly as it is;
+    rebuilds the ``child`` links, sorted by dataset id, and drops any
+    ``rel: self`` link — Portolan forbids self links, and a hand-edit or an
+    older ftwd is the only way one would appear here. Sets
     ``stac_extensions`` to the Portolan schema URI the pinned ftwd writes and
     ``version`` from the manifest. Fills the marker-delimited ``##
     Collections`` tables in ``catalog/README.md`` and ``catalog/AGENTS.md``,
@@ -472,7 +518,9 @@ def regenerate_root(manifest: dict, *, catalog: Path = CATALOG, staging: Path = 
     doc = read_json(root_path)
     collections = _built_collections(catalog)
 
-    doc["links"] = [link for link in doc["links"] if link.get("rel") != "child"] + _child_links(collections)
+    doc["links"] = [
+        link for link in doc["links"] if link.get("rel") not in ("child", "self")
+    ] + _child_links(collections)
     doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI]
     doc["version"] = manifest["catalog"]["version"]
     write_json(root_path, doc)

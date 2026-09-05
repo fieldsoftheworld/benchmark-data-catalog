@@ -2,10 +2,20 @@
 """catalogize: staging metadata to catalog, with published links.
 
 Builds a temp staging tree and a temp catalog tree by hand (an items.parquet
-written with pyarrow carrying absolute build-machine hrefs and a fake ``geo``
-metadata key, a chips parquet with a ``split`` column, a fields parquet), and
-runs ``catalogize.catalogize()`` and ``catalogize.regenerate_root()`` against
-them. No network, no AWS, no real ftwd run.
+written with pyarrow mimicking the actual shape rustac writes — struct-of-
+structs assets, links without a ``title`` field, a WKB ``geometry`` column,
+and NO GeoParquet ``geo`` key — plus a chips parquet with a ``split`` column
+and a fields parquet), and runs ``catalogize.catalogize()`` and
+``catalogize.regenerate_root()`` against them. No network, no AWS, no real
+ftwd run.
+
+The ``geometry`` column matters: rustac writes it with Parquet's own
+``GEOMETRY`` logical type and no ``geo`` key, which pyarrow cannot round-trip
+(confirmed against a real ``rustac``-written file — see
+``tools/catalogize.py``'s ``_geoparquet_metadata`` docstring), so
+``rewrite_items_parquet`` must add a ``geo`` key itself. This gate proves that
+with DuckDB: ``typeof(geometry)`` must still start with ``GEOMETRY`` after the
+rewrite, not fall back to ``BLOB``.
 
 ``catalogize._load_recipe()`` is not parameterized: it always reads the real
 ``datasets/<id>.yaml`` in this repository. So the dataset ids used here are
@@ -17,11 +27,13 @@ are temporary.
 Run: python3 tests/test_catalogize.py
 """
 import json
+import struct
 import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -44,12 +56,42 @@ def write_json(path: Path, doc: dict) -> None:
     path.write_text(json.dumps(doc, indent=2) + "\n")
 
 
-LINK_TYPE = pa.struct(
-    [("href", pa.string()), ("rel", pa.string()), ("type", pa.string()), ("title", pa.string())]
-)
+def wkb_point(x: float, y: float) -> bytes:
+    """A minimal little-endian WKB Point, the same encoding rustac writes."""
+    return struct.pack("<BIdd", 1, 1, x, y)
+
+
+def collect_hrefs(obj) -> list[str]:
+    """Every string found under an ``href`` key, anywhere in ``obj``."""
+    hrefs: list[str] = []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == "href" and isinstance(value, str):
+                hrefs.append(value)
+            else:
+                hrefs.extend(collect_hrefs(value))
+    elif isinstance(obj, (list, tuple)):
+        for item in obj:
+            hrefs.extend(collect_hrefs(item))
+    return hrefs
+
+
+# links: a list<struct<href, rel, type>> — no `title`, matching real rustac output.
+LINK_TYPE = pa.struct([("href", pa.string()), ("rel", pa.string()), ("type", pa.string())])
 LINKS_TYPE = pa.list_(LINK_TYPE)
-ASSET_TYPE = pa.struct([("href", pa.string()), ("type", pa.string()), ("title", pa.string())])
-ASSETS_TYPE = pa.map_(pa.string(), ASSET_TYPE)
+
+# assets: a struct-of-structs with a FIXED set of keys shared by every row
+# (real rustac output: instance_mask, semantic_2class_mask, ...), each
+# nullable for a row that doesn't have that asset. `file:size` mirrors a real
+# field name that would false-positive a naive `"file:" in json.dumps(...)`
+# scan for local paths, which is why the no-local-path check below only
+# scans href values.
+ASSET_TYPE = pa.struct([("href", pa.string()), ("type", pa.string()), ("file:size", pa.int64())])
+ASSETS_TYPE = pa.struct([("instance", ASSET_TYPE), ("image_w1", ASSET_TYPE)])
+
+GEOMETRY_FIELD = pa.field(
+    "geometry", pa.binary(), metadata={"ARROW:extension:name": "geoarrow.wkb"}
+)
 
 
 def build_items_parquet(path: Path) -> None:
@@ -59,53 +101,36 @@ def build_items_parquet(path: Path) -> None:
         {
             "id": "ftw-32UNA7238_2023",
             "links": [
-                {"href": f"{build_root}/collection.json", "rel": "root", "type": "application/json", "title": None},
-                {
-                    "href": f"{build_root}/collection.json",
-                    "rel": "collection",
-                    "type": "application/json",
-                    "title": None,
-                },
-                {
-                    "href": f"{build_root}/chips/32UNA/catalog.json",
-                    "rel": "parent",
-                    "type": "application/json",
-                    "title": None,
-                },
+                {"href": f"{build_root}/collection.json", "rel": "root", "type": "application/json"},
+                {"href": f"{build_root}/collection.json", "rel": "collection", "type": "application/json"},
+                {"href": f"{build_root}/chips/32UNA/catalog.json", "rel": "parent", "type": "application/json"},
                 {
                     "href": f"{build_root}/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023.json",
                     "rel": "self",
                     "type": "application/geo+json",
-                    "title": None,
                 },
             ],
-            "assets": [
-                (
-                    "instance",
-                    {"href": "./ftw-32UNA7238_2023_instance.tif", "type": "image/tiff", "title": "Instance mask"},
-                ),
-                (
-                    "image_w1",
-                    {"href": "./ftw-32UNA7238_2023_w1.tif", "type": "image/tiff", "title": "Window A image"},
-                ),
-            ],
+            "assets": {
+                "instance": {"href": "./ftw-32UNA7238_2023_instance.tif", "type": "image/tiff", "file:size": 1024},
+                "image_w1": {"href": "./ftw-32UNA7238_2023_w1.tif", "type": "image/tiff", "file:size": 2048},
+            },
+            "geometry": wkb_point(6.13, 49.61),
         },
         {
             # An id that does not match the ftw-<square><4 digits> pattern: the
-            # square must fall back to the parent link's directory name.
+            # square must fall back to the parent link's directory name. Also
+            # has no `image_w1` asset (None), the way a chip without imagery
+            # selected would look in a real struct-of-structs column.
             "id": "oddball-item",
             "links": [
-                {"href": f"{build_root}/collection.json", "rel": "root", "type": "application/json", "title": None},
-                {
-                    "href": f"{build_root}/chips/99ZZZ/catalog.json",
-                    "rel": "parent",
-                    "type": "application/json",
-                    "title": None,
-                },
+                {"href": f"{build_root}/collection.json", "rel": "root", "type": "application/json"},
+                {"href": f"{build_root}/chips/99ZZZ/catalog.json", "rel": "parent", "type": "application/json"},
             ],
-            "assets": [
-                ("instance", {"href": "./oddball-item_instance.tif", "type": "image/tiff", "title": "Instance mask"}),
-            ],
+            "assets": {
+                "instance": {"href": "./oddball-item_instance.tif", "type": "image/tiff", "file:size": 512},
+                "image_w1": None,
+            },
+            "geometry": wkb_point(6.5, 49.7),
         },
     ]
     table = pa.table(
@@ -113,9 +138,15 @@ def build_items_parquet(path: Path) -> None:
             "id": pa.array([r["id"] for r in rows], type=pa.string()),
             "links": pa.array([r["links"] for r in rows], type=LINKS_TYPE),
             "assets": pa.array([r["assets"] for r in rows], type=ASSETS_TYPE),
+            "geometry": pa.array([r["geometry"] for r in rows], type=GEOMETRY_FIELD.type),
         }
     )
-    table = table.replace_schema_metadata({b"geo": b'{"version": "1.0.0", "fake": true}'})
+    schema = table.schema.set(table.schema.get_field_index("geometry"), GEOMETRY_FIELD)
+    table = table.cast(schema)
+    # Real rustac output carries other schema metadata (e.g.
+    # stac:geoparquet_version) but no `geo` key — rewrite_items_parquet must
+    # add one without dropping what was already there.
+    table = table.replace_schema_metadata({b"stac:geoparquet_version": b"1.0.0"})
     pq.write_table(table, str(path))
 
 
@@ -199,6 +230,10 @@ def build_staging_lu(staging: Path) -> None:
             },
         },
     )
+    # A non-STAC JSON file under chips/: rewrite_staging_items must skip it
+    # rather than crash on it or inject a bogus "links" key into it.
+    write_json(root / "chips" / "32UNA" / "scratch.json", ["not", "a", "stac", "doc"])
+
     build_items_parquet(root / "items.parquet")
     build_chips_parquet(root / "lu_chips.parquet")
     build_fields_parquet(root / "lu_fields.parquet")
@@ -218,6 +253,8 @@ def build_catalog_root(catalog: Path) -> None:
                 {"rel": "agents", "href": "./AGENTS.md", "type": "text/markdown"},
                 {"rel": "llms", "href": "./llms.txt", "type": "text/plain"},
                 {"rel": "vcs", "href": "https://example.invalid/repo"},
+                # a stray self link: regenerate_root must strip it.
+                {"rel": "self", "href": "https://example.invalid/catalog.json"},
             ],
         },
     )
@@ -346,6 +383,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check(item_root["href"] == "../../../../catalog.json", "staging item root link at depth 4")
     check(not any(l["rel"] == "self" for l in item_doc["links"]), "staging item has no self link")
 
+    # --- non-STAC JSON under chips/ is skipped, not rewritten or crashed on ---
+    scratch = json.loads((staging / "lu" / "chips" / "32UNA" / "scratch.json").read_text())
+    check(scratch == ["not", "a", "stac", "doc"], "a non-STAC JSON array under chips/ is left untouched")
+
     # --- README carries the FTW 1.0 section with computed numbers ---
     readme = (lu_dir / "README.md").read_text()
     check("## Compared with Fields of the World 1.0" in readme, "FTW 1.0 section present")
@@ -354,6 +395,8 @@ with tempfile.TemporaryDirectory() as tmp:
     check("`10` fields" in readme, "computed field count (10) appears in the FTW 1.0 section")
     check("`808` chips" in readme, "the FTW 1.0 chip count (808) appears verbatim from the manifest")
 
+    agents_text1 = (lu_dir / "AGENTS.md").read_text()
+
     # --- llms.txt written with public URLs ---
     llms = (lu_dir / "llms.txt").read_text()
     check(public_url("lu/collection.json") in llms, "llms.txt links the collection")
@@ -361,17 +404,42 @@ with tempfile.TemporaryDirectory() as tmp:
     check(public_url("lu/lu_chips.parquet") in llms, "llms.txt links the chips parquet")
     check(public_url("lu/chips.pmtiles") in llms, "llms.txt links the pmtiles")
 
-    # --- items.parquet: public URLs, no local paths, geo metadata kept, rows equal ---
+    # --- items.parquet: public URLs, no local paths, GeoParquet typing kept, rows equal ---
     table = pq.read_table(staging / "lu" / "items.parquet")
     check(table.num_rows == 2, "items.parquet row count unchanged")
-    check(table.schema.metadata.get(b"geo") == b'{"version": "1.0.0", "fake": true}', "geo metadata preserved")
-    blob = json.dumps(
-        {"links": table.column("links").to_pylist(), "assets": table.column("assets").to_pylist()}
+
+    # Existing schema metadata is kept, and a `geo` key is added (rustac
+    # writes no `geo` key at all; without one, DuckDB reads `geometry` as a
+    # plain BLOB after the pyarrow round trip instead of GEOMETRY).
+    check(
+        table.schema.metadata.get(b"stac:geoparquet_version") == b"1.0.0",
+        "pre-existing schema metadata (stac:geoparquet_version) is preserved",
     )
-    check("/private/" not in blob, "no /private/ path survives in items.parquet")
-    check("/Users/" not in blob, "no /Users/ path survives in items.parquet")
-    check("/tmp/" not in blob, "no /tmp/ path survives in items.parquet")
-    check("file:" not in blob, "no file: URL survives in items.parquet")
+    geo_meta = json.loads(table.schema.metadata.get(b"geo") or b"{}")
+    check(geo_meta.get("primary_column") == "geometry", "geo metadata names the geometry column")
+    check(
+        geo_meta.get("columns", {}).get("geometry", {}).get("encoding") == "WKB",
+        "geo metadata declares WKB encoding",
+    )
+
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial;")
+    items_path = staging / "lu" / "items.parquet"
+    geom_type = con.execute(f"SELECT typeof(geometry) FROM read_parquet('{items_path}') LIMIT 1").fetchone()[0]
+    check(geom_type.startswith("GEOMETRY"), f"DuckDB reads geometry as a GEOMETRY type, got {geom_type!r}")
+    xmin = con.execute(f"SELECT ST_XMin(geometry) FROM read_parquet('{items_path}') LIMIT 1").fetchone()[0]
+    check(isinstance(xmin, float), f"ST_XMin(geometry) returns a number, got {xmin!r}")
+
+    # The no-local-path check scans href VALUES only: a struct field literally
+    # named `file:size` would false-positive a naive "file:" substring search
+    # over the whole dumped structure.
+    href_values = collect_hrefs(table.column("links").to_pylist()) + collect_hrefs(
+        table.column("assets").to_pylist()
+    )
+    check(all("/private/" not in h for h in href_values), "no /private/ path survives in any href")
+    check(all("/Users/" not in h for h in href_values), "no /Users/ path survives in any href")
+    check(all("/tmp/" not in h for h in href_values), "no /tmp/ path survives in any href")
+    check(all("file:" not in h for h in href_values), "no file: URL survives in any href")
 
     rows = {r["id"]: r for r in [dict(id=i, links=l, assets=a) for i, l, a in zip(
         table.column("id").to_pylist(), table.column("links").to_pylist(), table.column("assets").to_pylist()
@@ -424,8 +492,8 @@ with tempfile.TemporaryDirectory() as tmp:
     readme2 = (lu_dir / "README.md").read_text()
     check(readme2 == readme, "README.md is byte-identical on rerun (no duplicated FTW 1.0 section)")
 
-    for name in ("AGENTS.md", "llms.txt"):
-        check((lu_dir / name).read_text() == (lu_dir / name).read_text(), f"{name} stable on rerun")
+    check((lu_dir / "AGENTS.md").read_text() == agents_text1, "AGENTS.md stable on rerun")
+    check((lu_dir / "llms.txt").read_text() == llms, "llms.txt stable on rerun")
 
     for rel in ("chips/32UNA/catalog.json",):
         check(
@@ -451,6 +519,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check(root_doc["version"] == "2.0.0-test", "root catalog version set from the manifest")
     fixed_rels = {l["rel"] for l in root_doc["links"] if l["rel"] != "child"}
     check(fixed_rels == {"root", "describedby", "agents", "llms", "vcs"}, "fixed root links are kept as they were")
+    check(not any(l["rel"] == "self" for l in root_doc["links"]), "regenerate_root strips a stray self link")
 
     root_readme = (catalog / "README.md").read_text()
     check("| lu | Luxembourg |" in root_readme, "root README collections table lists lu")
