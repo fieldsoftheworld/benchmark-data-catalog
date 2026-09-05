@@ -20,6 +20,7 @@ experimentation only, never for a build meant to be committed or uploaded.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -124,6 +125,25 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def subprocess_env() -> dict[str, str]:
+    """The environment ftwd runs with.
+
+    python.org and uv-managed interpreters may have no OpenSSL CA bundle
+    installed, in which case every https fetch fails with
+    CERTIFICATE_VERIFY_FAILED. When the caller has not configured one,
+    point OpenSSL at certifi's bundle, which the environment always carries.
+    """
+    env = dict(os.environ)
+    if not env.get("SSL_CERT_FILE") and not env.get("SSL_CERT_DIR"):
+        try:
+            import certifi
+
+            env["SSL_CERT_FILE"] = certifi.where()
+        except ImportError:
+            pass
+    return env
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
@@ -139,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
         ),
         cwd=ROOT,
+        env=subprocess_env(),
         check=False,
     )
 

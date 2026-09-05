@@ -11,6 +11,7 @@ is run here at all -- the real invocation is exercised by hand with
 Run: python3 tests/test_build.py
 """
 import io
+import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -132,6 +133,11 @@ finally:
     build.subprocess.run = _real_run
 check(_recorded.get("kwargs", {}).get("cwd") == build.ROOT, "ftwd runs with cwd=ROOT")
 check(_recorded.get("cmd", [None])[0] == "ftwd", "the recorded command is ftwd")
+check(
+    bool(_recorded.get("kwargs", {}).get("env", {}).get("SSL_CERT_FILE"))
+    or bool(os.environ.get("SSL_CERT_DIR")),
+    "ftwd runs with a CA bundle configured (certifi when the env has none)",
+)
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
