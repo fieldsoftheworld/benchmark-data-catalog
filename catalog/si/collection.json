@@ -1,0 +1,689 @@
+{
+  "type": "Collection",
+  "id": "si",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Slovenia cut from the harmonized field boundary collection for Slovenia (edition 2024).\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://rkg.gov.si/vstop/",
+      "title": "License"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/si",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TUL/catalog.json",
+      "type": "application/json",
+      "title": "33TUL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TUM/catalog.json",
+      "type": "application/json",
+      "title": "33TUM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TVL/catalog.json",
+      "type": "application/json",
+      "title": "33TVL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TVM/catalog.json",
+      "type": "application/json",
+      "title": "33TVM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TWL/catalog.json",
+      "type": "application/json",
+      "title": "33TWL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TWM/catalog.json",
+      "type": "application/json",
+      "title": "33TWM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TXM/catalog.json",
+      "type": "application/json",
+      "title": "33TXM"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "planting_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Planting season imagery"
+    },
+    "harvest_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Harvest season imagery"
+    },
+    "thumbnail": {
+      "type": "image/jpeg",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "updated": "2026-09-05T15:24:57Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:cloud_cover_chip_threshold": 2.0,
+  "ftw:nodata_max": 0.0,
+  "ftw:buffer_days": 14,
+  "ftw:num_buffer_expansions": 3,
+  "ftw:buffer_expansion_size": 14,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "5f4a9191bea05fd45e4e69ad0a5234bf2284b85b",
+    "config_schema_version": 1,
+    "generated_at": "2026-09-05T13:31:37.456870+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/si/collection.json",
+      "sha256": "da4920840c145f113ba9ca441d49c46aed96f70349050fe16ce0b1bf48b83c61",
+      "size": 250283960,
+      "fetched_at": null
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet",
+      "output_dir": "staging/si",
+      "name": "si",
+      "year": 2024,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/si/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": false,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": null
+        },
+        "select_images": {
+          "enabled": true,
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 0.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14
+        },
+        "download_images": {
+          "enabled": false,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0
+        },
+        "stac": {
+          "checksums": false
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Slovenia",
+        "description": "Benchmark chips for Slovenia cut from the harmonized field boundary collection for Slovenia (edition 2024).\n",
+        "license": "other",
+        "license_url": "https://rkg.gov.si/vstop/",
+        "version": "2.0.0-alpha.1",
+        "attribution": "Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "slovenia"
+        ],
+        "providers": [
+          {
+            "name": "Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-kmetijstvo-gozdarstvo-in-prehrano/"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": null
+    }
+  },
+  "title": "Slovenia",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          13.410659993139577,
+          45.42227046875209,
+          16.596303417885903,
+          46.87424125552634
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2024-01-01T00:00:00Z",
+          "2024-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "other",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "slovenia"
+  ],
+  "providers": [
+    {
+      "name": "Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-kmetijstvo-gozdarstvo-in-prehrano/"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./si_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 301925976,
+      "table:columns": [
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "ubigint"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+        }
+      ],
+      "table:row_count": 809044,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./si_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 301804924,
+      "table:columns": [
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "ubigint"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+        }
+      ],
+      "table:row_count": 809044,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./si_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 531751,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct(code bigint, name_en varchar, pct double)[]"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+        }
+      ],
+      "table:row_count": 5103,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 987038,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct(code bigint, name_en varchar, pct double)[]"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "links",
+          "type": "struct(href varchar, rel varchar, \"type\" varchar, title varchar)[]"
+        },
+        {
+          "name": "assets",
+          "type": "struct(instance_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), description varchar)[]), semantic_2class_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), \"classification:classes\" struct(\"value\" bigint, \"name\" varchar, description varchar)[])[]), semantic_3class_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), \"classification:classes\" struct(\"value\" bigint, \"name\" varchar, description varchar)[])[]))"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "bbox",
+          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 5103,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 1551041
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 131789674
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ]
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ]
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Slovenia \u2014 Chips by split"
+    }
+  }
+}

@@ -22,6 +22,7 @@ This is version 2.0 of the benchmark described in [Fields of The World
 | ID | Title | Chips | Splits (train/val/test) | License | Link |
 | --- | --- | --- | --- | --- | --- |
 | lu | Luxembourg | 775 | 601/79/95 | CC-BY-4.0 | [lu/](lu/) |
+| si | Slovenia | 5103 | 4078/512/513 | other | [si/](si/) |
 <!-- collections:end -->
 
 The first three (Austria, Slovenia, Luxembourg) are a reviewer sample and

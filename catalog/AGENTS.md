@@ -22,6 +22,7 @@ hrefs, so a model loader can select chips without walking item JSON.
 | ID | Title | Chips | Splits (train/val/test) | License | Link |
 | --- | --- | --- | --- | --- | --- |
 | lu | Luxembourg | 775 | 601/79/95 | CC-BY-4.0 | [lu/](lu/) |
+| si | Slovenia | 5103 | 4078/512/513 | other | [si/](si/) |
 <!-- collections:end -->
 
 None published yet.
