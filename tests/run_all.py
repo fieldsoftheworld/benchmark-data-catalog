@@ -18,6 +18,7 @@ TESTS = [
     "test_ftwd_pin.py",
     "test_build.py",
     "test_catalogize.py",
+    "test_thumbnails.py",
     "test_links.py",
     "test_publish.py",
     "test_upload_data.py",
