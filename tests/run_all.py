@@ -16,6 +16,7 @@ TESTS = [
     "test_manifest.py",
     "test_common.py",
     "test_ftwd_pin.py",
+    "test_build.py",
     "test_links.py",
     "test_publish.py",
     "test_upload_data.py",
