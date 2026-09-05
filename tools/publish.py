@@ -147,17 +147,18 @@ def unedited_sentinels(config: dict[str, str]) -> list[str]:
 
 
 def _is_item_json(parts: tuple[str, ...]) -> bool:
-    """True when ``parts`` places a file two directories below a chips square.
+    """True when ``parts`` places a file at least two directories below a square.
 
     A STAC Item lives at ``<id>/chips/<square>/<item>/<item>.json``: the
     segment right after ``chips`` is the square, the next is the item
-    directory, and the file itself sits inside that. ``chips/<square>/
-    catalog.json`` is one level shallower and does not match — it stays
-    plain JSON.
+    directory, and the file itself sits inside that. Anything deeper (an
+    imagery child item under the chip directory) is an Item too.
+    ``chips/<square>/catalog.json`` is one level shallower and does not
+    match — it stays plain JSON.
     """
     if "chips" not in parts:
         return False
-    return parts.index("chips") + 4 == len(parts)
+    return parts.index("chips") + 4 <= len(parts)
 
 
 def content_type_for(path: Path, *, rel: Path | None = None) -> str:

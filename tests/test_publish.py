@@ -166,6 +166,14 @@ check(
     "an item JSON two levels below the square is geo+json",
 )
 check(
+    content_type_for(
+        Path("c.json"),
+        rel=Path("lu/chips/32UNA/ftw-1/ftw-1_s2_2023-07/ftw-1_s2_2023-07.json"),
+    )
+    == "application/geo+json",
+    "an item JSON nested deeper below the square is geo+json too",
+)
+check(
     content_type_for(Path("x.json"), rel=Path("lu/chips/32UNA/catalog.json"))
     == "application/json",
     "a square's catalog.json is plain json, not an item",
