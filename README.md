@@ -15,10 +15,16 @@ the uploaders carry the bytes to the bucket.
 - `datasets/<id>.yaml` is the ftwd recipe for one dataset. Input is always a
   collection of the [harmonized field data catalog](https://source.coop/ftw/harmonized-field-data).
 - `catalog/` is published; `catalog/<id>/` holds one collection's metadata,
-  docs, styles and thumbnail. Item JSON and rasters are bucket-only.
-- `tools/` publishes (`publish.py`, `upload_data.py`); the build and
-  catalogize tools arrive with the first dataset.
+  docs, styles and thumbnail: `collection.json`, `README.md`, `AGENTS.md`,
+  `llms.txt`, `thumbnail.webp`, `styles/*.json`, and per chip square
+  `chips/<square>/{catalog.json,README.md,AGENTS.md}`. Item JSON, COGs,
+  imagery, `*.parquet` (including `items.parquet`) and `*.pmtiles` stay in
+  `staging/<id>/` and are bucket-only.
+- `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
+  (`publish.py`, `upload_data.py`).
 - `tests/run_all.py` runs every gate; CI runs it on every pull request.
+- `docs/build-log.md` records what each build actually did: ftwd commit,
+  counts, timing.
 
 ## Working on it
 
@@ -26,10 +32,45 @@ the uploaders carry the bytes to the bucket.
     uv run python tests/run_all.py     # gates
     uv run python tools/publish.py     # dry run; --confirm uploads catalog/
 
-Publishing needs `source-coop login` and the `source-coop` AWS profile.
-
 ftwd is pinned by git commit in `pyproject.toml` while its Portolan changes are
 in review; `tests/test_ftwd_pin.py` refuses a mismatch.
+
+Building needs [tippecanoe](https://github.com/felt/tippecanoe) on `PATH`
+(`tools/build.py`'s `docs` stage uses it for PMTiles and vector styles).
+
+See [Publishing](#publishing) below for `tools/upload_data.py` and
+`tools/publish.py`.
+
+## Publishing
+
+Two uploaders, run in this order once the gates pass:
+
+    uv run python tools/upload_data.py --confirm   # data: staging/<id>/ -> bucket
+    uv run python tools/publish.py --confirm        # metadata: catalog/ -> bucket
+
+`tools/upload_data.py` uploads files staged under `staging/<id>/` (item JSON,
+COGs, imagery, `*.parquet`, `*.pmtiles`), skipping any relative path that
+already exists under `catalog/<id>/` — the git-owned copy always wins.
+`tools/publish.py` walks `catalog/` only and has no flag that widens that.
+Both:
+
+- dry-run by default; `--confirm` to actually upload,
+- never delete — removing a file locally does not unpublish it,
+- retry proxy 5xxs, and refuse to run against the template's example
+  bucket/prefix/host sentinels,
+- compare local size+MD5 against the bucket listing to skip unchanged files
+  (`upload_data.py` falls back to size-only for multipart-uploaded, i.e.
+  large, objects); `--force` re-uploads everything, which is needed after a
+  content-type-only edit, since that's invisible to change detection.
+
+Content types follow STAC/web convention: item JSON and other GeoJSON as
+`application/geo+json`, styles as `application/vnd.mapbox.style+json`, COGs as
+`image/tiff; application=geotiff; profile=cloud-optimized`, PMTiles as
+`application/vnd.pmtiles`, Parquet as `application/vnd.apache.parquet`.
+
+Needs `source-coop login` and the `source-coop` AWS profile; the endpoint is
+read from `catalog.publish.yaml`. Only run `--confirm` with the maintainer's
+say-so — it's a real upload to the published bucket.
 
 ## Thumbnails
 
@@ -57,7 +98,39 @@ background) before it's written and registered as the collection's
 1. Add the id under `datasets:` in `datasets.yaml`.
 2. Write `datasets/<id>.yaml` with attested license and providers copied from
    the harmonized collection.
-3. Build, catalogize, run the gates, commit, upload, publish (see `tools/`).
+3. Build the metadata, then the docs. ftwd runs its `docs` stage after the
+   imagery stages, so a `--through stac` build (imagery not downloaded yet)
+   needs a second, `--only docs` call to write the collection's README,
+   AGENTS.md and styles:
+
+       uv run python tools/build.py <id> --through stac
+       uv run python tools/build.py <id> --only docs
+
+4. Copy the built collection into `catalog/` and regenerate the root
+   (`--root` is needed whenever a dataset is added or removed):
+
+       uv run python tools/catalogize.py <id> --root
+
+5. Render the thumbnail — see [Thumbnails](#thumbnails):
+
+       tools/chiitiler.sh &
+       uv run python tools/thumbnail.py <id>
+
+6. Gate, commit, and publish — see [Publishing](#publishing):
+
+       uv run python tests/run_all.py
+       git commit -am "Add <id>"
+       uv run python tools/upload_data.py --confirm
+       uv run python tools/publish.py --confirm
+
+7. If the recipe downloads imagery, that's a second pass once selection is
+   ready — rebuild from `select_images`, regenerate docs and the catalog copy,
+   and upload again (no `--root`; the dataset already exists):
+
+       uv run python tools/build.py <id> --from select_images
+       uv run python tools/build.py <id> --only docs
+       uv run python tools/catalogize.py <id>
+       uv run python tools/upload_data.py --confirm
 
 ## Version
 
