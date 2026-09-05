@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     if result.returncode == 0:
         staging_dir = (STAGING / args.dataset_id).relative_to(ROOT)
         print(f"\n{staging_dir}/")
-        print(f"{staging_dir / 'summary.md'}")
+        print(f"{staging_dir / 'ftwd-config.resolved.yaml'}")
 
     return result.returncode
 
