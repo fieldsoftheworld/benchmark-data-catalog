@@ -40,6 +40,8 @@ stages:
     resolution: 10.0
     workers: null
     presence_only: false
+    # Reuse non-empty mask files on rerun so a repeated masks stage only fills gaps.
+    skip_existing: true
   stac:
     checksums: false
   select_images:
