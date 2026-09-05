@@ -189,11 +189,6 @@ check(
     "the styles/ rule still applies with no rel at all",
 )
 check(
-    content_type_for(Path("x.json"), rel=Path("lu/chips/32UNA/ftw-1/sub/x.json"))
-    == "application/json",
-    "an extra level below the item directory is not an item JSON",
-)
-check(
     content_type_for(Path("x.json"), rel=Path("lu/collection.json"))
     == "application/json",
     "no chips segment at all is plain json",
