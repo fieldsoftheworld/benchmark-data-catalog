@@ -41,6 +41,15 @@ from common import CATALOG, ROOT, STAGING, public_url, read_json, write_json  # 
 
 from ftw_dataset_tools.api.stac import PORTOLAN_SCHEMA_URI  # noqa: E402
 
+# The STAC version extension, required (PTL-CNF-003) whenever a document uses
+# a top-level `version` property.
+VERSION_EXTENSION_URI = "https://stac-extensions.github.io/version/v1.2.0/schema.json"
+
+# The web-map-links extension, required (PTL-VIZ-003) whenever a collection
+# carries a rel:'pmtiles' link.
+_WEB_MAP_LINKS_PREFIX = "https://stac-extensions.github.io/web-map-links/"
+WEB_MAP_LINKS_URI = f"{_WEB_MAP_LINKS_PREFIX}v1.3.0/schema.json"
+
 # Files copied verbatim from staging/<id>/ to catalog/<id>/, plus the two glob
 # patterns below (styles/*.json, chips/*/catalog.json). Everything else under
 # staging/<id>/ is data: bucket-only, never committed.
@@ -59,6 +68,13 @@ _MARK_END = "<!-- collections:end -->"
 # staging/<id>/chips/ is not ftwd's own output and is left alone.
 _STAC_TYPES = {"Feature", "Catalog", "Collection"}
 
+# A `source_via` pointing at a harmonized-collection JSON endpoint on
+# data.source.coop, matched so PTL-PRO-001's via link can be rewritten to the
+# human-readable page at the equivalent source.coop path.
+_DATA_SOURCE_COOP_RE = re.compile(
+    r"^https://data\.source\.coop/(?P<org>[^/]+)/(?P<repo>[^/]+)/(?P<id>[^/]+)/collection\.json$"
+)
+
 
 # --- copying the git-owned slice of staging into the catalog --------------
 
@@ -71,12 +87,40 @@ def _committed_relpaths(dataset_root: Path) -> list[Path]:
     return rels
 
 
+def _thumbnail_asset(doc: dict) -> tuple[str, dict] | None:
+    """The ``(key, asset)`` pair with role ``thumbnail``, if any."""
+    for key, asset in (doc.get("assets") or {}).items():
+        if "thumbnail" in (asset.get("roles") or []):
+            return key, asset
+    return None
+
+
+def _copy_collection_preserving_thumbnail(src: Path, dst: Path) -> None:
+    """Copy ``collection.json``, carrying over an existing thumbnail asset.
+
+    ``tools/thumbnail.py`` adds a ``role: thumbnail`` asset straight to the
+    published ``catalog/<id>/collection.json`` — staging's copy never has
+    one. A plain overwrite here would silently drop that asset on every
+    ``catalogize`` rerun, so when the catalog copy already carries a
+    thumbnail and the fresh staging copy does not, it is carried forward.
+    """
+    doc = read_json(src)
+    if dst.is_file():
+        existing_thumbnail = _thumbnail_asset(read_json(dst))
+        if existing_thumbnail and not _thumbnail_asset(doc):
+            key, asset = existing_thumbnail
+            doc.setdefault("assets", {})[key] = asset
+    write_json(dst, doc)
+
+
 def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG) -> list[Path]:
     """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<id>``.
 
     Returns the catalog-side paths written. Only ``COMMITTED`` and the two
     glob patterns (``styles/*.json``, ``chips/*/catalog.json``) are copied;
-    item directories and every data file stay in staging.
+    item directories and every data file stay in staging. ``collection.json``
+    is special-cased to preserve an existing thumbnail asset — see
+    ``_copy_collection_preserving_thumbnail``.
     """
     src_root = staging / dataset_id
     dst_root = catalog / dataset_id
@@ -84,7 +128,10 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
     for rel in _committed_relpaths(src_root):
         dst = dst_root / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes((src_root / rel).read_bytes())
+        if rel == Path("collection.json"):
+            _copy_collection_preserving_thumbnail(src_root / rel, dst)
+        else:
+            dst.write_bytes((src_root / rel).read_bytes())
         written.append(dst)
     return written
 
@@ -306,6 +353,79 @@ def _ensure_via(doc: dict, recipe: dict) -> None:
         links.append({"rel": "via", "href": source_via, "type": "application/json", "title": "Source collection"})
 
 
+def _rewrite_via_link(doc: dict) -> None:
+    """PTL-PRO-001: a ``via`` link must have type ``text/html``, a browsable page.
+
+    Recipes point ``source_via`` at the harmonized collection's JSON endpoint
+    on data.source.coop, not a page. When the href matches that exact shape,
+    it is rewritten to the human-readable page at the equivalent
+    ``source.coop/<org>/<repo>/<id>`` path; any other via href is left as is
+    apart from the type. Idempotent: a href already rewritten to the
+    source.coop page no longer matches the data.source.coop pattern, so a
+    second run only re-confirms the type.
+    """
+    links = doc.get("links", [])
+    for i, link in enumerate(links):
+        if link.get("rel") != "via":
+            continue
+        match = _DATA_SOURCE_COOP_RE.match(link.get("href", ""))
+        if match:
+            links[i] = {
+                **link,
+                "href": "https://source.coop/{org}/{repo}/{id}".format(**match.groupdict()),
+                "type": "text/html",
+                "title": "Source field boundary collection",
+            }
+        else:
+            links[i] = {**link, "type": "text/html"}
+
+
+def _ensure_parent_link(doc: dict) -> None:
+    """PTL-LNK-001: the collection needs a ``rel: parent`` link to the root catalog."""
+    links = doc.setdefault("links", [])
+    if any(link.get("rel") == "parent" for link in links):
+        return
+    links.append({"rel": "parent", "href": "../catalog.json", "type": "application/json"})
+
+
+def _ensure_pmtiles_links(doc: dict) -> None:
+    """PTL-VIZ-003: every PMTiles asset also needs a matching ``rel: pmtiles`` link.
+
+    The link also needs a ``pmtiles:layers`` array of the default-visible
+    vector tile layers. ftwd names a PMTiles asset ``<layer>_tiles`` (e.g.
+    ``chips_tiles`` for the ``chips`` layer, confirmed against the
+    ``source-layer`` a real style file references), so the layer name is
+    derived from the asset key. Once any ``rel: pmtiles`` link exists, the
+    web-map-links extension it requires is declared in ``stac_extensions``.
+    Idempotent by ``(rel, href)``: rerunning never adds a second link for the
+    same PMTiles asset, nor a duplicate extension entry.
+    """
+    links = doc.setdefault("links", [])
+    existing = {(link.get("rel"), link.get("href")) for link in links}
+    for key, asset in (doc.get("assets") or {}).items():
+        if asset.get("type") != "application/vnd.pmtiles":
+            continue
+        href = asset.get("href")
+        if ("pmtiles", href) in existing:
+            continue
+        layer = key[: -len("_tiles")] if key.endswith("_tiles") else key
+        links.append(
+            {
+                "rel": "pmtiles",
+                "href": href,
+                "type": "application/vnd.pmtiles",
+                "title": asset.get("title"),
+                "pmtiles:layers": [layer],
+            }
+        )
+        existing.add(("pmtiles", href))
+
+    if any(link.get("rel") == "pmtiles" for link in links):
+        extensions = doc.setdefault("stac_extensions", [])
+        if not any(isinstance(ext, str) and ext.startswith(_WEB_MAP_LINKS_PREFIX) for ext in extensions):
+            extensions.append(WEB_MAP_LINKS_URI)
+
+
 def _ensure_license_link(doc: dict, recipe: dict) -> None:
     if doc.get("license") != "other":
         return
@@ -376,19 +496,24 @@ def enrich_collection(
 ) -> list[Path]:
     """Enrich the just-copied ``catalog/<id>/collection.json`` (and README.md).
 
-    Fixes the collection's own ``root`` link (depth 1), appends the host
-    provider once, fills in ``version`` and ``updated``, ensures a ``via``
-    link and — for an "other" license — a ``license`` link exist, and, when
-    the manifest carries an ``ftw1`` block for this dataset, appends the FTW
-    1.0 comparison to README.md.
+    Fixes the collection's own ``root`` link (depth 1), adds a ``parent``
+    link to the root catalog, appends the host provider once, fills in
+    ``version`` and ``updated``, ensures a ``via`` link (rewritten to a
+    browsable page, PTL-PRO-001) and — for an "other" license — a
+    ``license`` link exist, registers a ``rel: pmtiles`` link for every
+    PMTiles asset (PTL-VIZ-003), and, when the manifest carries an ``ftw1``
+    block for this dataset, appends the FTW 1.0 comparison to README.md.
     """
     collection_path = catalog / dataset_id / "collection.json"
     doc = read_json(collection_path)
     rewrite_root_links(doc, depth=1)
+    _ensure_parent_link(doc)
     _append_host_provider(doc, manifest)
     _ensure_version(doc, manifest)
     _ensure_via(doc, recipe)
+    _rewrite_via_link(doc)
     _ensure_license_link(doc, recipe)
+    _ensure_pmtiles_links(doc)
     doc["updated"] = _now_iso(now)
     write_json(collection_path, doc)
     written = [collection_path]
@@ -435,6 +560,105 @@ def write_llms(dataset_id: str, *, catalog: Path = CATALOG) -> Path:
     path = catalog / dataset_id / "llms.txt"
     path.write_text("\n".join(lines) + "\n")
     return path
+
+
+# --- enriching sub-catalogs: item titles, docs, describedby/agents links --
+
+
+def _add_item_titles(doc: dict) -> None:
+    """PTL-TTL-003: every ``rel: item`` link needs a ``title`` — the item id."""
+    for link in doc.get("links", []):
+        if link.get("rel") == "item":
+            link["title"] = Path(link["href"]).stem
+
+
+def _ensure_subcatalog_docs_links(doc: dict) -> None:
+    """PTL-FIL-001/002: the sub-catalog needs ``describedby``/``agents`` links."""
+    links = doc.setdefault("links", [])
+    existing_rels = {link.get("rel") for link in links}
+    if "describedby" not in existing_rels:
+        links.append(
+            {"rel": "describedby", "href": "./README.md", "type": "text/markdown", "title": "Square README"}
+        )
+    if "agents" not in existing_rels:
+        links.append(
+            {"rel": "agents", "href": "./AGENTS.md", "type": "text/markdown", "title": "Square agent guide"}
+        )
+
+
+def _subcatalog_readme(collection_title: str, square: str, n_chips: int) -> str:
+    plural = "chip" if n_chips == 1 else "chips"
+    return (
+        f"# {collection_title} — MGRS square {square}\n\n"
+        f"This square holds {n_chips} {plural} on the FTW grid. Each item carries the same "
+        "asset types as the rest of the collection — label masks and, where imagery was "
+        "downloaded, clipped scenes — see the [collection README](../../README.md) for what "
+        "every asset means.\n"
+    )
+
+
+def _subcatalog_agents(collection_title: str, square: str) -> str:
+    query = f"SELECT * FROM read_parquet('../../items.parquet') WHERE id LIKE 'ftw-{square}%';"
+    return (
+        f"# {collection_title} — MGRS square {square}\n\n"
+        "## Overview\n\n"
+        f"This is a sub-catalog of chips in MGRS 100 km square {square}. See the "
+        "[collection agent guide](../../AGENTS.md) for the full collection.\n\n"
+        "## Accessing the data\n\n"
+        "Query this square's items out of the collection's `items.parquet`, filtered on the "
+        "square prefix of the item id:\n\n"
+        f"```sql\n{query}\n```\n\n"
+        "## Schema & field notes\n\n"
+        "Every column and property is documented in the "
+        "[collection agent guide](../../AGENTS.md); nothing here is specific to this square.\n\n"
+        "## Data quality & usage notes\n\n"
+        "Every data quality note in the [collection agent guide](../../AGENTS.md) applies "
+        "equally to this square.\n\n"
+        "## Example queries\n\n"
+        "See the [collection agent guide](../../AGENTS.md) for worked examples against the "
+        "full collection; the query above scopes any of them to this square.\n\n"
+        "## Related collections\n\n"
+        "See the [collection agent guide](../../AGENTS.md) for related collections and the "
+        "source field boundary data.\n"
+    )
+
+
+def enrich_subcatalogs(
+    dataset_id: str, *, catalog: Path = CATALOG, staging: Path = STAGING, collection_title: str
+) -> list[Path]:
+    """Give every committed sub-catalog a title on each item link, and its own docs.
+
+    For each ``catalog/<id>/chips/<square>/catalog.json``: sets ``title`` on
+    every item link (PTL-TTL-003), adds ``describedby``/``agents`` links
+    (PTL-FIL-001/002), and writes ``README.md``/``AGENTS.md`` alongside it
+    (PTL-FIL-001/002/003). The same link edits are applied to the staging
+    copy too, so the two stay identical — the git-owned-wins rule in
+    ``upload_data.py`` then skips the staged copy rather than uploading a
+    differing one.
+    """
+    written = []
+    for sub_path in sorted((catalog / dataset_id / "chips").glob("*/catalog.json")):
+        square = sub_path.parent.name
+        doc = read_json(sub_path)
+        _add_item_titles(doc)
+        n_chips = sum(1 for link in doc.get("links", []) if link.get("rel") == "item")
+        _ensure_subcatalog_docs_links(doc)
+        write_json(sub_path, doc)
+        written.append(sub_path)
+
+        readme_path = sub_path.parent / "README.md"
+        readme_path.write_text(_subcatalog_readme(collection_title, square, n_chips))
+        written.append(readme_path)
+
+        agents_path = sub_path.parent / "AGENTS.md"
+        agents_path.write_text(_subcatalog_agents(collection_title, square))
+        written.append(agents_path)
+
+        staged_path = staging / dataset_id / "chips" / square / "catalog.json"
+        if staged_path.is_file():
+            write_json(staged_path, doc)
+
+    return written
 
 
 # --- the root catalog: child links and the marker-delimited tables --------
@@ -502,17 +726,21 @@ def _replace_between_markers(path: Path, content: str) -> None:
     path.write_text(f"{before}{_MARK_START}{middle}{_MARK_END}{after}")
 
 
-def regenerate_root(manifest: dict, *, catalog: Path = CATALOG, staging: Path = STAGING) -> list[Path]:
+def regenerate_root(
+    manifest: dict, *, catalog: Path = CATALOG, staging: Path = STAGING, now: datetime | None = None
+) -> list[Path]:
     """Regenerate the root catalog's child links and the root docs' tables.
 
     Keeps every fixed link in ``catalog/catalog.json`` exactly as it is;
     rebuilds the ``child`` links, sorted by dataset id, and drops any
     ``rel: self`` link — Portolan forbids self links, and a hand-edit or an
     older ftwd is the only way one would appear here. Sets
-    ``stac_extensions`` to the Portolan schema URI the pinned ftwd writes and
-    ``version`` from the manifest. Fills the marker-delimited ``##
-    Collections`` tables in ``catalog/README.md`` and ``catalog/AGENTS.md``,
-    and the collection list in ``catalog/llms.txt``.
+    ``stac_extensions`` to the Portolan schema URI plus the version extension
+    (PTL-CNF-003: required wherever a document carries a top-level
+    ``version``), ``version`` from the manifest, and stamps ``updated``
+    (PTL-PRO-003). Fills the marker-delimited ``## Collections`` tables in
+    ``catalog/README.md`` and ``catalog/AGENTS.md``, and the collection list
+    in ``catalog/llms.txt``.
     """
     root_path = catalog / "catalog.json"
     doc = read_json(root_path)
@@ -521,8 +749,9 @@ def regenerate_root(manifest: dict, *, catalog: Path = CATALOG, staging: Path = 
     doc["links"] = [
         link for link in doc["links"] if link.get("rel") not in ("child", "self")
     ] + _child_links(collections)
-    doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI]
+    doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI]
     doc["version"] = manifest["catalog"]["version"]
+    doc["updated"] = _now_iso(now)
     write_json(root_path, doc)
 
     rows = [_collection_row(dataset_id, coll, staging=staging) for dataset_id, coll in collections]
@@ -560,6 +789,8 @@ def catalogize(
     written += enrich_collection(
         dataset_id, catalog=catalog, staging=staging, manifest=manifest, recipe=recipe, now=now
     )
+    collection_title = read_json(catalog / dataset_id / "collection.json").get("title", dataset_id)
+    written += enrich_subcatalogs(dataset_id, catalog=catalog, staging=staging, collection_title=collection_title)
     written.append(write_llms(dataset_id, catalog=catalog))
 
     return list(dict.fromkeys(written))

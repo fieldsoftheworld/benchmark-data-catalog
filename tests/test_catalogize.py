@@ -315,6 +315,74 @@ check(not any(l["rel"] == "self" for l in doc["links"]), "self link removed")
 check(any(l["rel"] == "child" for l in doc["links"]), "other links are untouched")
 
 
+# --- _rewrite_via_link: PTL-PRO-001, both branches -------------------------
+
+doc = {
+    "links": [
+        {
+            "rel": "via",
+            "href": "https://data.source.coop/ftw/harmonized-field-data/lu/collection.json",
+            "type": "application/json",
+            "title": "Source collection",
+        }
+    ]
+}
+catalogize._rewrite_via_link(doc)
+check(
+    doc["links"][0]
+    == {
+        "rel": "via",
+        "href": "https://source.coop/ftw/harmonized-field-data/lu",
+        "type": "text/html",
+        "title": "Source field boundary collection",
+    },
+    f"a data.source.coop via href is rewritten to the human page, got {doc['links'][0]}",
+)
+
+doc = {"links": [{"rel": "via", "href": "https://example.com/some/other/page", "type": "application/json"}]}
+catalogize._rewrite_via_link(doc)
+check(
+    doc["links"][0] == {"rel": "via", "href": "https://example.com/some/other/page", "type": "text/html"},
+    f"a non-matching via href only gets its type changed, got {doc['links'][0]}",
+)
+
+# idempotent: rewriting the already-rewritten human page a second time is a no-op
+before_via = dict(doc["links"][0])
+catalogize._rewrite_via_link(doc)
+check(doc["links"][0] == before_via, "_rewrite_via_link is idempotent on a non-matching href")
+
+
+# --- _ensure_pmtiles_links: idempotent by (rel, href) -----------------------
+
+doc = {
+    "assets": {
+        "chips_tiles": {"href": "./chips.pmtiles", "type": "application/vnd.pmtiles", "title": "Chip tiles"},
+        "fields": {"href": "./x.parquet", "type": "application/vnd.apache.parquet"},
+    },
+    "links": [],
+}
+catalogize._ensure_pmtiles_links(doc)
+catalogize._ensure_pmtiles_links(doc)
+check(
+    [l for l in doc["links"] if l["rel"] == "pmtiles"]
+    == [
+        {
+            "rel": "pmtiles",
+            "href": "./chips.pmtiles",
+            "type": "application/vnd.pmtiles",
+            "title": "Chip tiles",
+            "pmtiles:layers": ["chips"],
+        }
+    ],
+    "a pmtiles link (with pmtiles:layers derived from the asset key) is added exactly once, even after two calls",
+)
+check(
+    catalogize.WEB_MAP_LINKS_URI in doc["stac_extensions"]
+    and doc["stac_extensions"].count(catalogize.WEB_MAP_LINKS_URI) == 1,
+    "the web-map-links extension is declared exactly once when a pmtiles link exists",
+)
+
+
 # --- full pipeline: catalogize("lu", ...) ----------------------------------
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -337,6 +405,8 @@ with tempfile.TemporaryDirectory() as tmp:
         Path("llms.txt"),
         Path("styles/default.json"),
         Path("chips/32UNA/catalog.json"),
+        Path("chips/32UNA/README.md"),
+        Path("chips/32UNA/AGENTS.md"),
     }
     check(all_files == expected, f"exactly the committed files are written, got {sorted(all_files)}")
     check(not (lu_dir / "chips" / "32UNA" / "ftw-32UNA7238_2023").exists(), "item directories are never copied")
@@ -360,12 +430,43 @@ with tempfile.TemporaryDirectory() as tmp:
     check(collection.get("version") == "2.0.0-test", "version set from the manifest")
     check(collection.get("updated") == "2026-01-01T00:00:00Z", "updated stamped from `now`")
 
-    # --- via link ensured from the real lu recipe's source_via ---
+    # --- via link ensured from the real lu recipe's source_via, then
+    # rewritten to a browsable page (PTL-PRO-001): lu's source_via matches
+    # the data.source.coop/<org>/<repo>/<id>/collection.json shape ---
     recipe_lu = catalogize._load_recipe("lu")
     via_links = [l for l in collection["links"] if l["rel"] == "via"]
     check(
-        len(via_links) == 1 and via_links[0]["href"] == recipe_lu["source_via"],
-        "via link added from the recipe's source_via",
+        len(via_links) == 1 and via_links[0]["href"] == "https://source.coop/ftw/harmonized-field-data/lu",
+        f"via link rewritten to the source.coop page, got {via_links}",
+    )
+    check(via_links[0]["type"] == "text/html", "via link type is text/html")
+    check(via_links[0]["title"] == "Source field boundary collection", "via link title set")
+
+    # --- parent link to the root catalog (PTL-LNK-001) ---
+    parent_links = [l for l in collection["links"] if l["rel"] == "parent"]
+    check(
+        len(parent_links) == 1 and parent_links[0]["href"] == "../catalog.json",
+        f"collection has exactly one parent link to the root catalog, got {parent_links}",
+    )
+
+    # --- pmtiles asset gets a matching rel: pmtiles link (PTL-VIZ-003) ---
+    pmtiles_links = [l for l in collection["links"] if l["rel"] == "pmtiles"]
+    check(
+        pmtiles_links
+        == [
+            {
+                "rel": "pmtiles",
+                "href": "./chips.pmtiles",
+                "type": "application/vnd.pmtiles",
+                "title": "Chip tiles",
+                "pmtiles:layers": ["chips"],
+            }
+        ],
+        f"chips_tiles asset gets a matching pmtiles link, got {pmtiles_links}",
+    )
+    check(
+        catalogize.WEB_MAP_LINKS_URI in collection.get("stac_extensions", []),
+        "web-map-links extension declared when a pmtiles link exists",
     )
 
     # --- sub-catalog rewritten to depth 3, in both staging and catalog ---
@@ -374,6 +475,58 @@ with tempfile.TemporaryDirectory() as tmp:
     check(sub_root["href"] == "../../../catalog.json", "sub-catalog root link at depth 3")
     staged_sub_catalog = json.loads((staging / "lu" / "chips" / "32UNA" / "catalog.json").read_text())
     check(staged_sub_catalog == sub_catalog, "staging sub-catalog matches the copied catalog one (git-owned wins)")
+
+    # --- rel: item links get a title (PTL-TTL-003) ---
+    item_links = [l for l in sub_catalog["links"] if l["rel"] == "item"]
+    check(
+        item_links == [
+            {
+                "rel": "item",
+                "href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023.json",
+                "type": "application/geo+json",
+                "title": "ftw-32UNA7238_2023",
+            }
+        ],
+        f"the item link gets title = the item id, got {item_links}",
+    )
+
+    # --- describedby/agents links to the square's own docs (PTL-FIL-001/002) ---
+    sub_describedby = [l for l in sub_catalog["links"] if l["rel"] == "describedby"]
+    sub_agents = [l for l in sub_catalog["links"] if l["rel"] == "agents"]
+    check(
+        len(sub_describedby) == 1 and sub_describedby[0]["href"] == "./README.md",
+        f"sub-catalog has one describedby link to its own README, got {sub_describedby}",
+    )
+    check(
+        len(sub_agents) == 1 and sub_agents[0]["href"] == "./AGENTS.md",
+        f"sub-catalog has one agents link to its own AGENTS.md, got {sub_agents}",
+    )
+
+    # --- the square's own README.md and AGENTS.md (PTL-FIL-001/002/003) ---
+    square_readme = (lu_dir / "chips" / "32UNA" / "README.md").read_text()
+    check(
+        square_readme.startswith("# Luxembourg — MGRS square 32UNA"),
+        f"square README titled with the collection title and square, got {square_readme[:60]!r}",
+    )
+    check("1 chip" in square_readme, "square README states the chip count for this square (1, singular)")
+    check("../../README.md" in square_readme, "square README links back to the collection README")
+
+    square_agents = (lu_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
+    for heading in (
+        "## Overview",
+        "## Accessing the data",
+        "## Schema & field notes",
+        "## Data quality & usage notes",
+        "## Example queries",
+        "## Related collections",
+    ):
+        check(heading in square_agents, f"square AGENTS.md has the {heading!r} heading")
+    check("../../AGENTS.md" in square_agents, "square AGENTS.md links back to the collection agent guide")
+    check(
+        "WHERE id LIKE 'ftw-32UNA%'" in square_agents,
+        "square AGENTS.md gives a DuckDB query filtered on this square",
+    )
+    check("../../items.parquet" in square_agents, "square AGENTS.md query reads the collection's items.parquet")
 
     # --- staging item JSON rewritten to depth 4, no self ---
     item_doc = json.loads(
@@ -503,7 +656,8 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # --- --root: regenerate child links and the marker tables ------------
     root_manifest = dict(MANIFEST)
-    written_root = catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging)
+    root_now = datetime(2026, 1, 3, tzinfo=UTC)
+    written_root = catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging, now=root_now)
     check(len(written_root) == 4, "regenerate_root reports 4 files written")
 
     root_doc = json.loads((catalog / "catalog.json").read_text())
@@ -513,10 +667,13 @@ with tempfile.TemporaryDirectory() as tmp:
         f"root catalog gets exactly one child link for lu, got {child_links}",
     )
     check(
-        root_doc["stac_extensions"] == [catalogize.PORTOLAN_SCHEMA_URI],
-        "root catalog stac_extensions set to the pinned Portolan schema URI",
+        set(root_doc["stac_extensions"]) == {catalogize.PORTOLAN_SCHEMA_URI, catalogize.VERSION_EXTENSION_URI}
+        and len(root_doc["stac_extensions"]) == 2,
+        f"root catalog stac_extensions carries the Portolan and version URIs with no duplicates, "
+        f"got {root_doc['stac_extensions']}",
     )
     check(root_doc["version"] == "2.0.0-test", "root catalog version set from the manifest")
+    check(root_doc.get("updated") == "2026-01-03T00:00:00Z", "root catalog updated stamped from `now`")
     fixed_rels = {l["rel"] for l in root_doc["links"] if l["rel"] != "child"}
     check(fixed_rels == {"root", "describedby", "agents", "llms", "vcs"}, "fixed root links are kept as they were")
     check(not any(l["rel"] == "self" for l in root_doc["links"]), "regenerate_root strips a stray self link")
@@ -531,11 +688,39 @@ with tempfile.TemporaryDirectory() as tmp:
     root_llms = (catalog / "llms.txt").read_text()
     check("[Luxembourg](lu/collection.json)" in root_llms, "root llms.txt collection list mentions lu")
 
-    # --- regenerate_root is idempotent too ---
+    # --- regenerate_root is idempotent too (same `now`, so `updated` doesn't move) ---
     before = (catalog / "catalog.json").read_text()
-    catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging)
+    catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging, now=root_now)
     after = (catalog / "catalog.json").read_text()
     check(before == after, "regenerate_root is idempotent")
+
+    # --- a thumbnail asset added directly to the catalog copy survives a rerun ---
+    # tools/thumbnail.py (a concurrent task) adds a role: thumbnail asset
+    # straight to the published collection.json; staging's copy never has
+    # one. copy_committed must carry it forward rather than clobber it.
+    thumb_collection = json.loads((lu_dir / "collection.json").read_text())
+    thumb_collection["assets"]["thumbnail"] = {
+        "href": "./thumbnail.webp",
+        "type": "image/webp",
+        "roles": ["thumbnail"],
+        "title": "Thumbnail",
+    }
+    (lu_dir / "collection.json").write_text(json.dumps(thumb_collection, indent=2) + "\n")
+
+    now3 = datetime(2026, 1, 4, tzinfo=UTC)
+    catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog, now=now3)
+
+    collection3 = json.loads((lu_dir / "collection.json").read_text())
+    check(
+        collection3.get("assets", {}).get("thumbnail")
+        == {"href": "./thumbnail.webp", "type": "image/webp", "roles": ["thumbnail"], "title": "Thumbnail"},
+        f"a thumbnail asset added to the catalog copy survives catalogize() rerunning, "
+        f"got {collection3.get('assets', {}).get('thumbnail')}",
+    )
+    check(
+        not (staging / "lu" / "collection.json").read_text().count('"thumbnail"'),
+        "the staging copy is never given a thumbnail asset (only the catalog copy is)",
+    )
 
 
 # --- enrich_collection: license 'other' gets a license link from the recipe
