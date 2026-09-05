@@ -63,7 +63,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from publish import load_config  # noqa: E402
+from common import CATALOG, STAGING  # noqa: E402
 
 from overlay import has_staging_items, resolve_target  # noqa: E402
 
@@ -189,10 +189,6 @@ if _self_test_errors:
     raise SystemExit(1)
 print("self-test ok  is_ci_light_metadata_only: both waived shapes, both near-misses, ci_light/catalog_only gating")
 
-config = load_config()
-CATALOG = ROOT / config["publish_dir"]
-STAGING = ROOT / config.get("data_dir", "staging")
-
 # The floor comes from portolan-cli/pyproject.toml:54. Rules PTL-LNK-007,
 # PTL-LNK-008, PTL-LNK-009 and PTL-AST-006 do not exist below rashid 0.1.5.
 # This gate asserts all four. A rashid below the floor reports a pass for a
@@ -286,5 +282,5 @@ if ci_light_waived:
 if blocking:
     raise SystemExit(1)
 print(
-    f"OK: rashid {shown} found no blocking errors in {config['publish_dir']}/"
+    f"OK: rashid {shown} found no blocking errors in {CATALOG.relative_to(ROOT)}/"
 )

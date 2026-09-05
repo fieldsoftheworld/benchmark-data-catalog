@@ -27,6 +27,15 @@ _config = load_config()
 CATALOG = ROOT / _config["publish_dir"]
 STAGING = ROOT / _config.get("data_dir", "staging")
 
+# Any Portolan profile schema version. A vX.Y.Z bump must not silently turn a
+# schema-URI check (tests/test_manifest.py) or a stac-check dialect-crash
+# exemption (tests/test_stac_valid.py) into a false failure. Deliberately
+# unanchored: match with ``.fullmatch()`` when comparing a whole string,
+# ``.search()`` when scanning for it inside a larger message.
+PORTOLAN_SCHEMA_RE = re.compile(
+    r"https://schemas\.portolan-sdi\.org/portolan/v\d+\.\d+\.\d+/schema\.json"
+)
+
 
 def public_url(rel: str) -> str:
     """The public URL for ``rel``, joined onto ``public_base``."""

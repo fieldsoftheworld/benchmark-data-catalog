@@ -27,17 +27,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from publish import load_config  # noqa: E402
 
+from common import PORTOLAN_SCHEMA_RE  # noqa: E402
+
 config = load_config()
 CATALOG = ROOT / config["publish_dir"]
 MANIFEST = yaml.safe_load((ROOT / "datasets.yaml").read_text())
 RECIPES = ROOT / "datasets"
 errors: list[str] = []
-
-# Any profile version. Mirrors tests/test_stac_valid.py's PROFILE_SCHEMA: a
-# vX.Y.Z bump must not turn this check into a false failure.
-PORTOLAN_SCHEMA_RE = re.compile(
-    r"^https://schemas\.portolan-sdi\.org/portolan/v\d+\.\d+\.\d+/schema\.json$"
-)
 
 
 def err(msg: str) -> None:
@@ -64,7 +60,7 @@ def check_built_collection(dataset_id: str) -> None:
         )
 
     extensions = collection.get("stac_extensions") or []
-    if not any(isinstance(e, str) and PORTOLAN_SCHEMA_RE.match(e) for e in extensions):
+    if not any(isinstance(e, str) and PORTOLAN_SCHEMA_RE.fullmatch(e) for e in extensions):
         err(f"catalog/{dataset_id}/collection.json: stac_extensions is missing a Portolan schema URI")
 
     assets = collection.get("assets") or {}

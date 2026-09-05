@@ -52,8 +52,12 @@ def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
     For every ``catalog/<id>/chips/<square>/catalog.json``, copies every
     ``*.json`` file under the matching ``staging/<id>/chips/<square>/<item>/``
     directory into the temp tree at the same relative place
-    (``<id>/chips/<square>/<item>/*.json``). Use as a context manager — it
-    yields the temp directory's path (a ``str``) and cleans up on exit:
+    (``<id>/chips/<square>/<item>/*.json``), recursively — an imagery child
+    item sits one directory deeper still
+    (``<id>/chips/<square>/<item>/<child>/<child>.json``, see
+    ``tools/publish.py``'s ``_is_item_json``), and its rel:'item' link from
+    the parent item must resolve too. Use as a context manager — it yields
+    the temp directory's path (a ``str``) and cleans up on exit:
 
         with overlay_tree(catalog, staging) as root:
             check(Path(root))
@@ -70,13 +74,13 @@ def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
         if not staging_square_dir.is_dir():
             continue
         for item_dir in sorted(p for p in staging_square_dir.iterdir() if p.is_dir()):
-            json_files = sorted(item_dir.glob("*.json"))
+            json_files = sorted(item_dir.rglob("*.json"))
             if not json_files:
                 continue
-            dest_item_dir = square_dir / item_dir.name
-            dest_item_dir.mkdir(parents=True, exist_ok=True)
             for json_file in json_files:
-                shutil.copy2(json_file, dest_item_dir / json_file.name)
+                dest = square_dir / item_dir.name / json_file.relative_to(item_dir)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(json_file, dest)
 
     return tmp
 
@@ -110,7 +114,7 @@ def resolve_target(catalog: Path, staging: Path):
     if has_staging_items(catalog, staging):
         with overlay_tree(catalog, staging) as tmp_name:
             root = Path(tmp_name)
-            n_items = sum(1 for _ in root.glob("*/chips/*/*/*.json"))
+            n_items = sum(1 for _ in root.glob("*/chips/*/*/**/*.json"))
             print(f"mode   overlay ({n_items} item JSON files)")
             yield root
     else:

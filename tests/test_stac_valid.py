@@ -63,14 +63,13 @@ that no validator read. The failure message gives the install command.
 Run: python3 tests/test_stac_valid.py
 """
 import json
-import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from publish import load_config  # noqa: E402
+from common import CATALOG, PORTOLAN_SCHEMA_RE, STAGING  # noqa: E402
 
 from overlay import resolve_target  # noqa: E402
 
@@ -94,10 +93,6 @@ try:
 except ImportError:
     fail("stac-check is not installed, so this gate checks nothing")
 
-config = load_config()
-CATALOG = ROOT / config["publish_dir"]
-STAGING = ROOT / config.get("data_dir", "staging")
-
 STAC_TYPES = {"Catalog", "Collection", "Feature"}
 
 # stac-validator applies declared extension schemas to these types only.
@@ -107,16 +102,10 @@ UPSTREAM_ISSUE = "https://github.com/stac-utils/stac-check/issues/159"
 
 DIALECT_CRASH = "'list' object has no attribute 'get'"
 
-# Any profile version. A vX.Y.Z bump must not silently turn the exemption into
-# a hard failure that reads as "upstream is fixed".
-PROFILE_SCHEMA = re.compile(
-    r"https://schemas\.portolan-sdi\.org/portolan/v\d+\.\d+\.\d+/schema\.json"
-)
-
 
 def is_dialect_crash(message: str) -> bool:
     """The known stac-validator dialect crash on a Portolan profile schema."""
-    return DIALECT_CRASH in message and bool(PROFILE_SCHEMA.search(message))
+    return DIALECT_CRASH in message and bool(PORTOLAN_SCHEMA_RE.search(message))
 
 
 def declares_profile(doc: dict) -> bool:
@@ -124,7 +113,7 @@ def declares_profile(doc: dict) -> bool:
     if not isinstance(extensions, list):
         return False
     return any(
-        isinstance(uri, str) and PROFILE_SCHEMA.fullmatch(uri.rstrip("#"))
+        isinstance(uri, str) and PORTOLAN_SCHEMA_RE.fullmatch(uri.rstrip("#"))
         for uri in extensions
     )
 
