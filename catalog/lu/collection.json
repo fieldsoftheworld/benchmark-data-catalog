@@ -7,8 +7,7 @@
     {
       "rel": "root",
       "href": "../catalog.json",
-      "type": "application/json",
-      "title": "Luxembourg"
+      "type": "application/json"
     },
     {
       "rel": "via",
@@ -74,6 +73,12 @@
       "rel": "parent",
       "href": "../catalog.json",
       "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
     },
     {
       "rel": "pmtiles",
@@ -159,7 +164,7 @@
       "title": "Chip preview"
     }
   },
-  "updated": "2026-09-05T12:46:19Z",
+  "updated": "2026-09-05T13:57:11Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
