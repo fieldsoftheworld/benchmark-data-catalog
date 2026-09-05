@@ -68,8 +68,8 @@ CONTENT_TYPES = {
     ".jpeg": "image/jpeg",
     ".webp": "image/webp",
     ".svg": "image/svg+xml",
-    ".tif": "image/tiff; application=geotiff",
-    ".tiff": "image/tiff; application=geotiff",
+    ".tif": "image/tiff; application=geotiff; profile=cloud-optimized",
+    ".tiff": "image/tiff; application=geotiff; profile=cloud-optimized",
     ".laz": "application/vnd.laszip",
     ".xml": "application/xml",
     ".yaml": "application/yaml",
@@ -79,6 +79,10 @@ DEFAULT_TYPE = "application/octet-stream"
 # MapLibre style documents are .json but carry a more specific type, which is
 # what lets a browser dispatch on them.
 STYLE_TYPE = "application/vnd.mapbox.style+json"
+
+# A STAC Item is .json but is itself GeoJSON, which is what lets a browser or
+# a STAC client dispatch on it instead of treating it as opaque JSON.
+ITEM_TYPE = "application/geo+json"
 
 # A catalog is thousands of small JSON objects, and one round trip to
 # us-west-2 costs about 238 ms. A serial loop leaves the link idle for that
@@ -142,12 +146,36 @@ def unedited_sentinels(config: dict[str, str]) -> list[str]:
     return [s for s in SENTINELS if s in blob]
 
 
-def content_type_for(path: Path) -> str:
-    """The Content-Type an object gets, by suffix and by location."""
+def _is_item_json(parts: tuple[str, ...]) -> bool:
+    """True when ``parts`` places a file two directories below a chips square.
+
+    A STAC Item lives at ``<id>/chips/<square>/<item>/<item>.json``: the
+    segment right after ``chips`` is the square, the next is the item
+    directory, and the file itself sits inside that. ``chips/<square>/
+    catalog.json`` is one level shallower and does not match — it stays
+    plain JSON.
+    """
+    if "chips" not in parts:
+        return False
+    return parts.index("chips") + 4 == len(parts)
+
+
+def content_type_for(path: Path, *, rel: Path | None = None) -> str:
+    """The Content-Type an object gets, by suffix and by location.
+
+    ``rel`` is the path relative to the walk root (``publish_dir`` for
+    ``publish.py``, ``data_dir`` for ``upload_data.py``) and is what the
+    item-JSON rule below is positional on. Both uploaders pass it. When it is
+    omitted, the location rules fall back to reading ``path`` itself, which
+    keeps this usable on a bare filename.
+    """
+    parts = rel.parts if rel is not None else path.parts
     if path.suffix == ".json" and (
-        path.name.endswith(".style.json") or "styles" in path.parts
+        path.name.endswith(".style.json") or "styles" in parts
     ):
         return STYLE_TYPE
+    if path.suffix == ".json" and _is_item_json(parts):
+        return ITEM_TYPE
     return CONTENT_TYPES.get(path.suffix.lower(), DEFAULT_TYPE)
 
 
@@ -180,7 +208,7 @@ def collect_uploads(config: dict[str, str], root: Path = ROOT) -> list[Upload]:
         if not is_publishable(rel):
             continue
         key = f"{prefix}/{rel.as_posix()}" if prefix else rel.as_posix()
-        uploads.append(Upload(path, key, content_type_for(path)))
+        uploads.append(Upload(path, key, content_type_for(path, rel=rel)))
     return uploads
 
 

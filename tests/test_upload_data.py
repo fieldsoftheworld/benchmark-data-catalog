@@ -27,6 +27,7 @@ from upload_data import (  # noqa: E402
     PUBLISHABLE_SUFFIXES,
     collect_data_uploads,
     data_root,
+    git_owned,
     is_data_publishable,
     unedited_sentinels,
 )
@@ -59,7 +60,12 @@ def exit_message(call) -> str:
 # --- the extension allow-list ------------------------------------------
 check(".parquet" in PUBLISHABLE_SUFFIXES, "parquet is publishable")
 check(".pmtiles" in PUBLISHABLE_SUFFIXES, "pmtiles is publishable")
+check(".json" in PUBLISHABLE_SUFFIXES, "item JSON trees are publishable")
 check(".geojson" not in PUBLISHABLE_SUFFIXES, "geojson scratch never uploads")
+check(".yaml" not in PUBLISHABLE_SUFFIXES, "yaml is barred")
+check(".md" not in PUBLISHABLE_SUFFIXES, "markdown is barred")
+check(".geojsonseq" not in PUBLISHABLE_SUFFIXES, "geojsonseq is barred")
+check(".txt" not in PUBLISHABLE_SUFFIXES, "txt is barred")
 check(is_data_publishable(Path("a/roads.parquet")), "parquet passes")
 check(is_data_publishable(Path("a/roads.PARQUET")), "suffix case is ignored")
 check(is_data_publishable(Path("a/tiles.pmtiles")), "pmtiles passes")
@@ -67,6 +73,18 @@ check(not is_data_publishable(Path("a/scratch.geojson")), "geojson is barred")
 check(not is_data_publishable(Path("a/notes.md")), "markdown is barred")
 check(not is_data_publishable(Path("a/roads.parquet.tmp")), "tmp is barred")
 check(not is_data_publishable(Path("a/.hidden/x.parquet")), "dotdir is barred")
+check(
+    is_data_publishable(Path("lu/chips/32UNA/ftw-1/ftw-1.json")),
+    "an item JSON tree is publishable",
+)
+check(
+    not is_data_publishable(Path("lu/ftwd-config.resolved.yaml")),
+    "a resolved ftwd config is not publishable",
+)
+check(
+    not is_data_publishable(Path("lu/summary.md")),
+    "a summary markdown file is not publishable",
+)
 
 # --- the path gate and the walk ----------------------------------------
 with tempfile.TemporaryDirectory() as tmp:
@@ -148,6 +166,99 @@ with tempfile.TemporaryDirectory() as tmp:
     check(
         "does not exist" in exit_message(lambda: data_root(missing, root)),
         "a data_dir that does not exist says so",
+    )
+
+# --- catalog/ owns it: git-owned staged files are skipped ---------------
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+
+    # In both staging/ and catalog/: git owns it, never uploaded.
+    write(root / "staging/lu/collection.json")
+    write(root / "catalog/lu/collection.json")
+    write(root / "staging/lu/chips/32UNA/catalog.json")
+    write(root / "catalog/lu/chips/32UNA/catalog.json")
+
+    # Only in staging/: uploaded, with the item-JSON content type.
+    write(root / "staging/lu/chips/32UNA/ftw-1/ftw-1.json")
+    write(root / "staging/lu/items.parquet")
+
+    owned_config = {
+        "write_prefix": "s3://a-bucket/a/prefix",
+        "public_base": "https://data.example.org/a/prefix",
+        "publish_dir": "catalog",
+        "data_dir": "staging",
+    }
+
+    check(
+        git_owned(Path("lu/collection.json"), root, owned_config),
+        "a path that exists under publish_dir is git-owned",
+    )
+    check(
+        not git_owned(
+            Path("lu/chips/32UNA/ftw-1/ftw-1.json"), root, owned_config
+        ),
+        "a path that exists only in staging is not git-owned",
+    )
+
+    skipped: list[Path] = []
+    owned_uploads = collect_data_uploads(owned_config, root, skipped=skipped)
+    owned_keys = {u.key for u in owned_uploads}
+
+    owned_expected = {
+        "a/prefix/lu/chips/32UNA/ftw-1/ftw-1.json",
+        "a/prefix/lu/items.parquet",
+    }
+    check(
+        owned_keys == owned_expected,
+        f"upload set wrong.\n  extra:   {owned_keys - owned_expected}"
+        f"\n  missing: {owned_expected - owned_keys}",
+    )
+    check(
+        {p.as_posix() for p in skipped}
+        == {"lu/collection.json", "lu/chips/32UNA/catalog.json"},
+        f"the skipped list names the git-owned paths, got {skipped}",
+    )
+
+    owned_types = {u.key: u.content_type for u in owned_uploads}
+    check(
+        owned_types["a/prefix/lu/chips/32UNA/ftw-1/ftw-1.json"]
+        == "application/geo+json",
+        "an uploaded item JSON gets geo+json via rel",
+    )
+
+    # collect_data_uploads without a skipped list still works: skipping is
+    # silent unless the caller asks to see it.
+    check(
+        {u.key for u in collect_data_uploads(owned_config, root)}
+        == owned_expected,
+        "collect_data_uploads skips git-owned files with no skipped list too",
+    )
+
+    # The dry-run report names how many staged files catalog/ owns. main()
+    # calls collect_data_uploads(config) with the default root (the real
+    # ROOT), so both data_dir and publish_dir are made absolute here — an
+    # absolute right-hand path in a Path "/" join replaces the left side
+    # entirely, so this stays independent of ROOT.
+    abs_config = dict(
+        owned_config,
+        data_dir=str(root / "staging"),
+        publish_dir=str(root / "catalog"),
+    )
+    argv = sys.argv
+    sys.argv = ["upload_data.py"]
+    real_load = upload_data.load_config
+    upload_data.load_config = lambda *a, **k: abs_config
+    out = io.StringIO()
+    try:
+        with redirect_stdout(out):
+            code = upload_data.main()
+    finally:
+        upload_data.load_config = real_load
+        sys.argv = argv
+    check(code == 0, f"the dry run exits cleanly, got {code}")
+    check(
+        "2 staged file(s) skipped because catalog/ owns them" in out.getvalue(),
+        f"the dry run reports the skip count:\n{out.getvalue()}",
     )
 
 # --- a config with no data_dir exits cleanly ----------------------------

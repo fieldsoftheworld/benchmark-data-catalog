@@ -20,7 +20,10 @@ a message until you set that key.
 
 Two gates decide what uploads. The path gate admits only files under
 ``data_dir``. The extension gate admits only the suffixes in
-PUBLISHABLE_SUFFIXES. Both apply. It never deletes, exactly as ``publish.py``
+PUBLISHABLE_SUFFIXES. Both apply. A third rule then removes anything git
+already owns: when the same relative path exists under ``publish_dir``, the
+git-tracked copy always wins and the staged one is skipped rather than
+uploaded over it (``git_owned``). It never deletes, exactly as ``publish.py``
 never deletes.
 
 **Change detection is weaker here than it is for the catalog.**
@@ -57,12 +60,19 @@ from publish import (  # noqa: E402
 # files over time. An allow-list stays correct when it does, and a deny-list
 # does not. One catalog staged 45 GB of GeoJSON that tippecanoe reads and
 # nobody should download. An allow-list keeps that 45 GB out with no edit.
+#
+# .json is here because ftwd stages STAC item trees and sub-catalogs
+# (chips/<square>/<item>/<item>.json, chips/<square>/catalog.json) as data,
+# not as git-owned catalog metadata. .yaml, .md, .geojsonseq and .txt stay
+# barred: resolved configs, run summaries, tippecanoe scratch and notes are
+# not publishable data.
 PUBLISHABLE_SUFFIXES = {
     ".parquet",
     ".pmtiles",
     ".tif",
     ".tiff",
     ".laz",
+    ".json",
 }
 
 
@@ -99,14 +109,29 @@ def is_data_publishable(rel: Path) -> bool:
     return is_publishable(rel) and rel.suffix.lower() in PUBLISHABLE_SUFFIXES
 
 
+def git_owned(rel: Path, root: Path, config: dict[str, str]) -> bool:
+    """True when the git-owned catalog already has this relative path.
+
+    ``catalog/`` always wins: a STAC item tree or sub-catalog that ftwd
+    regenerated in staging is skipped here, not uploaded over the tracked
+    file at the same path under ``publish_dir``.
+    """
+    return (root / config["publish_dir"] / rel).exists()
+
+
 def collect_data_uploads(
-    config: dict[str, str], root: Path = ROOT
+    config: dict[str, str],
+    root: Path = ROOT,
+    *,
+    skipped: list[Path] | None = None,
 ) -> list[Upload]:
     """Every staged data file that would be uploaded, in sorted order.
 
     The walk is rooted at ``data_dir`` and nothing else. Keys go under the
     same ``write_prefix`` the catalog publishes to, so the data sits beside
-    the metadata that describes it.
+    the metadata that describes it. A staged file whose relative path is
+    already git-owned (see ``git_owned``) is skipped rather than uploaded;
+    pass ``skipped`` to collect the relative paths that were.
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     base = data_root(config, root)
@@ -117,8 +142,12 @@ def collect_data_uploads(
         rel = path.relative_to(base)
         if not is_data_publishable(rel):
             continue
+        if git_owned(rel, root, config):
+            if skipped is not None:
+                skipped.append(rel)
+            continue
         key = f"{prefix}/{rel.as_posix()}" if prefix else rel.as_posix()
-        uploads.append(Upload(path, key, content_type_for(path)))
+        uploads.append(Upload(path, key, content_type_for(path, rel=rel)))
     return uploads
 
 
@@ -149,7 +178,10 @@ def main() -> int:
         return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
-    uploads = collect_data_uploads(config)
+    skipped: list[Path] = []
+    uploads = collect_data_uploads(config, skipped=skipped)
+    if skipped:
+        print(f"{len(skipped)} staged file(s) skipped because catalog/ owns them")
     if not uploads:
         print(f"nothing under {base}/ to upload", file=sys.stderr)
         return 1

@@ -61,6 +61,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "catalog/roads/thumbnail.png")
     write(root / "catalog/roads/styles/default.json")
     write(root / "catalog/_assets/logo.svg")
+    write(root / "catalog/roads/chips/32UNA/catalog.json")
+    write(root / "catalog/roads/chips/32UNA/ftw-1/ftw-1.json")
 
     # Category 2: tracked, never published.
     write(root / "tools/publish.py")
@@ -81,7 +83,8 @@ with tempfile.TemporaryDirectory() as tmp:
         "public_base": "https://data.example.org/a/prefix",
         "publish_dir": "catalog",
     }
-    keys = {u.key for u in collect_uploads(config, root)}
+    uploads = collect_uploads(config, root)
+    keys = {u.key for u in uploads}
 
     expected = {
         "a/prefix/catalog.json",
@@ -91,9 +94,24 @@ with tempfile.TemporaryDirectory() as tmp:
         "a/prefix/roads/thumbnail.png",
         "a/prefix/roads/styles/default.json",
         "a/prefix/_assets/logo.svg",
+        "a/prefix/roads/chips/32UNA/catalog.json",
+        "a/prefix/roads/chips/32UNA/ftw-1/ftw-1.json",
     }
     check(keys == expected, f"upload set wrong.\n  extra:   {keys - expected}"
                             f"\n  missing: {expected - keys}")
+
+    # collect_uploads passes rel through to content_type_for, so an item
+    # JSON gets geo+json and its square's catalog.json stays plain json.
+    types = {u.key: u.content_type for u in uploads}
+    check(
+        types["a/prefix/roads/chips/32UNA/ftw-1/ftw-1.json"]
+        == "application/geo+json",
+        "collect_uploads gives an item JSON geo+json via rel",
+    )
+    check(
+        types["a/prefix/roads/chips/32UNA/catalog.json"] == "application/json",
+        "collect_uploads leaves a square's catalog.json as plain json",
+    )
 
     # The bare-prefix case: no prefix at all.
     flat = dict(config, write_prefix="s3://a-bucket")
@@ -128,6 +146,50 @@ check(
 )
 check(content_type_for(Path("a/x.unknown")) == "application/octet-stream",
       "unknown suffix falls back")
+check(
+    content_type_for(Path("a/d.tif"))
+    == "image/tiff; application=geotiff; profile=cloud-optimized",
+    "a .tif is a cloud-optimized GeoTIFF",
+)
+check(
+    content_type_for(Path("a/d.tiff"))
+    == "image/tiff; application=geotiff; profile=cloud-optimized",
+    "a .tiff is a cloud-optimized GeoTIFF",
+)
+
+# --- content_type_for: item JSON, positional on rel ---------------------
+check(
+    content_type_for(
+        Path("x.json"), rel=Path("lu/chips/32UNA/ftw-1/ftw-1.json")
+    )
+    == "application/geo+json",
+    "an item JSON two levels below the square is geo+json",
+)
+check(
+    content_type_for(Path("x.json"), rel=Path("lu/chips/32UNA/catalog.json"))
+    == "application/json",
+    "a square's catalog.json is plain json, not an item",
+)
+check(
+    content_type_for(Path("x.json"), rel=Path("lu/styles/split.json"))
+    == "application/vnd.mapbox.style+json",
+    "the styles/ rule still applies when rel is passed",
+)
+check(
+    content_type_for(Path("a/styles/default.json"))
+    == "application/vnd.mapbox.style+json",
+    "the styles/ rule still applies with no rel at all",
+)
+check(
+    content_type_for(Path("x.json"), rel=Path("lu/chips/32UNA/ftw-1/sub/x.json"))
+    == "application/json",
+    "an extra level below the item directory is not an item JSON",
+)
+check(
+    content_type_for(Path("x.json"), rel=Path("lu/collection.json"))
+    == "application/json",
+    "no chips segment at all is plain json",
+)
 
 # --- change detection --------------------------------------------------
 with tempfile.TemporaryDirectory() as tmp:
