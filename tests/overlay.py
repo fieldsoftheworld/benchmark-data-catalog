@@ -17,13 +17,33 @@ and every other data file under an item directory are left out on purpose.
 ``test_conformance.py`` and ``test_stac_valid.py`` both need the same "should
 I overlay, and what do I report" decision, so it lives here too
 (``has_staging_items``, ``resolve_target``) rather than being duplicated.
+
+Set the environment variable ``BDC_STAGING_DIR`` to a directory that does not
+exist to simulate, locally, the CI checkout that has no ``staging/`` at all —
+without touching the real ``staging/`` tree. Every ``staging`` argument
+accepted below is resolved through this override first (``_effective_staging``),
+so ``has_staging_items`` and ``resolve_target`` both honor it and a gate needs
+no changes of its own to do so:
+
+    CI_LIGHT=1 BDC_STAGING_DIR=/nonexistent uv run python tests/test_conformance.py
 """
 from __future__ import annotations
 
 import contextlib
+import os
 import shutil
 import tempfile
 from pathlib import Path
+
+
+def _effective_staging(staging: Path) -> Path:
+    """``staging``, or ``BDC_STAGING_DIR`` when that environment variable is set.
+
+    Read fresh on every call (not cached at import time) so a test can flip
+    it via ``os.environ`` within one process.
+    """
+    override = os.environ.get("BDC_STAGING_DIR")
+    return Path(override) if override else staging
 
 
 def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
@@ -64,9 +84,11 @@ def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
 def has_staging_items(catalog: Path, staging: Path) -> bool:
     """True when a built collection has a staging item tree to overlay.
 
-    False on the skeleton (no ``catalog/*/collection.json`` yet) and in CI,
-    where ``staging/`` is not checked out at all.
+    False on the skeleton (no ``catalog/*/collection.json`` yet), in CI where
+    ``staging/`` is not checked out at all, and wherever ``BDC_STAGING_DIR``
+    is pointed at a directory that does not exist (see module docstring).
     """
+    staging = _effective_staging(staging)
     for collection in catalog.glob("*/collection.json"):
         dataset_id = collection.parent.name
         if (staging / dataset_id / "chips").is_dir():
@@ -81,9 +103,10 @@ def resolve_target(catalog: Path, staging: Path):
     An overlay (see ``overlay_tree``) when at least one built collection has
     a staging item tree — ``mode   overlay (N item JSON files)`` — otherwise
     ``catalog/`` itself, unchanged — ``mode   catalog/ only``. That is the CI
-    case (staging is not checked out) and the skeleton case (nothing built
-    yet).
+    case (staging is not checked out), the skeleton case (nothing built yet),
+    and the ``BDC_STAGING_DIR`` override case (module docstring).
     """
+    staging = _effective_staging(staging)
     if has_staging_items(catalog, staging):
         with overlay_tree(catalog, staging) as tmp_name:
             root = Path(tmp_name)
