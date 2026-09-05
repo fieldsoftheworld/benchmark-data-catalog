@@ -534,7 +534,11 @@ def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) ->
     if not ftw1:
         return ""
     counts = _chip_counts(staging / dataset_id / f"{dataset_id}_chips.parquet")
-    n_fields = _row_count(staging / dataset_id / f"{dataset_id}_fields.parquet")
+    # The class-filtered polygons are what the chips and masks were cut from;
+    # fall back to the full reprojected set when no filter was configured.
+    filtered = staging / dataset_id / f"{dataset_id}_fields_filtered.parquet"
+    fields_file = filtered if filtered.exists() else staging / dataset_id / f"{dataset_id}_fields.parquet"
+    n_fields = _row_count(fields_file)
     description = (recipe.get("metadata") or {}).get("description") or ""
     match = re.search(r"edition (\d{4})", description)
     edition_year = match.group(1) if match else "?"

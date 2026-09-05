@@ -1050,6 +1050,18 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not (staging / "lu" / "items.parquet.tmp").exists(), "no stray items.parquet.tmp after a failed write")
     check((staging / "lu" / "items.parquet").read_bytes() == before, "the original mirror is untouched after a failed write")
 
+# --- the FTW 1.0 comparison counts the class-filtered fields when present ------
+with tempfile.TemporaryDirectory() as tmp:
+    staging = Path(tmp) / "staging"; (staging / "lu").mkdir(parents=True)
+    con = duckdb.connect()
+    con.execute(f"COPY (SELECT range AS id FROM range(10)) TO '{staging / 'lu' / 'lu_fields.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT range AS id FROM range(3)) TO '{staging / 'lu' / 'lu_fields_filtered.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT 'ftw-1' AS id, 'train' AS split) TO '{staging / 'lu' / 'lu_chips.parquet'}' (FORMAT PARQUET)")
+    con.close()
+    spec = {"ftw1_name": "luxembourg", "ftw1": {"year": 2022, "parcels": 29018, "chips": 808, "train": 643, "val": 81, "test": 84, "license": "CC0-1.0"}}
+    section = catalogize.ftw1_section("lu", spec, staging=staging, recipe={"metadata": {"description": "edition 2026"}})
+    check("`3` fields" in section, "the comparison counts the class-filtered fields, not the full set")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
