@@ -8,7 +8,7 @@ rather than a claim about the current state of `catalog/`.
 | Dataset | Date | ftwd commit | Source | Fields | Chips (train/val/test) | Masks | Sub-catalogs | Staging size | Wall time |
 |---------|------|-------------|--------|--------|-------------------------|-------|---------------|---------------|-----------|
 | lu | 2026-09-05 | [`73142362`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/73142362) (PR [#60](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/60) head) | `lu/latest/lu.parquet` | 87,997 | 775 (601 / 79 / 95) | 2,325 | 7 (MGRS) | 92 MB | ~25 min through `stac` + ~1 min `docs`, on an M-series laptop |
-| si | 2026-09-05 | [`5f4a9191`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/5f4a9191) (PR [#61](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/61) head) | `si/latest/si.parquet` | 809,044 | 5,103 (4,078 / 512 / 513) | 13,010 | 7 (MGRS) | 1.5 GB | ~1 h 50 min through `stac` (batched coverage) + ~3 min `docs`, on an M-series laptop |
+| si | 2026-09-05 | [`5f4a9191`](https://github.com/fieldsoftheworld/ftw-dataset-tools/commit/5f4a9191) (PR [#61](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/61) head) | `si/latest/si.parquet` | 809,044 | 5,103 (4,078 / 512 / 513) | 15,309 | 7 (MGRS) | 1.5 GB | ~1 h 50 min through `stac` (batched coverage) + ~3 min `docs`; a 9 min masks rerun filled 2,298 masks lost to worker deaths (ftwd PR [#62](https://github.com/fieldsoftheworld/ftw-dataset-tools/pull/62)), on an M-series laptop |
 | at | building | | | | | | | | |
 
 ## Notes

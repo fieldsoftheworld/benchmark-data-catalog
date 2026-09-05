@@ -169,7 +169,7 @@
       "title": "Chip preview"
     }
   },
-  "updated": "2026-09-05T15:24:57Z",
+  "updated": "2026-09-05T18:45:15Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -193,9 +193,9 @@
   "ftw:buffer_expansion_size": 14,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "5f4a9191bea05fd45e4e69ad0a5234bf2284b85b",
+    "ftwd_git_commit": "74d0b3410b4d31c43fd7f4151f12fb3407dc212c",
     "config_schema_version": 1,
-    "generated_at": "2026-09-05T13:31:37.456870+00:00",
+    "generated_at": "2026-09-05T18:40:54.094011+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/si/collection.json",
@@ -236,7 +236,8 @@
           "resolution": 10.0,
           "workers": null,
           "presence_only": false,
-          "class_filter": null
+          "class_filter": null,
+          "skip_existing": true
         },
         "select_images": {
           "enabled": true,
@@ -534,7 +535,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 987038,
+      "file:size": 1049805,
       "table:columns": [
         {
           "name": "type",
