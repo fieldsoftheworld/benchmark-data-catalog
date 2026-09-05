@@ -17,6 +17,13 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import overlay  # noqa: E402
 
+# Popped once, up front, so an inherited BDC_STAGING_DIR (e.g. a maintainer
+# running the documented CI_LIGHT simulation from their own shell) cannot
+# leak into the has_staging_items/resolve_target calls the earlier blocks in
+# this file make against their own hand-built temp staging trees. Only the
+# block below that actually exercises the override sets it back.
+_ORIGINAL_BDC_STAGING_DIR = os.environ.pop("BDC_STAGING_DIR", None)
+
 errors: list[str] = []
 
 
@@ -183,7 +190,6 @@ with tempfile.TemporaryDirectory() as tmp:
     build_catalog(catalog)
     write_json(staging / "lu" / "chips" / "32UNA" / "ftw-1" / "ftw-1.json", {"type": "Feature", "id": "ftw-1"})
 
-    previous = os.environ.pop("BDC_STAGING_DIR", None)
     try:
         check(
             overlay.has_staging_items(catalog, staging) is True,
@@ -200,10 +206,10 @@ with tempfile.TemporaryDirectory() as tmp:
                 "BDC_STAGING_DIR forces resolve_target into catalog/ only mode even though staging/ has items",
             )
     finally:
-        if previous is None:
+        if _ORIGINAL_BDC_STAGING_DIR is None:
             os.environ.pop("BDC_STAGING_DIR", None)
         else:
-            os.environ["BDC_STAGING_DIR"] = previous
+            os.environ["BDC_STAGING_DIR"] = _ORIGINAL_BDC_STAGING_DIR
 
 
 if errors:

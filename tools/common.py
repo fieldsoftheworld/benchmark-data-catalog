@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 _config = load_config()
 CATALOG = ROOT / _config["publish_dir"]
 STAGING = ROOT / _config.get("data_dir", "staging")
+PUBLIC_BASE = _config["public_base"]
 
 # Any Portolan profile schema version. A vX.Y.Z bump must not silently turn a
 # schema-URI check (tests/test_manifest.py) or a stac-check dialect-crash

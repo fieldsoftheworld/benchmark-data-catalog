@@ -260,7 +260,11 @@ candidates = [f for f in errors_ if f.get("rule_id") not in ACCEPTED]
 ci_light_waived = [
     f for f in candidates if is_ci_light_metadata_only(f, ci_light=CI_LIGHT, catalog_only=catalog_only)
 ]
-blocking = [f for f in candidates if f not in ci_light_waived]
+# id()-keyed, not `f not in ci_light_waived`: that linear scan over unhashable
+# dicts is quadratic in the finding count, which is fine at Luxembourg's
+# scale but minutes of wasted CI time once Austria's ~9,700 findings land.
+_waived_ids = {id(f) for f in ci_light_waived}
+blocking = [f for f in candidates if id(f) not in _waived_ids]
 
 for finding in blocking:
     where = finding.get("path", "?")

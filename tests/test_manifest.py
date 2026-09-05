@@ -25,13 +25,10 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from publish import load_config  # noqa: E402
 
-from common import PORTOLAN_SCHEMA_RE  # noqa: E402
+from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
 
-config = load_config()
-CATALOG = ROOT / config["publish_dir"]
-MANIFEST = yaml.safe_load((ROOT / "datasets.yaml").read_text())
+MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
 errors: list[str] = []
 
@@ -113,7 +110,7 @@ for dataset_id in sorted(declared & recipes):
     fields_file = str(recipe.get("fields_file") or "")
     if not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
         err(f"datasets/{dataset_id}.yaml: fields_file must be a harmonized-field-data URL")
-    expected_out = f"{config.get('data_dir', 'staging')}/{dataset_id}"
+    expected_out = f"{STAGING.relative_to(ROOT)}/{dataset_id}"
     out = str(recipe.get("output_dir") or "")
     if out != expected_out:
         err(f"datasets/{dataset_id}.yaml: output_dir must be {expected_out!r}, got {out!r}")
@@ -168,6 +165,15 @@ catalog_meta = MANIFEST.get("catalog") or {}
 for key in ("id", "title", "version", "public_base", "human_base", "repository"):
     if not catalog_meta.get(key):
         err(f"datasets.yaml: catalog.{key} is required")
+# datasets.yaml's public_base duplicates catalog.publish.yaml's; nothing else
+# checks that they agree, and common.public_url (which items.parquet and
+# llms.txt hrefs are built from) uses the publish config's value alone. An
+# editor who updates one without the other would silently diverge the two.
+if catalog_meta.get("public_base") and catalog_meta["public_base"] != PUBLIC_BASE:
+    err(
+        f"datasets.yaml: catalog.public_base {catalog_meta['public_base']!r} != "
+        f"catalog.publish.yaml public_base {PUBLIC_BASE!r}"
+    )
 
 processor = MANIFEST.get("processor") or {}
 if not processor.get("name") or not processor.get("url"):

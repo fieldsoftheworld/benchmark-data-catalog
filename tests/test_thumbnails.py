@@ -22,23 +22,19 @@ import sys
 import tempfile
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:
-    print("skip   PyYAML is not installed (uv sync to run this gate)")
-    raise SystemExit(0) from None
-
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from publish import load_config  # noqa: E402
+from common import CATALOG, load_manifest  # noqa: E402
 import thumbnail  # noqa: E402
 
-config = load_config()
-CATALOG = ROOT / config["publish_dir"]
-MANIFEST = yaml.safe_load((ROOT / "datasets.yaml").read_text())
+try:
+    MANIFEST = load_manifest()
+except ImportError:
+    print("skip   PyYAML is not installed (uv sync to run this gate)")
+    raise SystemExit(0) from None
 
 MIN_ASPECT, MAX_ASPECT = 1.45, 1.55
 MIN_WIDTH = 700

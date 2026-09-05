@@ -132,14 +132,22 @@ def subprocess_env() -> dict[str, str]:
     installed, in which case every https fetch fails with
     CERTIFICATE_VERIFY_FAILED. When the caller has not configured one,
     point OpenSSL at certifi's bundle, which the environment always carries.
+
+    Prints a ``note`` naming any of ``PROJ_LIB``/``PROJ_DATA``/``GDAL_DATA``
+    that was actually inherited and dropped, so a caller who legitimately set
+    one (a datum-shift grid, say) sees that it was silently discarded instead
+    of wondering why a PROJ lookup used the wrong data.
     """
     env = dict(os.environ)
     # rasterio and pyproj wheels bundle their own PROJ/GDAL data. A shell that
     # exports these for another installation (a conda env on PATH for
     # tippecanoe, say) makes PROJ read a database of the wrong layout version
     # and every CRS lookup fails, so the inherited values are dropped here.
-    for key in ("PROJ_LIB", "PROJ_DATA", "GDAL_DATA"):
+    dropped = [key for key in ("PROJ_LIB", "PROJ_DATA", "GDAL_DATA") if key in env]
+    for key in dropped:
         env.pop(key, None)
+    if dropped:
+        print(f"note   subprocess_env: dropped inherited {', '.join(dropped)} (see tools/build.py)")
     if not env.get("SSL_CERT_FILE") and not env.get("SSL_CERT_DIR"):
         try:
             import certifi

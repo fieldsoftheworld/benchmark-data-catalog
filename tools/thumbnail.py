@@ -60,7 +60,9 @@ import duckdb
 import requests
 from PIL import Image, ImageChops
 
-from common import CATALOG, STAGING, load_manifest, read_json, write_json
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from common import CATALOG, STAGING, load_manifest, read_json, write_json  # noqa: E402
 
 DEFAULT_PORT = 13579
 DEFAULT_SIZE = 1024

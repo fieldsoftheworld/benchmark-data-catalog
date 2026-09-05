@@ -26,10 +26,12 @@ are temporary.
 
 Run: python3 tests/test_catalogize.py
 """
+import io
 import json
 import struct
 import sys
 import tempfile
+from contextlib import redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -93,6 +95,13 @@ GEOMETRY_FIELD = pa.field(
     "geometry", pa.binary(), metadata={"ARROW:extension:name": "geoarrow.wkb"}
 )
 
+# bbox: a struct-of-floats column, the shape ftwd actually writes alongside
+# `geometry`. Its presence is what tells rewrite_items_parquet to add a
+# GeoParquet 1.1 `covering` entry.
+BBOX_TYPE = pa.struct(
+    [("xmin", pa.float64()), ("ymin", pa.float64()), ("xmax", pa.float64()), ("ymax", pa.float64())]
+)
+
 
 def build_items_parquet(path: Path) -> None:
     """items.parquet with absolute build-machine link hrefs and ./file asset hrefs."""
@@ -115,6 +124,7 @@ def build_items_parquet(path: Path) -> None:
                 "image_w1": {"href": "./ftw-32UNA7238_2023_w1.tif", "type": "image/tiff", "file:size": 2048},
             },
             "geometry": wkb_point(6.13, 49.61),
+            "bbox": {"xmin": 6.12, "ymin": 49.60, "xmax": 6.14, "ymax": 49.62},
         },
         {
             # An id that does not match the ftw-<square><4 digits> pattern: the
@@ -131,6 +141,7 @@ def build_items_parquet(path: Path) -> None:
                 "image_w1": None,
             },
             "geometry": wkb_point(6.5, 49.7),
+            "bbox": {"xmin": 6.49, "ymin": 49.69, "xmax": 6.51, "ymax": 49.71},
         },
     ]
     table = pa.table(
@@ -139,6 +150,7 @@ def build_items_parquet(path: Path) -> None:
             "links": pa.array([r["links"] for r in rows], type=LINKS_TYPE),
             "assets": pa.array([r["assets"] for r in rows], type=ASSETS_TYPE),
             "geometry": pa.array([r["geometry"] for r in rows], type=GEOMETRY_FIELD.type),
+            "bbox": pa.array([r["bbox"] for r in rows], type=BBOX_TYPE),
         }
     )
     schema = table.schema.set(table.schema.get_field_index("geometry"), GEOMETRY_FIELD)
@@ -314,6 +326,78 @@ check(
 check(not any(l["rel"] == "self" for l in doc["links"]), "self link removed")
 check(any(l["rel"] == "child" for l in doc["links"]), "other links are untouched")
 
+# A root link carrying a stray `title` (ftwd emits the root link as a
+# self-reference titled with the collection's own title) must lose it: a
+# naive {**link, ...} merge would carry it onto every document in the tree.
+doc = {"links": [{"rel": "root", "href": "./collection.json", "title": "Luxembourg"}]}
+catalogize.rewrite_root_links(doc, depth=1)
+check(
+    doc["links"][0] == {"rel": "root", "href": "../catalog.json", "type": "application/json"},
+    f"a stray title on the root link is dropped, got {doc['links'][0]}",
+)
+
+
+# --- _ensure_version: sets the version extension only when it sets version -
+
+doc = {}
+catalogize._ensure_version(doc, {"catalog": {"version": "2.0.0-test"}})
+check(doc["version"] == "2.0.0-test", "_ensure_version sets version from the manifest")
+check(
+    doc.get("stac_extensions") == [catalogize.VERSION_EXTENSION_URI],
+    f"_ensure_version declares the version extension when it sets version, got {doc.get('stac_extensions')}",
+)
+
+# Idempotent: a doc that already has a version (and the extension) is untouched.
+doc = {"version": "1.0.0", "stac_extensions": [catalogize.VERSION_EXTENSION_URI]}
+catalogize._ensure_version(doc, {"catalog": {"version": "2.0.0-test"}})
+check(doc["version"] == "1.0.0", "_ensure_version leaves an existing version alone")
+check(
+    doc["stac_extensions"] == [catalogize.VERSION_EXTENSION_URI],
+    "_ensure_version does not duplicate the extension when version was already set",
+)
+
+# _add_stac_extension itself is idempotent.
+doc = {"stac_extensions": [catalogize.VERSION_EXTENSION_URI]}
+catalogize._add_stac_extension(doc, catalogize.VERSION_EXTENSION_URI)
+check(
+    doc["stac_extensions"] == [catalogize.VERSION_EXTENSION_URI],
+    "_add_stac_extension does not add a duplicate entry",
+)
+
+
+# --- _ensure_llms_link: idempotent, next to the parent link -----------------
+
+doc = {"links": []}
+catalogize._ensure_llms_link(doc)
+catalogize._ensure_llms_link(doc)
+check(
+    [l for l in doc["links"] if l["rel"] == "llms"]
+    == [{"rel": "llms", "href": "./llms.txt", "type": "text/plain", "title": "llms.txt"}],
+    f"a llms link is added exactly once, even after two calls, got {doc['links']}",
+)
+
+
+# --- _geoparquet_metadata: a covering entry only when has_bbox is True ------
+
+geo_no_bbox = json.loads(catalogize._geoparquet_metadata(None)[b"geo"])
+check(
+    "covering" not in geo_no_bbox["columns"]["geometry"],
+    "no covering key in geo metadata when has_bbox is False",
+)
+geo_with_bbox = json.loads(catalogize._geoparquet_metadata(None, has_bbox=True)[b"geo"])
+check(
+    geo_with_bbox["columns"]["geometry"].get("covering")
+    == {
+        "bbox": {
+            "xmin": ["bbox", "xmin"],
+            "ymin": ["bbox", "ymin"],
+            "xmax": ["bbox", "xmax"],
+            "ymax": ["bbox", "ymax"],
+        }
+    },
+    f"a bbox covering entry is added when has_bbox is True, got {geo_with_bbox}",
+)
+
 
 # --- _rewrite_via_link: PTL-PRO-001, both branches -------------------------
 
@@ -449,6 +533,13 @@ with tempfile.TemporaryDirectory() as tmp:
         f"collection has exactly one parent link to the root catalog, got {parent_links}",
     )
 
+    # --- llms link to the collection's own llms.txt ---
+    llms_links = [l for l in collection["links"] if l["rel"] == "llms"]
+    check(
+        llms_links == [{"rel": "llms", "href": "./llms.txt", "type": "text/plain", "title": "llms.txt"}],
+        f"collection has exactly one llms link to its own llms.txt, got {llms_links}",
+    )
+
     # --- pmtiles asset gets a matching rel: pmtiles link (PTL-VIZ-003) ---
     pmtiles_links = [l for l in collection["links"] if l["rel"] == "pmtiles"]
     check(
@@ -574,13 +665,39 @@ with tempfile.TemporaryDirectory() as tmp:
         geo_meta.get("columns", {}).get("geometry", {}).get("encoding") == "WKB",
         "geo metadata declares WKB encoding",
     )
+    # A `bbox` struct column is present on this fixture (ftwd's real shape),
+    # so rewrite_items_parquet must add a GeoParquet 1.1 covering entry
+    # pointing at it, letting a reader prune row groups without geometry.
+    check(
+        geo_meta.get("columns", {}).get("geometry", {}).get("covering")
+        == {
+            "bbox": {
+                "xmin": ["bbox", "xmin"],
+                "ymin": ["bbox", "ymin"],
+                "xmax": ["bbox", "xmax"],
+                "ymax": ["bbox", "ymax"],
+            }
+        },
+        f"geo metadata declares a bbox covering entry, got {geo_meta}",
+    )
+
+    # The rewrite writes to a temp file and os.replace()s it into place; no
+    # leftover .tmp file should remain once it's done.
+    check(
+        not (staging / "lu" / "items.parquet.tmp").exists(),
+        "no leftover items.parquet.tmp after the rewrite",
+    )
 
     con = duckdb.connect()
     con.execute("INSTALL spatial; LOAD spatial;")
     items_path = staging / "lu" / "items.parquet"
-    geom_type = con.execute(f"SELECT typeof(geometry) FROM read_parquet('{items_path}') LIMIT 1").fetchone()[0]
+    geom_type = con.execute(
+        "SELECT typeof(geometry) FROM read_parquet(?) LIMIT 1", [str(items_path)]
+    ).fetchone()[0]
     check(geom_type.startswith("GEOMETRY"), f"DuckDB reads geometry as a GEOMETRY type, got {geom_type!r}")
-    xmin = con.execute(f"SELECT ST_XMin(geometry) FROM read_parquet('{items_path}') LIMIT 1").fetchone()[0]
+    xmin = con.execute(
+        "SELECT ST_XMin(geometry) FROM read_parquet(?) LIMIT 1", [str(items_path)]
+    ).fetchone()[0]
     check(isinstance(xmin, float), f"ST_XMin(geometry) returns a number, got {xmin!r}")
 
     # The no-local-path check scans href VALUES only: a struct field literally
@@ -735,6 +852,77 @@ with tempfile.TemporaryDirectory() as tmp:
     check(
         not (staging / "lu" / "collection.json").read_text().count('"thumbnail"'),
         "the staging copy is never given a thumbnail asset (only the catalog copy is)",
+    )
+
+
+# --- regenerate_root: a warning names a dataset whose chips parquet is gone
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    staging = tmp / "staging"
+    catalog = tmp / "catalog"
+    build_catalog_root(catalog)
+
+    # "lu" has a real staged chips parquet; "si" is built (a collection.json
+    # exists) but its staging tree has been pruned, the state _collection_row
+    # falls back to "—" for.
+    write_json(catalog / "lu" / "collection.json", {"type": "Collection", "id": "lu", "title": "Luxembourg"})
+    write_json(catalog / "si" / "collection.json", {"type": "Collection", "id": "si", "title": "Slovenia"})
+    (staging / "lu").mkdir(parents=True, exist_ok=True)
+    build_chips_parquet(staging / "lu" / "lu_chips.parquet")
+
+    two_manifest = {"catalog": {"version": "2.0.0-test"}}
+    out = io.StringIO()
+    with redirect_stdout(out):
+        catalogize.regenerate_root(two_manifest, catalog=catalog, staging=staging, now=datetime(2026, 1, 1, tzinfo=UTC))
+    printed = out.getvalue()
+    check(
+        "warning" in printed and "si" in printed and str(staging / "si" / "si_chips.parquet") in printed,
+        f"a warning names the dataset (si) and the missing chips parquet path, got {printed!r}",
+    )
+    check(printed.count("warning") == 1, f"exactly one warning is printed, for si only (lu's parquet exists): {printed!r}")
+
+    root_readme = (catalog / "README.md").read_text()
+    check("| si | Slovenia | — | — |" in root_readme, "si's row falls back to '—' for chips/splits")
+
+
+# --- catalogize(): a missing items.parquet or collection.json exits with a
+# clear message naming the file and tools/build.py <id>, instead of an
+# opaque traceback from pq.read_table/read_text on a file that isn't there.
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    staging = tmp / "staging"
+    catalog = tmp / "catalog"
+    build_catalog_root(catalog)
+    # A real recipe (lu) but a staging tree that never reached the stac stage:
+    # no items.parquet, no collection.json.
+    (staging / "lu").mkdir(parents=True)
+
+    try:
+        catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog)
+        check(False, "catalogize() should exit when items.parquet is missing")
+    except SystemExit as exc:
+        message = str(exc)
+        check(
+            "items.parquet" in message and "tools/build.py lu" in message,
+            f"the exit message names the missing file and the fix, got {message!r}",
+        )
+
+
+# --- catalogize.py main(): an unknown dataset id exits with a clear message,
+# not a traceback from _load_recipe's own read_text() ------------------------
+
+out = io.StringIO()
+try:
+    with redirect_stdout(out):
+        catalogize.main(["no-such-dataset-xyz"])
+    check(False, "main() should exit for an unknown dataset id")
+except SystemExit as exc:
+    message = str(exc)
+    check(
+        "no-such-dataset-xyz" in message and "datasets.yaml" in message,
+        f"main() names the bad id and points at datasets.yaml, got {message!r}",
     )
 
 

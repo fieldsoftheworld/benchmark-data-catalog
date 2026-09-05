@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import UTC, datetime
@@ -37,6 +38,7 @@ import pyarrow.parquet as pq
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from build import _check_recipe as _check_dataset_recipe  # noqa: E402
 from common import CATALOG, ROOT, STAGING, public_url, read_json, write_json  # noqa: E402
 
 from ftw_dataset_tools.api.stac import PORTOLAN_SCHEMA_URI  # noqa: E402
@@ -148,6 +150,13 @@ def rewrite_root_links(doc: dict, depth: int) -> None:
     the number of directories between the dataset root and this document.
     ``rel: self`` links are dropped everywhere; Portolan forbids them because
     a static catalog that hardcodes its own location cannot be mirrored.
+
+    The replacement root link is built explicitly with only ``rel``, ``href``
+    and ``type`` — ftwd writes the root link as a self-reference carrying the
+    collection's own ``title``, and a naive ``{**link, ...}`` merge would
+    carry that title forward onto every document in the tree, mislabeling
+    the root catalog with e.g. the collection's title in any client that
+    renders link titles.
     """
     href = "../" * depth + "catalog.json"
     links = []
@@ -155,7 +164,7 @@ def rewrite_root_links(doc: dict, depth: int) -> None:
         if link.get("rel") == "self":
             continue
         if link.get("rel") == "root":
-            link = {**link, "href": href, "type": "application/json"}
+            link = {"rel": "root", "href": href, "type": "application/json"}
         links.append(link)
     doc["links"] = links
 
@@ -250,7 +259,9 @@ def _rewrite_item_assets(dataset_id: str, item_id: str, square: str, assets: dic
     return new_assets
 
 
-def _geoparquet_metadata(existing: dict | None, *, geometry_column: str = "geometry") -> dict:
+def _geoparquet_metadata(
+    existing: dict | None, *, geometry_column: str = "geometry", has_bbox: bool = False
+) -> dict:
     """Schema metadata with a GeoParquet 1.1 ``geo`` key added, everything else kept.
 
     rustac writes ``geometry`` as WKB with Parquet's own ``GEOMETRY`` logical
@@ -264,13 +275,29 @@ def _geoparquet_metadata(existing: dict | None, *, geometry_column: str = "geome
     recognizes the column as geometry from that key just as well as from the
     Parquet logical type. No ``crs`` entry means OGC:CRS84, which is what
     ftwd writes.
+
+    ``has_bbox`` adds a GeoParquet 1.1 ``covering`` entry pointing at the
+    table's own ``bbox`` struct column, so a reader can prune row groups from
+    that column instead of decoding ``geometry``. Only set when the table
+    actually carries a ``bbox`` struct column with ``xmin``/``ymin``/``xmax``/
+    ``ymax`` fields (ftwd's own shape).
     """
+    column_meta: dict = {"encoding": "WKB", "geometry_types": []}
+    if has_bbox:
+        column_meta["covering"] = {
+            "bbox": {
+                "xmin": ["bbox", "xmin"],
+                "ymin": ["bbox", "ymin"],
+                "xmax": ["bbox", "xmax"],
+                "ymax": ["bbox", "ymax"],
+            }
+        }
     meta = dict(existing or {})
     meta[b"geo"] = json.dumps(
         {
             "version": "1.1.0",
             "primary_column": geometry_column,
-            "columns": {geometry_column: {"encoding": "WKB", "geometry_types": []}},
+            "columns": {geometry_column: column_meta},
         }
     ).encode()
     return meta
@@ -285,6 +312,10 @@ def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
     schema metadata is kept, and a GeoParquet ``geo`` key is added (see
     ``_geoparquet_metadata``) so the ``geometry`` column stays recognizable
     as geometry after the pyarrow round trip.
+
+    Writes to a temporary file in the same directory and ``os.replace``s it
+    over ``items.parquet`` at the end, so a process killed mid-write leaves
+    the original file intact instead of a truncated, corrupt one.
     """
     path = staging / dataset_id / "items.parquet"
     table = pq.read_table(path)
@@ -309,11 +340,14 @@ def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
         schema.get_field_index("assets"), assets_field, pa.array(new_assets, type=assets_field.type)
     )
     if "geometry" in schema.names:
-        table = table.replace_schema_metadata(_geoparquet_metadata(schema.metadata))
+        has_bbox = "bbox" in schema.names
+        table = table.replace_schema_metadata(_geoparquet_metadata(schema.metadata, has_bbox=has_bbox))
     else:
         table = table.replace_schema_metadata(schema.metadata)
 
-    pq.write_table(table, str(path))
+    tmp_path = path.with_name(path.name + ".tmp")
+    pq.write_table(table, str(tmp_path))
+    os.replace(tmp_path, path)
     return path
 
 
@@ -339,9 +373,23 @@ def _append_host_provider(doc: dict, manifest: dict) -> None:
     providers.append({"name": host["name"], "roles": list(host["roles"]), "url": host["url"]})
 
 
+def _add_stac_extension(doc: dict, uri: str) -> None:
+    """Append ``uri`` to ``stac_extensions`` idempotently."""
+    extensions = doc.setdefault("stac_extensions", [])
+    if uri not in extensions:
+        extensions.append(uri)
+
+
 def _ensure_version(doc: dict, manifest: dict) -> None:
+    """Set ``version`` from the manifest when absent, declaring the version extension too.
+
+    PTL-CNF-003 requires the version extension URI in ``stac_extensions``
+    wherever a document carries a top-level ``version`` — the same constant
+    ``regenerate_root`` declares for the root catalog.
+    """
     if not doc.get("version"):
         doc["version"] = manifest["catalog"]["version"]
+        _add_stac_extension(doc, VERSION_EXTENSION_URI)
 
 
 def _ensure_via(doc: dict, recipe: dict) -> None:
@@ -386,6 +434,19 @@ def _ensure_parent_link(doc: dict) -> None:
     if any(link.get("rel") == "parent" for link in links):
         return
     links.append({"rel": "parent", "href": "../catalog.json", "type": "application/json"})
+
+
+def _ensure_llms_link(doc: dict) -> None:
+    """The collection needs a ``rel: llms`` link so agents can find its ``llms.txt``.
+
+    ``write_llms`` writes ``catalog/<id>/llms.txt`` but nothing links to it
+    from the collection, so an agent walking the catalog by link traversal
+    alone never finds it. Idempotent by ``rel``.
+    """
+    links = doc.setdefault("links", [])
+    if any(link.get("rel") == "llms" for link in links):
+        return
+    links.append({"rel": "llms", "href": "./llms.txt", "type": "text/plain", "title": "llms.txt"})
 
 
 def _ensure_pmtiles_links(doc: dict) -> None:
@@ -497,17 +558,19 @@ def enrich_collection(
     """Enrich the just-copied ``catalog/<id>/collection.json`` (and README.md).
 
     Fixes the collection's own ``root`` link (depth 1), adds a ``parent``
-    link to the root catalog, appends the host provider once, fills in
-    ``version`` and ``updated``, ensures a ``via`` link (rewritten to a
-    browsable page, PTL-PRO-001) and — for an "other" license — a
-    ``license`` link exist, registers a ``rel: pmtiles`` link for every
-    PMTiles asset (PTL-VIZ-003), and, when the manifest carries an ``ftw1``
-    block for this dataset, appends the FTW 1.0 comparison to README.md.
+    link to the root catalog and a ``llms`` link to its own ``llms.txt``,
+    appends the host provider once, fills in ``version`` and ``updated``,
+    ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
+    — for an "other" license — a ``license`` link exist, registers a
+    ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), and, when
+    the manifest carries an ``ftw1`` block for this dataset, appends the FTW
+    1.0 comparison to README.md.
     """
     collection_path = catalog / dataset_id / "collection.json"
     doc = read_json(collection_path)
     rewrite_root_links(doc, depth=1)
     _ensure_parent_link(doc)
+    _ensure_llms_link(doc)
     _append_host_provider(doc, manifest)
     _ensure_version(doc, manifest)
     _ensure_via(doc, recipe)
@@ -686,6 +749,11 @@ def _child_links(collections: list[tuple[str, dict]]) -> list[dict]:
 def _collection_row(dataset_id: str, doc: dict, *, staging: Path) -> dict:
     chips_path = staging / dataset_id / f"{dataset_id}_chips.parquet"
     counts = _chip_counts(chips_path) if chips_path.exists() else None
+    if counts is None:
+        print(
+            f"warning  {dataset_id}: {chips_path} is missing; root tables will show "
+            "'—' for its chips/splits instead of the real counts"
+        )
     return {
         "id": dataset_id,
         "title": doc.get("title", dataset_id),
@@ -766,6 +834,21 @@ def regenerate_root(
 # --- the full pipeline for one dataset --------------------------------------
 
 
+def _check_staged(dataset_id: str, staging: Path) -> None:
+    """Exit with a clear message naming the missing file when a build hasn't reached ``stac`` yet.
+
+    ``rewrite_items_parquet`` needs ``items.parquet`` and ``copy_committed``
+    needs ``collection.json``; both are written by ftwd's ``stac`` stage. A
+    build stopped earlier (``--through select_images``, say) leaves neither,
+    and reading them straight off would raise an opaque traceback instead of
+    naming the fix.
+    """
+    for name in ("items.parquet", "collection.json"):
+        path = staging / dataset_id / name
+        if not path.is_file():
+            sys.exit(f"{path} not found; run: uv run python tools/build.py {dataset_id} --through stac")
+
+
 def catalogize(
     dataset_id: str,
     *,
@@ -780,6 +863,7 @@ def catalogize(
     rewritten too, but stays in ``staging/<id>/`` (it is data, never
     committed), so it is not part of the returned list.
     """
+    _check_staged(dataset_id, staging)
     recipe = _load_recipe(dataset_id)
 
     rewrite_staging_items(dataset_id, staging=staging)
@@ -813,6 +897,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = load_manifest()
     written: list[Path] = []
     if args.dataset_id:
+        _check_dataset_recipe(args.dataset_id)
         written += catalogize(args.dataset_id, manifest=manifest)
     if args.root:
         written += regenerate_root(manifest)
