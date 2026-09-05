@@ -18,4 +18,7 @@ hrefs, so a model loader can select chips without walking item JSON.
 
 ## Collections
 
+<!-- collections:start -->
+<!-- collections:end -->
+
 None published yet.

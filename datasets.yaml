@@ -4,6 +4,9 @@
 #
 # Keys per dataset:
 #   ftw1_name:  the FTW 1.0 folder name this collection supersedes, or "none".
+#   ftw1:       FTW 1.0 facts for that folder, attested from its README:
+#               year, parcels, chips, train, val, test, license. Omitted
+#               when ftw1_name is "none".
 #   thumbnail:  framing for tools/thumbnail.py (next plan): style, zoom, rank.
 
 catalog:
@@ -27,10 +30,13 @@ processor:
 datasets:
   at:
     ftw1_name: austria
+    ftw1: {year: 2021, parcels: 196101, chips: 6686, train: 5304, val: 637, test: 745, license: CC-BY-4.0}
     thumbnail: {style: dominant-crop, zoom: 12, rank: 1}
   si:
     ftw1_name: slovenia
+    ftw1: {year: 2021, parcels: 67488, chips: 2177, train: 1733, val: 216, test: 228, license: CC-BY-4.0}
     thumbnail: {style: split, zoom: 11, rank: 1}
   lu:
     ftw1_name: luxembourg
-    thumbnail: {style: crops, zoom: 12, rank: 2}
+    ftw1: {year: 2022, parcels: 29018, chips: 808, train: 643, val: 81, test: 84, license: CC0-1.0}
+    thumbnail: {style: field-coverage, zoom: 12, rank: 2}

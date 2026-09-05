@@ -18,8 +18,11 @@ This is version 2.0 of the benchmark described in [Fields of The World
 
 ## Collections
 
-No collections are published yet. The first three (Austria, Slovenia,
-Luxembourg) are a reviewer sample and will appear here when built.
+<!-- collections:start -->
+<!-- collections:end -->
+
+The first three (Austria, Slovenia, Luxembourg) are a reviewer sample and
+will appear above when built.
 
 ## License
 
