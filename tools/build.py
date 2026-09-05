@@ -138,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
             through=args.through,
             dry_run=args.dry_run,
         ),
+        cwd=ROOT,
         check=False,
     )
 

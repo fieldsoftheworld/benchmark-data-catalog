@@ -107,6 +107,32 @@ try:
 finally:
     build.ftwd_pin, build.installed_ftwd = real_ftwd_pin, real_installed_ftwd
 
+# --- the ftwd process runs from the repository root --------------------
+# The recipe path is relative (datasets/<id>.yaml), so the subprocess must
+# run with cwd=ROOT regardless of where build.py was invoked from.
+_recorded: dict = {}
+
+
+class _FakeResult:
+    returncode = 0
+
+
+def _fake_run(cmd, **kwargs):
+    _recorded["cmd"] = cmd
+    _recorded["kwargs"] = kwargs
+    return _FakeResult()
+
+
+_real_run = build.subprocess.run
+build.subprocess.run = _fake_run
+try:
+    with redirect_stdout(io.StringIO()):
+        build.main(["lu", "--dry-run", "--allow-unpinned"])
+finally:
+    build.subprocess.run = _real_run
+check(_recorded.get("kwargs", {}).get("cwd") == build.ROOT, "ftwd runs with cwd=ROOT")
+check(_recorded.get("cmd", [None])[0] == "ftwd", "the recorded command is ftwd")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
