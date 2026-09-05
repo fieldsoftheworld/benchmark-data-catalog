@@ -1,0 +1,48 @@
+{
+  "version": 8,
+  "name": "Chips by split",
+  "metadata": {
+    "description": "Chips coloured by their train / val / test assignment."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-split",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "split"
+          ],
+          "train",
+          "#1b9e77",
+          "val",
+          "#d95f02",
+          "test",
+          "#7570b3",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.65
+      }
+    },
+    {
+      "id": "chips-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(51,51,51,0.6)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}
