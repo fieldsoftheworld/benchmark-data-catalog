@@ -19,6 +19,12 @@ Fails when rashid is absent, or when its version is outside the required range.
 A skip reports a green run for a catalog that no validator read. The failure
 message gives the one command that installs a usable rashid.
 
+A committed sub-catalog's `rel: item` links point at item JSON that lives only
+in staging/ (see tests/overlay.py). Once any collection is built and its item
+tree exists there, rashid runs against a temp overlay of catalog/ with that
+JSON copied in, so those links resolve; otherwise (CI, and the skeleton with
+no collections yet) it runs against catalog/ unchanged, as before.
+
 Run: python3 tests/test_conformance.py
 """
 import json
@@ -33,10 +39,13 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from publish import load_config  # noqa: E402
 
+from overlay import resolve_target  # noqa: E402
+
 ACCEPTED: set[str] = set()
 
 config = load_config()
-target = ROOT / config["publish_dir"]
+CATALOG = ROOT / config["publish_dir"]
+STAGING = ROOT / config.get("data_dir", "staging")
 
 # The floor comes from portolan-cli/pyproject.toml:54. Rules PTL-LNK-007,
 # PTL-LNK-008, PTL-LNK-009 and PTL-AST-006 do not exist below rashid 0.1.5.
@@ -84,11 +93,12 @@ shown = ".".join(str(part) for part in version)
 if not MIN_VERSION <= version < MAX_VERSION:
     fail(f"rashid {shown} is outside the required range {SPEC}")
 
-result = subprocess.run(
-    ["rashid", "check", str(target), "--no-data", "--json"],
-    capture_output=True,
-    text=True,
-)
+with resolve_target(CATALOG, STAGING) as target:
+    result = subprocess.run(
+        ["rashid", "check", str(target), "--no-data", "--json"],
+        capture_output=True,
+        text=True,
+    )
 
 try:
     report = json.loads(result.stdout)

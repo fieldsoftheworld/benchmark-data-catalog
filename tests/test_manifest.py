@@ -33,9 +33,60 @@ MANIFEST = yaml.safe_load((ROOT / "datasets.yaml").read_text())
 RECIPES = ROOT / "datasets"
 errors: list[str] = []
 
+# Any profile version. Mirrors tests/test_stac_valid.py's PROFILE_SCHEMA: a
+# vX.Y.Z bump must not turn this check into a false failure.
+PORTOLAN_SCHEMA_RE = re.compile(
+    r"^https://schemas\.portolan-sdi\.org/portolan/v\d+\.\d+\.\d+/schema\.json$"
+)
+
 
 def err(msg: str) -> None:
     errors.append(msg)
+
+
+def check_built_collection(dataset_id: str) -> None:
+    """A built collection's version, extensions and style assets agree with the manifest.
+
+    Every check here needs the collection to actually exist on disk (it is
+    built by catalogize.py, not hand-written), so this only runs for ids in
+    `built`. The style checks degrade gracefully: a collection built before
+    any style exists yet skips the thumbnail check with a note instead of
+    failing on something tools/thumbnail.py (a later plan step) hasn't
+    written.
+    """
+    collection = json.loads((CATALOG / dataset_id / "collection.json").read_text())
+
+    catalog_version = (MANIFEST.get("catalog") or {}).get("version")
+    if collection.get("version") != catalog_version:
+        err(
+            f"catalog/{dataset_id}/collection.json: version {collection.get('version')!r} != "
+            f"datasets.yaml catalog.version {catalog_version!r}"
+        )
+
+    extensions = collection.get("stac_extensions") or []
+    if not any(isinstance(e, str) and PORTOLAN_SCHEMA_RE.match(e) for e in extensions):
+        err(f"catalog/{dataset_id}/collection.json: stac_extensions is missing a Portolan schema URI")
+
+    assets = collection.get("assets") or {}
+    styles = {key: asset for key, asset in assets.items() if key.startswith("style-")}
+    if not styles:
+        print(f"note: {dataset_id} has no style-* assets yet, skipping the thumbnail style check")
+        return
+
+    defaults = [key for key, asset in styles.items() if "default" in (asset.get("roles") or [])]
+    if len(defaults) != 1:
+        err(
+            f"catalog/{dataset_id}/collection.json: expected exactly one style-* asset with role "
+            f"'default', found {len(defaults)} among {sorted(styles)}"
+        )
+
+    spec = (MANIFEST.get("datasets") or {}).get(dataset_id) or {}
+    thumb_style = (spec.get("thumbnail") or {}).get("style")
+    if thumb_style and f"style-{thumb_style}" not in assets:
+        err(
+            f"catalog/{dataset_id}/collection.json: datasets.yaml thumbnail.style {thumb_style!r} "
+            f"has no matching style-{thumb_style} asset"
+        )
 
 
 declared = set(MANIFEST.get("datasets") or {})
@@ -55,6 +106,9 @@ root = json.loads((CATALOG / "catalog.json").read_text())
 children = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
 if children != built:
     err(f"catalog.json children {sorted(children)} != built collections {sorted(built)}")
+
+for dataset_id in sorted(built):
+    check_built_collection(dataset_id)
 
 for dataset_id in sorted(declared & recipes):
     recipe = yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {}

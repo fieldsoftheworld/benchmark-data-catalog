@@ -16,6 +16,12 @@ Three notes on how this is wired:
   location cannot be mirrored or moved. rashid is the gate; this is advisory.
 - One stac-check failure is exempted, and the exemption expires by itself. See
   below and docs/conformance.md.
+- A committed sub-catalog's `rel: item` links, and the items themselves, live
+  only in staging/ until uploaded (see tests/overlay.py). Once any collection
+  is built and its item tree exists there, this gate runs against a temp
+  overlay of catalog/ with that JSON copied in, so items get validated too;
+  otherwise (CI, and the skeleton with no collections yet) it runs against
+  catalog/ unchanged.
 
 ## The exempted failure
 
@@ -66,6 +72,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from publish import load_config  # noqa: E402
 
+from overlay import resolve_target  # noqa: E402
+
 INSTALL = "python -m pip install stac-check"
 
 
@@ -87,7 +95,8 @@ except ImportError:
     fail("stac-check is not installed, so this gate checks nothing")
 
 config = load_config()
-BASE = ROOT / config["publish_dir"]
+CATALOG = ROOT / config["publish_dir"]
+STAGING = ROOT / config.get("data_dir", "staging")
 
 STAC_TYPES = {"Catalog", "Collection", "Feature"}
 
@@ -125,34 +134,35 @@ exempted: list[str] = []
 reachable: list[str] = []
 checked = 0
 
-for path in sorted(BASE.rglob("*.json")):
-    rel = path.relative_to(BASE)
-    if any(part.startswith(".") for part in rel.parts):
-        continue
-    if path.name.endswith(".style.json") or "styles" in path.parts:
-        continue
-    try:
-        doc = json.loads(path.read_text())
-    except json.JSONDecodeError as exc:
-        errors.append(f"{rel}: invalid JSON ({exc})")
-        continue
-    if not isinstance(doc, dict) or doc.get("type") not in STAC_TYPES:
-        continue
-
-    checked += 1
-    if doc["type"] in EXTENSION_VALIDATED and declares_profile(doc):
-        reachable.append(str(rel))
-
-    linter = Linter(str(path), recursive=False)
-    if not linter.valid_stac:
-        if is_dialect_crash(linter.error_msg):
-            exempted.append(str(rel))
+with resolve_target(CATALOG, STAGING) as BASE:
+    for path in sorted(BASE.rglob("*.json")):
+        rel = path.relative_to(BASE)
+        if any(part.startswith(".") for part in rel.parts):
             continue
-        errors.append(f"{rel}: {linter.error_msg}")
-        continue
-    for note in linter.best_practices_msg[1:]:
-        if note.strip():
-            print(f"note   {rel}: {note.strip()}")
+        if path.name.endswith(".style.json") or "styles" in path.parts:
+            continue
+        try:
+            doc = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            errors.append(f"{rel}: invalid JSON ({exc})")
+            continue
+        if not isinstance(doc, dict) or doc.get("type") not in STAC_TYPES:
+            continue
+
+        checked += 1
+        if doc["type"] in EXTENSION_VALIDATED and declares_profile(doc):
+            reachable.append(str(rel))
+
+        linter = Linter(str(path), recursive=False)
+        if not linter.valid_stac:
+            if is_dialect_crash(linter.error_msg):
+                exempted.append(str(rel))
+                continue
+            errors.append(f"{rel}: {linter.error_msg}")
+            continue
+        for note in linter.best_practices_msg[1:]:
+            if note.strip():
+                print(f"note   {rel}: {note.strip()}")
 
 if exempted:
     for rel_str in exempted:
