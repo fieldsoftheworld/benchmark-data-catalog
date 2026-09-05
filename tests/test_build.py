@@ -133,6 +133,12 @@ finally:
     build.subprocess.run = _real_run
 check(_recorded.get("kwargs", {}).get("cwd") == build.ROOT, "ftwd runs with cwd=ROOT")
 check(_recorded.get("cmd", [None])[0] == "ftwd", "the recorded command is ftwd")
+os.environ["PROJ_LIB"] = "/nonexistent/proj"
+try:
+    _env = build.subprocess_env()
+finally:
+    del os.environ["PROJ_LIB"]
+check("PROJ_LIB" not in _env and "GDAL_DATA" not in _env, "inherited PROJ/GDAL data paths are dropped")
 check(
     bool(_recorded.get("kwargs", {}).get("env", {}).get("SSL_CERT_FILE"))
     or bool(os.environ.get("SSL_CERT_DIR")),

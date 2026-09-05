@@ -134,6 +134,12 @@ def subprocess_env() -> dict[str, str]:
     point OpenSSL at certifi's bundle, which the environment always carries.
     """
     env = dict(os.environ)
+    # rasterio and pyproj wheels bundle their own PROJ/GDAL data. A shell that
+    # exports these for another installation (a conda env on PATH for
+    # tippecanoe, say) makes PROJ read a database of the wrong layout version
+    # and every CRS lookup fails, so the inherited values are dropped here.
+    for key in ("PROJ_LIB", "PROJ_DATA", "GDAL_DATA"):
+        env.pop(key, None)
     if not env.get("SSL_CERT_FILE") and not env.get("SSL_CERT_DIR"):
         try:
             import certifi
