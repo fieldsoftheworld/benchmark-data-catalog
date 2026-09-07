@@ -19,6 +19,11 @@ The collection ships these files alongside `collection.json`:
 | `lu_boundary_lines.parquet` | Field boundary lines |
 | `lu_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
+| `chips.pmtiles` | Chips (PMTiles) |
+| `fields.pmtiles` | Field boundaries (PMTiles) |
+| `styles/split.json` | Chips by split |
+| `styles/field-coverage.json` | Field coverage |
+| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -53,6 +58,7 @@ Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`,
 - Masks are derived from boundaries declared for one year; later parcel changes are not reflected.
 - Empty area inside a chip means unmapped, not necessarily fieldless.
 - Chips on the dataset border may be only partly covered by the source boundaries.
+- Imagery is chosen against a crop calendar, so acquisition dates and cloud cover vary between chips; check `eo:cloud_cover` on the season child items.
 - Respect the pre-assigned splits: they are spatially blocked, so resampling chips at random leaks information between train and test.
 
 ## Example queries

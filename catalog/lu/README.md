@@ -26,6 +26,8 @@ How much of a chip is mapped field, as a distribution over the chips (`field_cov
 
 Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
 
+679 chips have Sentinel-2 scenes selected for them, one in the planting window and one in the harvest window of the crop calendar. Planting imagery was acquired between 2025-03-22T10:47:28.853000Z and 2025-05-11T10:47:38.751000Z, averaging 0.1% cloud cover (worst 1.9%). Harvest imagery was acquired between 2025-07-25T10:47:07.706000Z and 2025-09-30T10:47:21.386000Z, averaging 0.2% cloud cover (worst 2.0%).
+
 ## Styles
 
 Ready-made map styles ship with the collection:
@@ -51,6 +53,7 @@ Ready-made map styles ship with the collection:
 ## Limitations
 
 - Masks are derived from field boundaries declared for a given year; parcels that changed shape, were subdivided or merged after that declaration are not reflected.
+- Imagery windows follow a crop calendar rather than a fixed date, so acquisition dates differ between chips and cloud-free scenes are not guaranteed.
 - Chips on the border of the source dataset may be only partly covered by field boundaries, and empty area there means unmapped, not fieldless.
 
 ## Access
