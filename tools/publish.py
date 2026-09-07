@@ -270,8 +270,39 @@ def s3_client(session, endpoint_url: str | None = None):
     single-argument call boto3 itself accepts) keep working unchanged.
     """
     if endpoint_url:
-        return session.client("s3", endpoint_url=endpoint_url)
+        kwargs = {"endpoint_url": endpoint_url}
+        retry = _retry_config()
+        if retry is not None:
+            kwargs["config"] = retry
+        return session.client("s3", **kwargs)
     return session.client("s3")
+
+
+# Source Cooperative's data proxy occasionally answers a multipart part with a
+# 5xx (a 520 on a 1.5 GB parquet was the first real failure). boto3's default
+# retry policy gives up quickly and does not classify every proxy error as
+# retryable; the standard mode with more attempts does.
+RETRY_MAX_ATTEMPTS = 8
+# Fewer, larger parts mean fewer chances for the proxy to drop one.
+MULTIPART_CHUNK_BYTES = 64 * 1024 * 1024
+
+
+def _retry_config():
+    """A botocore Config with the standard retry mode, or None without botocore."""
+    try:
+        from botocore.config import Config
+    except ImportError:
+        return None
+    return Config(retries={"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"})
+
+
+def _transfer_config():
+    """A boto3 TransferConfig with large multipart chunks, or None without boto3."""
+    try:
+        from boto3.s3.transfer import TransferConfig
+    except ImportError:
+        return None
+    return TransferConfig(multipart_chunksize=MULTIPART_CHUNK_BYTES, max_concurrency=4)
 
 
 def remote_index(
@@ -320,13 +351,13 @@ def upload_all(
             thread_state.client = s3_client(session, endpoint_url)
         return thread_state.client
 
+    transfer = _transfer_config()
+
     def put(upload: Upload) -> None:
-        client().upload_file(
-            str(upload.local),
-            bucket,
-            upload.key,
-            ExtraArgs={"ContentType": upload.content_type},
-        )
+        kwargs = {"ExtraArgs": {"ContentType": upload.content_type}}
+        if transfer is not None:
+            kwargs["Config"] = transfer
+        client().upload_file(str(upload.local), bucket, upload.key, **kwargs)
 
     failures: list[str] = []
     done = 0

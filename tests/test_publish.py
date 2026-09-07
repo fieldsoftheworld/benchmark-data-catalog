@@ -359,6 +359,15 @@ check(
     "upload_all passes the configured endpoint_url through to session.client",
 )
 
+# --- retry and transfer settings for the data proxy ----------------------------
+if importlib.util.find_spec("botocore") is not None:
+    from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _retry_config, _transfer_config
+
+    _cfg = _retry_config()
+    check(_cfg is not None and _cfg.retries == {"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"}, "S3 clients use the standard retry mode with more attempts")
+    _tc = _transfer_config()
+    check(_tc is not None and _tc.multipart_chunksize == MULTIPART_CHUNK_BYTES, "uploads use large multipart chunks")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
