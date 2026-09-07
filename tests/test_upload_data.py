@@ -136,6 +136,17 @@ with tempfile.TemporaryDirectory() as tmp:
         "pmtiles content type comes from publish.py",
     )
 
+    # --only restricts the walk to named dataset directories.
+    write(root / "staging/lu/items.parquet")
+    only_keys = {u.key for u in collect_data_uploads(config, root, only={"lu"})}
+    check(only_keys == {"a/prefix/lu/items.parquet"}, f"--only lu uploads only lu: {only_keys}")
+    check(
+        {u.key for u in collect_data_uploads(config, root, only={"roads", "lu"})}
+        == {"a/prefix/roads/part-0.parquet", "a/prefix/roads/part-1.parquet", "a/prefix/lu/items.parquet"},
+        "--only accepts several datasets",
+    )
+    expected = expected | {"a/prefix/lu/items.parquet"}
+
     # The bare-prefix case: no prefix at all.
     flat = dict(config, write_prefix="s3://a-bucket")
     check(

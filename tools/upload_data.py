@@ -124,8 +124,13 @@ def collect_data_uploads(
     root: Path = ROOT,
     *,
     skipped: list[Path] | None = None,
+    only: set[str] | None = None,
 ) -> list[Upload]:
     """Every staged data file that would be uploaded, in sorted order.
+
+    ``only`` restricts the walk to the named dataset directories directly
+    under ``data_dir`` (``{"lu"}`` uploads ``staging/lu/**`` alone), so one
+    dataset can be published while another is still being built.
 
     The walk is rooted at ``data_dir`` and nothing else. Keys go under the
     same ``write_prefix`` the catalog publishes to, so the data sits beside
@@ -140,6 +145,8 @@ def collect_data_uploads(
         if not path.is_file():
             continue
         rel = path.relative_to(base)
+        if only is not None and (not rel.parts or rel.parts[0] not in only):
+            continue
         if not is_data_publishable(rel):
             continue
         if git_owned(rel, root, config):
@@ -164,6 +171,12 @@ def main() -> int:
         action="store_true",
         help="re-upload everything; skip the remote listing",
     )
+    parser.add_argument(
+        "--only",
+        action="append",
+        metavar="DATASET",
+        help="upload only this dataset directory under data_dir (repeatable)",
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -179,7 +192,8 @@ def main() -> int:
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
     skipped: list[Path] = []
-    uploads = collect_data_uploads(config, skipped=skipped)
+    only = set(args.only) if args.only else None
+    uploads = collect_data_uploads(config, skipped=skipped, only=only)
     if skipped:
         print(f"{len(skipped)} staged file(s) skipped because catalog/ owns them")
     if not uploads:
