@@ -35,6 +35,7 @@ the full walkthrough; this is the command sequence):
     uv run python tests/run_all.py
     git commit -am "Add <id>"
     uv run python tools/upload_data.py --confirm
+    uv run python tools/upload_data.py --only lu --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
 
 Imagery is a second pass, once selection is ready:

@@ -52,7 +52,7 @@ Two uploaders, run in this order once the gates pass:
 COGs, imagery, `*.parquet`, `*.pmtiles`), skipping any relative path that
 already exists under `catalog/<id>/` — the git-owned copy always wins.
 `tools/publish.py` walks `catalog/` only and has no flag that widens that.
-Both:
+Both: Pass `--only <id>` (repeatable) to upload one dataset's staging tree while another is still being built.
 
 - dry-run by default; `--confirm` to actually upload,
 - never delete — removing a file locally does not unpublish it,
