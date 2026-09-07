@@ -232,7 +232,7 @@ class FakeClient:
         self.calls = calls
         self.fail_key = fail_key
 
-    def upload_file(self, local, bucket, key, ExtraArgs):
+    def upload_file(self, local, bucket, key, ExtraArgs, Config=None):
         if key == self.fail_key:
             raise RuntimeError("boom")
         self.calls.append((local, bucket, key, ExtraArgs["ContentType"]))
