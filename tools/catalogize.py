@@ -205,7 +205,16 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
 # --- rebuilding items.parquet from the item JSON, with public URLs ---------
 
 
-def _rewrite_item_links(dataset_id: str, square: str, links: list[dict]) -> list[dict]:
+def _rewrite_item_links(
+    dataset_id: str, square: str, links: list[dict], item_dir: str | None = None
+) -> list[dict]:
+    """Structural links go to the published root/collection/sub-catalog.
+
+    Any other relative link (``./x.json`` — a chip's ``ftw:planting`` /
+    ``ftw:harvest`` season items, a season item's ``ftw:parent_chip``) is made
+    absolute against the item's directory, because a parquet row has no base
+    to resolve a relative href against.
+    """
     targets = {
         "root": public_url("catalog.json"),
         "collection": public_url(f"{dataset_id}/collection.json"),
@@ -214,10 +223,13 @@ def _rewrite_item_links(dataset_id: str, square: str, links: list[dict]) -> list
     new_links = []
     for link in links:
         rel = link.get("rel")
+        href = link.get("href", "")
         if rel == "self":
             continue
         if rel in targets:
             link = {**link, "href": targets[rel]}
+        elif item_dir and href.startswith("./"):
+            link = {**link, "href": public_url(f"{dataset_id}/chips/{square}/{item_dir}/{href[2:]}")}
         new_links.append(link)
     return new_links
 
@@ -339,7 +351,9 @@ def _item_documents(dataset_id: str, chips_root: Path) -> list[dict]:
         if len(rel.parts) < 3:
             continue
         square, item_dir = rel.parts[0], rel.parts[1]
-        doc["links"] = _rewrite_item_links(dataset_id, square, doc.get("links") or [])
+        doc["links"] = _rewrite_item_links(
+            dataset_id, square, doc.get("links") or [], item_dir=item_dir
+        )
         doc["assets"] = _rewrite_item_assets(dataset_id, item_dir, square, doc.get("assets") or {})
         items.append(doc)
     return items

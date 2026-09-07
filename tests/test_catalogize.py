@@ -1200,6 +1200,15 @@ with tempfile.TemporaryDirectory() as tmp:
     section = catalogize.ftw1_section("lu", spec, staging=staging, recipe={"metadata": {"description": "edition 2026"}})
     check("`3` fields" in section, "the comparison counts the class-filtered fields, not the full set")
 
+# --- sibling links in the mirror are absolute too -----------------------------
+_links = catalogize._rewrite_item_links(
+    "lu", "31UFR",
+    [{"rel": "ftw:parent_chip", "href": "./ftw-1.json"}, {"rel": "via", "href": "https://x/y"}],
+    item_dir="ftw-1",
+)
+check(_links[0]["href"] == catalogize.public_url("lu/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
+check(_links[1]["href"] == "https://x/y", "an absolute via link is untouched")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
