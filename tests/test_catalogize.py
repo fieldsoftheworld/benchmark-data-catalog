@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """catalogize: staging metadata to catalog, with published links.
 
-Builds a temp staging tree and a temp catalog tree by hand (an items.parquet
-written with pyarrow mimicking the actual shape rustac writes — struct-of-
-structs assets, links without a ``title`` field, a WKB ``geometry`` column,
-and NO GeoParquet ``geo`` key — plus a chips parquet with a ``split`` column
-and a fields parquet), and runs ``catalogize.catalogize()`` and
+Builds a temp staging tree and a temp catalog tree by hand — chip item JSON
+with two imagery child items alongside one chip and none alongside the other,
+a stale pre-imagery items.parquet, a chips parquet with a ``split`` column and
+a fields parquet — and runs ``catalogize.catalogize()`` and
 ``catalogize.regenerate_root()`` against them. No network, no AWS, no real
 ftwd run.
 
-The ``geometry`` column matters: rustac writes it with Parquet's own
-``GEOMETRY`` logical type and no ``geo`` key, which pyarrow cannot round-trip
-(confirmed against a real ``rustac``-written file — see
-``tools/catalogize.py``'s ``_geoparquet_metadata`` docstring), so
-``rewrite_items_parquet`` must add a ``geo`` key itself. This gate proves that
-with DuckDB: ``typeof(geometry)`` must still start with ``GEOMETRY`` after the
-rewrite, not fall back to ``BLOB``.
+Two things the fixture is shaped to prove. First, PTL-LNK-002: the sub-catalog
+must list every Feature under its own directory, so the chip with children
+gains a ``rel: item`` link per child and the chip without children gains none.
+Second, ``items.parquet`` is *rebuilt* from the item JSON on disk rather than
+patched: the fixture's mirror is the pre-imagery snapshot ftwd's ``stac``
+stage writes (one row, stale assets), and the rebuilt file must carry every
+chip and child item instead.
+
+The ``geometry`` column matters too. rustac writes a GeoParquet ``geo`` key of
+its own, and DuckDB reads the column as ``GEOMETRY('OGC:CRS84')`` from it;
+this gate proves that with DuckDB — ``typeof(geometry)`` must start with
+``GEOMETRY`` after the rebuild, not fall back to ``BLOB``.
 
 ``catalogize._load_recipe()`` is not parameterized: it always reads the real
 ``datasets/<id>.yaml`` in this repository. So the dataset ids used here are
@@ -89,7 +93,7 @@ LINKS_TYPE = pa.list_(LINK_TYPE)
 # scan for local paths, which is why the no-local-path check below only
 # scans href values.
 ASSET_TYPE = pa.struct([("href", pa.string()), ("type", pa.string()), ("file:size", pa.int64())])
-ASSETS_TYPE = pa.struct([("instance", ASSET_TYPE), ("image_w1", ASSET_TYPE)])
+ASSETS_TYPE = pa.struct([("instance", ASSET_TYPE), ("stale_only", ASSET_TYPE)])
 
 GEOMETRY_FIELD = pa.field(
     "geometry", pa.binary(), metadata={"ARROW:extension:name": "geoarrow.wkb"}
@@ -104,7 +108,14 @@ BBOX_TYPE = pa.struct(
 
 
 def build_items_parquet(path: Path) -> None:
-    """items.parquet with absolute build-machine link hrefs and ./file asset hrefs."""
+    """The stale, pre-imagery mirror ftwd's ``stac`` stage leaves behind.
+
+    One row for the first chip only — no second chip, no child items — with
+    absolute build-machine link hrefs, a ``stale_only`` asset key that exists
+    nowhere in the item JSON on disk, and no ``geo`` key. Every one of those
+    is a marker: none of them may survive a rebuild that reads the item JSON
+    instead of patching this file.
+    """
     build_root = "/private/tmp/ftwd-build-xyz/out"
     rows = [
         {
@@ -121,27 +132,10 @@ def build_items_parquet(path: Path) -> None:
             ],
             "assets": {
                 "instance": {"href": "./ftw-32UNA7238_2023_instance.tif", "type": "image/tiff", "file:size": 1024},
-                "image_w1": {"href": "./ftw-32UNA7238_2023_w1.tif", "type": "image/tiff", "file:size": 2048},
+                "stale_only": {"href": "./ftw-32UNA7238_2023_stale.tif", "type": "image/tiff", "file:size": 2048},
             },
             "geometry": wkb_point(6.13, 49.61),
             "bbox": {"xmin": 6.12, "ymin": 49.60, "xmax": 6.14, "ymax": 49.62},
-        },
-        {
-            # An id that does not match the ftw-<square><4 digits> pattern: the
-            # square must fall back to the parent link's directory name. Also
-            # has no `image_w1` asset (None), the way a chip without imagery
-            # selected would look in a real struct-of-structs column.
-            "id": "oddball-item",
-            "links": [
-                {"href": f"{build_root}/collection.json", "rel": "root", "type": "application/json"},
-                {"href": f"{build_root}/chips/99ZZZ/catalog.json", "rel": "parent", "type": "application/json"},
-            ],
-            "assets": {
-                "instance": {"href": "./oddball-item_instance.tif", "type": "image/tiff", "file:size": 512},
-                "image_w1": None,
-            },
-            "geometry": wkb_point(6.5, 49.7),
-            "bbox": {"xmin": 6.49, "ymin": 49.69, "xmax": 6.51, "ymax": 49.71},
         },
     ]
     table = pa.table(
@@ -219,32 +213,113 @@ def build_staging_lu(staging: Path) -> None:
             "id": "32UNA",
             "links": [
                 {"rel": "root", "href": "../../collection.json", "type": "application/json"},
+                # ftwd lists the chip items and only those; the season child
+                # items alongside them go unlisted (PTL-LNK-002).
                 {
                     "rel": "item",
                     "href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023.json",
                     "type": "application/geo+json",
                 },
+                {
+                    "rel": "item",
+                    "href": "./ftw-32UNA7240_2023/ftw-32UNA7240_2023.json",
+                    "type": "application/geo+json",
+                },
             ],
         },
     )
+    # The first chip: two imagery child items alongside it. The second chip
+    # (below) has none — the two cases enrich_subcatalogs has to tell apart.
     write_json(
         root / "chips" / "32UNA" / "ftw-32UNA7238_2023" / "ftw-32UNA7238_2023.json",
         {
             "type": "Feature",
             "id": "ftw-32UNA7238_2023",
+            "geometry": {"type": "Point", "coordinates": [6.13, 49.61]},
+            "bbox": [6.12, 49.60, 6.14, 49.62],
+            "properties": {"datetime": "2023-06-01T00:00:00Z"},
             "links": [
                 {"rel": "root", "href": "../../../collection.json", "type": "application/json"},
                 {"rel": "collection", "href": "../../../collection.json", "type": "application/json"},
                 {"rel": "parent", "href": "../catalog.json", "type": "application/json"},
+                {
+                    "rel": "ftw:planting",
+                    "href": "./ftw-32UNA7238_2023_planting_s2.json",
+                    "type": "application/json",
+                },
             ],
             "assets": {
                 "instance": {"href": "./ftw-32UNA7238_2023_instance.tif"},
+                "planting_image": {"href": "./ftw-32UNA7238_2023_planting_image_s2.tif"},
             },
         },
     )
+    for season in ("planting", "harvest"):
+        write_json(
+            root / "chips" / "32UNA" / "ftw-32UNA7238_2023" / f"ftw-32UNA7238_2023_{season}_s2.json",
+            {
+                "type": "Feature",
+                "id": f"ftw-32UNA7238_2023_{season}_s2",
+                "geometry": {"type": "Point", "coordinates": [6.13, 49.61]},
+                "bbox": [6.12, 49.60, 6.14, 49.62],
+                "properties": {"ftw:season": season, "datetime": "2023-06-01T00:00:00Z"},
+                "links": [
+                    {"rel": "root", "href": "../../../collection.json", "type": "application/json"},
+                    {"rel": "collection", "href": "../../../collection.json", "type": "application/json"},
+                    {"rel": "parent", "href": "../catalog.json", "type": "application/json"},
+                    {
+                        "rel": "ftw:parent_chip",
+                        "href": "./ftw-32UNA7238_2023.json",
+                        "type": "application/json",
+                    },
+                    # An absolute href on a link must survive untouched.
+                    {
+                        "rel": "via",
+                        "href": "https://earth-search.aws.element84.com/v1/collections/x/items/y",
+                        "type": "application/json",
+                    },
+                ],
+                "assets": {
+                    # A relative href resolves against the CHIP's directory,
+                    # not a directory named after this child's own id.
+                    "image": {"href": f"./ftw-32UNA7238_2023_{season}_image_s2.tif"},
+                    # An absolute scene href must survive untouched.
+                    "visual": {"href": "https://e84-earth-search-sentinel-data.s3.example/TCI.tif"},
+                },
+            },
+        )
+    write_json(
+        root / "chips" / "32UNA" / "ftw-32UNA7240_2023" / "ftw-32UNA7240_2023.json",
+        {
+            "type": "Feature",
+            "id": "ftw-32UNA7240_2023",
+            "geometry": {"type": "Point", "coordinates": [6.15, 49.63]},
+            "bbox": [6.14, 49.62, 6.16, 49.64],
+            "properties": {"datetime": "2023-06-01T00:00:00Z"},
+            "links": [
+                {"rel": "root", "href": "../../../collection.json", "type": "application/json"},
+                {"rel": "collection", "href": "../../../collection.json", "type": "application/json"},
+                {"rel": "parent", "href": "../catalog.json", "type": "application/json"},
+                {
+                    "rel": "self",
+                    "href": "/private/tmp/ftwd-build-xyz/out/chips/32UNA/"
+                    "ftw-32UNA7240_2023/ftw-32UNA7240_2023.json",
+                    "type": "application/geo+json",
+                },
+            ],
+            "assets": {"instance": {"href": "./ftw-32UNA7240_2023_instance.tif"}},
+        },
+    )
     # A non-STAC JSON file under chips/: rewrite_staging_items must skip it
-    # rather than crash on it or inject a bogus "links" key into it.
+    # rather than crash on it or inject a bogus "links" key into it, and the
+    # mirror rebuild must not try to make an item out of it.
     write_json(root / "chips" / "32UNA" / "scratch.json", ["not", "a", "stac", "doc"])
+    # A JSON file inside an item directory that is not a Feature: neither a
+    # child item link nor a mirror row may come out of it.
+    write_json(
+        root / "chips" / "32UNA" / "ftw-32UNA7238_2023" / "notes.json",
+        {"type": "NotAFeature", "id": "notes"},
+    )
 
     build_items_parquet(root / "items.parquet")
     build_chips_parquet(root / "lu_chips.parquet")
@@ -296,16 +371,15 @@ MANIFEST = {
 }
 
 
-# --- _square_for_item: regex match and parent-link fallback ---------------
+# --- _is_chip_item_link: a chip item's file is named after its directory ---
 
 check(
-    catalogize._square_for_item("ftw-32UNA7238_2023", []) == "32UNA",
-    "square comes from the id when it matches the pattern",
+    catalogize._is_chip_item_link({"href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023.json"}),
+    "./<chip>/<chip>.json is a chip item link",
 )
 check(
-    catalogize._square_for_item("oddball-item", [{"rel": "parent", "href": "/x/out/chips/99ZZZ/catalog.json"}])
-    == "99ZZZ",
-    "square falls back to the parent link's directory name",
+    not catalogize._is_chip_item_link({"href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_s2.json"}),
+    "a child item's link, whose file is not named after its directory, is not a chip item link",
 )
 
 
@@ -567,7 +641,11 @@ with tempfile.TemporaryDirectory() as tmp:
     staged_sub_catalog = json.loads((staging / "lu" / "chips" / "32UNA" / "catalog.json").read_text())
     check(staged_sub_catalog == sub_catalog, "staging sub-catalog matches the copied catalog one (git-owned wins)")
 
-    # --- rel: item links get a title (PTL-TTL-003) ---
+    # --- rel: item links get a title (PTL-TTL-003), and every Feature under
+    # the square's directories is listed: the two chips first, then the child
+    # items of the chip that has them, sorted (PTL-LNK-002). The second chip
+    # has no children and contributes none. `notes.json` is not a Feature and
+    # must not be listed at all. ---
     item_links = [l for l in sub_catalog["links"] if l["rel"] == "item"]
     check(
         item_links == [
@@ -576,9 +654,27 @@ with tempfile.TemporaryDirectory() as tmp:
                 "href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023.json",
                 "type": "application/geo+json",
                 "title": "ftw-32UNA7238_2023",
-            }
+            },
+            {
+                "rel": "item",
+                "href": "./ftw-32UNA7240_2023/ftw-32UNA7240_2023.json",
+                "type": "application/geo+json",
+                "title": "ftw-32UNA7240_2023",
+            },
+            {
+                "rel": "item",
+                "href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023_harvest_s2.json",
+                "type": "application/geo+json",
+                "title": "ftw-32UNA7238_2023_harvest_s2",
+            },
+            {
+                "rel": "item",
+                "href": "./ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_s2.json",
+                "type": "application/geo+json",
+                "title": "ftw-32UNA7238_2023_planting_s2",
+            },
         ],
-        f"the item link gets title = the item id, got {item_links}",
+        f"chip item links first with title = the item id, then the child items sorted, got {item_links}",
     )
 
     # --- describedby/agents links to the square's own docs (PTL-FIL-001/002) ---
@@ -599,7 +695,9 @@ with tempfile.TemporaryDirectory() as tmp:
         square_readme.startswith("# Luxembourg — MGRS square 32UNA"),
         f"square README titled with the collection title and square, got {square_readme[:60]!r}",
     )
-    check("1 chip" in square_readme, "square README states the chip count for this square (1, singular)")
+    # The count is chips, not items: the two child items listed above must
+    # not inflate it.
+    check("2 chips" in square_readme, "square README states the chip count for this square (2 chips, not 4 items)")
     check("../../README.md" in square_readme, "square README links back to the collection README")
 
     square_agents = (lu_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
@@ -648,26 +746,37 @@ with tempfile.TemporaryDirectory() as tmp:
     check(public_url("lu/lu_chips.parquet") in llms, "llms.txt links the chips parquet")
     check(public_url("lu/chips.pmtiles") in llms, "llms.txt links the pmtiles")
 
-    # --- items.parquet: public URLs, no local paths, GeoParquet typing kept, rows equal ---
-    table = pq.read_table(staging / "lu" / "items.parquet")
-    check(table.num_rows == 2, "items.parquet row count unchanged")
-
-    # Existing schema metadata is kept, and a `geo` key is added (rustac
-    # writes no `geo` key at all; without one, DuckDB reads `geometry` as a
-    # plain BLOB after the pyarrow round trip instead of GEOMETRY).
+    # --- items.parquet: rebuilt from disk, public URLs, no local paths, GeoParquet typing ---
+    items_path = staging / "lu" / "items.parquet"
+    table = pq.read_table(items_path)
+    # 2 chip items + 2 child items. The stale mirror had 1 row and knew
+    # nothing of the children, so anything but 4 means it was patched rather
+    # than rebuilt.
+    check(table.num_rows == 4, f"items.parquet is rebuilt from the item JSON: 4 rows, got {table.num_rows}")
     check(
-        table.schema.metadata.get(b"stac:geoparquet_version") == b"1.0.0",
-        "pre-existing schema metadata (stac:geoparquet_version) is preserved",
+        sorted(table.column("id").to_pylist())
+        == [
+            "ftw-32UNA7238_2023",
+            "ftw-32UNA7238_2023_harvest_s2",
+            "ftw-32UNA7238_2023_planting_s2",
+            "ftw-32UNA7240_2023",
+        ],
+        f"every chip and child item is a row, got {sorted(table.column('id').to_pylist())}",
     )
-    geo_meta = json.loads(table.schema.metadata.get(b"geo") or b"{}")
-    check(geo_meta.get("primary_column") == "geometry", "geo metadata names the geometry column")
+
+    # The `geo` key lives in the Parquet file's own key/value metadata, not in
+    # `table.schema.metadata` — a file carrying an `ARROW:schema` key (rustac's
+    # do) has its schema rebuilt from that, and `geo` never surfaces there.
+    file_meta = pq.ParquetFile(items_path).metadata.metadata or {}
+    geo_meta = json.loads(file_meta.get(b"geo") or b"{}")
+    check(geo_meta.get("primary_column") == "geometry", f"geo metadata names the geometry column, got {geo_meta}")
     check(
         geo_meta.get("columns", {}).get("geometry", {}).get("encoding") == "WKB",
         "geo metadata declares WKB encoding",
     )
-    # A `bbox` struct column is present on this fixture (ftwd's real shape),
-    # so rewrite_items_parquet must add a GeoParquet 1.1 covering entry
-    # pointing at it, letting a reader prune row groups without geometry.
+    # A `bbox` struct column is written alongside `geometry`, so the geo
+    # metadata must carry a GeoParquet 1.1 covering entry pointing at it,
+    # letting a reader prune row groups without decoding geometry.
     check(
         geo_meta.get("columns", {}).get("geometry", {}).get("covering")
         == {
@@ -681,16 +790,15 @@ with tempfile.TemporaryDirectory() as tmp:
         f"geo metadata declares a bbox covering entry, got {geo_meta}",
     )
 
-    # The rewrite writes to a temp file and os.replace()s it into place; no
+    # The rebuild writes to a temp file and os.replace()s it into place; no
     # leftover .tmp file should remain once it's done.
     check(
         not (staging / "lu" / "items.parquet.tmp").exists(),
-        "no leftover items.parquet.tmp after the rewrite",
+        "no leftover items.parquet.tmp after the rebuild",
     )
 
     con = duckdb.connect()
     con.execute("INSTALL spatial; LOAD spatial;")
-    items_path = staging / "lu" / "items.parquet"
     geom_type = con.execute(
         "SELECT typeof(geometry) FROM read_parquet(?) LIMIT 1", [str(items_path)]
     ).fetchone()[0]
@@ -710,6 +818,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check(all("/Users/" not in h for h in href_values), "no /Users/ path survives in any href")
     check(all("/tmp/" not in h for h in href_values), "no /tmp/ path survives in any href")
     check(all("file:" not in h for h in href_values), "no file: URL survives in any href")
+    check(
+        all("_stale.tif" not in h for h in href_values),
+        "the stale mirror's asset href does not survive the rebuild",
+    )
 
     rows = {r["id"]: r for r in [dict(id=i, links=l, assets=a) for i, l, a in zip(
         table.column("id").to_pylist(), table.column("links").to_pylist(), table.column("assets").to_pylist()
@@ -735,15 +847,28 @@ with tempfile.TemporaryDirectory() as tmp:
         "asset href rewritten to public_url('<id>/chips/<square>/<item>/<file>')",
     )
 
-    oddball_links = {l["rel"]: l["href"] for l in rows["oddball-item"]["links"]}
+    # --- a child item's own row: its relative asset href resolves against
+    # its CHIP's directory, not one named after its own id, and an absolute
+    # scene href is left exactly as it was ---
+    child_assets = dict(rows["ftw-32UNA7238_2023_planting_s2"]["assets"])
     check(
-        oddball_links.get("parent") == public_url("lu/chips/99ZZZ/catalog.json"),
-        "the fallback-square item's parent link uses the square from its parent link",
+        child_assets["image"]["href"]
+        == public_url("lu/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_image_s2.tif"),
+        f"a child item's image asset is a public URL under its chip's directory, "
+        f"got {child_assets['image']['href']!r}",
     )
-    oddball_assets = dict(rows["oddball-item"]["assets"])
     check(
-        oddball_assets["instance"]["href"] == public_url("lu/chips/99ZZZ/oddball-item/oddball-item_instance.tif"),
-        "the fallback-square item's asset href uses the fallback square",
+        child_assets["visual"]["href"] == "https://e84-earth-search-sentinel-data.s3.example/TCI.tif",
+        f"a child item's absolute scene href is untouched, got {child_assets['visual']['href']!r}",
+    )
+    child_links = {l["rel"]: l["href"] for l in rows["ftw-32UNA7238_2023_planting_s2"]["links"]}
+    check(
+        child_links.get("parent") == public_url("lu/chips/32UNA/catalog.json"),
+        f"a child item's parent link is its square's public sub-catalog URL, got {child_links}",
+    )
+    check(
+        child_links.get("via") == "https://earth-search.aws.element84.com/v1/collections/x/items/y",
+        "a child item's absolute via link is untouched",
     )
 
     # --- second run: idempotent apart from `updated` ---
@@ -1029,15 +1154,14 @@ with tempfile.TemporaryDirectory() as tmp:
 # --- a failed mirror write leaves no temp file and keeps the original ---------
 with tempfile.TemporaryDirectory() as tmp:
     staging = Path(tmp) / "staging"
-    (staging / "lu").mkdir(parents=True)
-    build_items_parquet(staging / "lu" / "items.parquet")
+    build_staging_lu(staging)
     before = (staging / "lu" / "items.parquet").read_bytes()
-    real_write = catalogize.pq.write_table
+    real_write = catalogize.rustac.write_sync
 
     def _boom(*_a, **_k):
         raise OSError("disk full")
 
-    catalogize.pq.write_table = _boom
+    catalogize.rustac.write_sync = _boom
     try:
         raised = False
         try:
@@ -1045,10 +1169,24 @@ with tempfile.TemporaryDirectory() as tmp:
         except OSError:
             raised = True
     finally:
-        catalogize.pq.write_table = real_write
+        catalogize.rustac.write_sync = real_write
     check(raised, "a failing mirror write propagates the error")
     check(not (staging / "lu" / "items.parquet.tmp").exists(), "no stray items.parquet.tmp after a failed write")
     check((staging / "lu" / "items.parquet").read_bytes() == before, "the original mirror is untouched after a failed write")
+
+
+# --- rewrite_items_parquet: an empty item tree exits with a clear message -----
+with tempfile.TemporaryDirectory() as tmp:
+    staging = Path(tmp) / "staging"
+    (staging / "lu" / "chips").mkdir(parents=True)
+    try:
+        catalogize.rewrite_items_parquet("lu", staging=staging)
+        check(False, "rewrite_items_parquet should exit when there is no item JSON to rebuild from")
+    except SystemExit as exc:
+        check(
+            "no item JSON" in str(exc) and "tools/build.py lu" in str(exc),
+            f"the exit message names the empty tree and the fix, got {str(exc)!r}",
+        )
 
 # --- the FTW 1.0 comparison counts the class-filtered fields when present ------
 with tempfile.TemporaryDirectory() as tmp:

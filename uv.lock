@@ -291,6 +291,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rashid" },
     { name = "requests" },
+    { name = "rustac" },
     { name = "stac-check" },
 ]
 
@@ -306,6 +307,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rashid", specifier = ">=0.1.5,<0.2.0" },
     { name = "requests", specifier = ">=2.31" },
+    { name = "rustac", specifier = ">=0.9" },
     { name = "stac-check", specifier = ">=1.6" },
 ]
 

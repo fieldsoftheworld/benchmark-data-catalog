@@ -6,9 +6,10 @@
 (``collection.json``, ``README.md``, ``AGENTS.md``, ``styles/*.json``,
 ``chips/*/catalog.json``) and republishes it under ``catalog/<id>/`` with
 every ``root`` link pointed at the published root catalog instead of the
-staging copy of ``collection.json``. It also rewrites ``items.parquet`` (which
+staging copy of ``collection.json``. It also rebuilds ``items.parquet`` (which
 stays in staging; it is data, uploaded by ``upload_data.py``, never
-committed) so its links and asset hrefs are public URLs instead of
+committed) from the item JSON on disk, so that it covers the imagery child
+items too and its links and asset hrefs are public URLs instead of
 build-machine paths, enriches the collection with the host provider, a
 version, an ``updated`` stamp, and the FTW 1.0 comparison, and — with
 ``--root`` — regenerates the root catalog's child links and the ``##
@@ -19,8 +20,9 @@ Collections`` tables in the root docs.
     uv run python tools/catalogize.py --root         # root only (e.g. after
                                                       # removing a dataset)
 
-Nothing here touches ``staging/<id>/chips/*/*/`` item directories or rasters;
-those stay bucket-only, uploaded by ``tools/upload_data.py``.
+Item JSON under ``staging/<id>/chips/*/*/`` is read and its ``root`` links
+rewritten in place, but no item directory and no raster is ever copied into
+``catalog/``; those stay bucket-only, uploaded by ``tools/upload_data.py``.
 """
 from __future__ import annotations
 
@@ -30,11 +32,11 @@ import os
 import re
 import sys
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import duckdb
-import pyarrow as pa
 import pyarrow.parquet as pq
+import rustac
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -56,10 +58,6 @@ WEB_MAP_LINKS_URI = f"{_WEB_MAP_LINKS_PREFIX}v1.3.0/schema.json"
 # patterns below (styles/*.json, chips/*/catalog.json). Everything else under
 # staging/<id>/ is data: bucket-only, never committed.
 COMMITTED = ("collection.json", "README.md", "AGENTS.md")
-
-# An item id looks like ftw-<mgrs square><4-digit sequence>[_<year>]. The
-# square is whatever sits between "ftw-" and the first run of 4 digits.
-_SQUARE_RE = re.compile(r"^ftw-(?P<square>.+?)\d{4}(_|$)")
 
 # The markers regenerate_root fills between, in catalog/README.md,
 # catalog/AGENTS.md and catalog/llms.txt.
@@ -204,24 +202,7 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
     return touched
 
 
-# --- rewriting items.parquet to public URLs --------------------------------
-
-
-def _square_for_item(item_id: str, links: list[dict]) -> str:
-    """The MGRS square an item belongs to, from its id or its parent link.
-
-    Most ids match ``_SQUARE_RE`` directly. When one doesn't, the item's
-    ``parent`` link (still an absolute build-machine path at this point)
-    names the sub-catalog, and the sub-catalog's own directory is the
-    square.
-    """
-    match = _SQUARE_RE.match(item_id)
-    if match:
-        return match.group("square")
-    parent = next((link for link in links if link.get("rel") == "parent"), None)
-    if parent is None:
-        raise ValueError(f"cannot determine the square for item {item_id!r}: no parent link")
-    return Path(parent["href"]).parent.name
+# --- rebuilding items.parquet from the item JSON, with public URLs ---------
 
 
 def _rewrite_item_links(dataset_id: str, square: str, links: list[dict]) -> list[dict]:
@@ -241,15 +222,21 @@ def _rewrite_item_links(dataset_id: str, square: str, links: list[dict]) -> list
     return new_links
 
 
-def _rewrite_item_assets(dataset_id: str, item_id: str, square: str, assets: dict) -> dict:
+def _rewrite_item_assets(dataset_id: str, item_dir: str, square: str, assets: dict) -> dict:
     """Rewrite every ``./file`` asset href to its public URL.
 
-    ``assets`` is a struct-of-structs, the shape rustac writes: a fixed set
-    of asset keys (e.g. ``instance_mask``) shared by every row, with a value
-    of ``None`` where that row has no such asset. A ``None`` asset is passed
-    through unchanged.
+    ``item_dir`` is the *directory* the item's JSON sits in, not the item id:
+    an imagery child item (``<chip>_planting_s2``) lives inside its chip's
+    directory (``<chip>/``) and its ``./file`` assets resolve against that,
+    so keying the prefix on the id would point every child asset at a
+    directory that does not exist.
+
+    A ``None`` asset is passed through unchanged, so this is also safe on the
+    struct-of-structs shape a stac-geoparquet reader hands back (a fixed set
+    of asset keys shared by every row, ``None`` where a row has no such
+    asset).
     """
-    prefix = f"{dataset_id}/chips/{square}/{item_id}"
+    prefix = f"{dataset_id}/chips/{square}/{item_dir}"
     new_assets = {}
     for key, asset in assets.items():
         href = (asset or {}).get("href", "")
@@ -264,17 +251,11 @@ def _geoparquet_metadata(
 ) -> dict:
     """Schema metadata with a GeoParquet 1.1 ``geo`` key added, everything else kept.
 
-    rustac writes ``geometry`` as WKB with Parquet's own ``GEOMETRY`` logical
-    type and no GeoParquet ``geo`` key; DuckDB reads that column as
-    ``GEOMETRY('OGC:CRS84')`` on the strength of that logical type alone.
-    pyarrow has no API for writing that logical type, so a plain
-    ``pq.write_table`` of a table read back with pyarrow silently downgrades
-    the column to a binary blob — confirmed against a real ``rustac``-written
-    file, where DuckDB reports ``BLOB`` after such a round trip. Writing the
-    ``geo`` key is the fix: any GeoParquet-aware reader, DuckDB included,
-    recognizes the column as geometry from that key just as well as from the
-    Parquet logical type. No ``crs`` entry means OGC:CRS84, which is what
-    ftwd writes.
+    The fallback for a writer that leaves no ``geo`` key of its own — see
+    ``_ensure_geoparquet_metadata``, which only calls this when the file
+    needs it. Any GeoParquet-aware reader, DuckDB included, recognizes the
+    column as geometry from that key. No ``crs`` entry means OGC:CRS84,
+    which is what ftwd writes.
 
     ``has_bbox`` adds a GeoParquet 1.1 ``covering`` entry pointing at the
     table's own ``bbox`` struct column, so a reader can prune row groups from
@@ -303,51 +284,96 @@ def _geoparquet_metadata(
     return meta
 
 
-def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
-    """Rewrite ``staging/<id>/items.parquet`` links and asset hrefs to public URLs.
+def _ensure_geoparquet_metadata(path: Path) -> bool:
+    """Guarantee ``path``'s ``geometry`` column reads back as GEOMETRY, not BLOB.
 
-    Reads the table, transforms the ``links`` and ``assets`` columns as plain
-    Python objects, and writes back with the original schema — simpler and
-    safer than reconstructing the file through DuckDB's ``COPY``. Existing
-    schema metadata is kept, and a GeoParquet ``geo`` key is added (see
-    ``_geoparquet_metadata``) so the ``geometry`` column stays recognizable
-    as geometry after the pyarrow round trip.
+    rustac writes a GeoParquet 1.1 ``geo`` key of its own (with a ``covering``
+    entry for the ``bbox`` struct column), and DuckDB reads the column as
+    ``GEOMETRY('OGC:CRS84')`` on the strength of it — so the normal case here
+    is to verify and keep what the writer produced, rewriting nothing.
+
+    Only when a file has a ``geometry`` column and *no* ``geo`` key is it
+    rewritten through pyarrow with one added (``_geoparquet_metadata``);
+    without that key a GeoParquet-unaware reader sees a plain binary blob.
+    Note that the check reads the Parquet file's own key/value metadata
+    rather than ``table.schema.metadata``: when a file carries an
+    ``ARROW:schema`` key — rustac's do — pyarrow rebuilds the schema from it
+    and the ``geo`` key never surfaces as schema metadata at all.
+
+    Returns True when the file was rewritten.
+    """
+    if b"geo" in (pq.ParquetFile(path).metadata.metadata or {}):
+        return False
+    table = pq.read_table(path)
+    if "geometry" not in table.schema.names:
+        return False
+    table = table.replace_schema_metadata(
+        _geoparquet_metadata(table.schema.metadata, has_bbox="bbox" in table.schema.names)
+    )
+    pq.write_table(table, str(path))
+    return True
+
+
+def _item_documents(dataset_id: str, chips_root: Path) -> list[dict]:
+    """Every item under ``chips_root``, links and asset hrefs made public.
+
+    Walks ``chips/<square>/<chip>/*.json`` and keeps each STAC ``Feature`` —
+    the chip items and the imagery child items alongside them — in a
+    deterministic order: by square, then chip id, then file name, which is
+    exactly sorted path order. Sub-catalogs and any non-STAC JSON are
+    skipped.
+
+    Each document's ``root``/``collection``/``parent`` links and its
+    relative asset hrefs become absolute public URLs; ``self`` is dropped and
+    an already-absolute href (a child item's ``via`` link, or the Earth
+    Search scene assets it points at) is left alone. The square and the chip
+    directory both come from the path, so a child item's assets resolve
+    against its chip's directory rather than its own id.
+    """
+    items = []
+    for path in sorted(chips_root.rglob("*.json")):
+        doc = read_json(path)
+        if not isinstance(doc, dict) or doc.get("type") != "Feature":
+            continue
+        rel = path.relative_to(chips_root)
+        if len(rel.parts) < 3:
+            continue
+        square, item_dir = rel.parts[0], rel.parts[1]
+        doc["links"] = _rewrite_item_links(dataset_id, square, doc.get("links") or [])
+        doc["assets"] = _rewrite_item_assets(dataset_id, item_dir, square, doc.get("assets") or {})
+        items.append(doc)
+    return items
+
+
+def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
+    """Rebuild ``staging/<id>/items.parquet`` from the item JSON on disk.
+
+    The mirror ftwd's ``stac`` stage writes is a snapshot of the chip items
+    as they stood *before* the imagery pass: it has none of the season child
+    items, and the chip items in it carry their pre-imagery assets. Patching
+    that file could never add the missing rows, so the mirror is rebuilt from
+    scratch out of every ``Feature`` JSON under ``staging/<id>/chips/``
+    (``_item_documents``) and written back as stac-geoparquet with
+    ``rustac``, the same writer ftwd itself uses.
 
     Writes to a temporary file in the same directory and ``os.replace``s it
     over ``items.parquet`` at the end, so a process killed mid-write leaves
-    the original file intact instead of a truncated, corrupt one.
+    the original file intact instead of a truncated, corrupt one. The
+    temporary name has no ``.parquet`` extension for rustac to infer a format
+    from, hence the explicit ``format``.
     """
     path = staging / dataset_id / "items.parquet"
-    table = pq.read_table(path)
-    schema = table.schema
-
-    ids = table.column("id").to_pylist()
-    links_col = table.column("links").to_pylist()
-    assets_col = table.column("assets").to_pylist()
-
-    new_links, new_assets = [], []
-    for item_id, links, assets in zip(ids, links_col, assets_col, strict=True):
-        square = _square_for_item(item_id, links)
-        new_links.append(_rewrite_item_links(dataset_id, square, links))
-        new_assets.append(_rewrite_item_assets(dataset_id, item_id, square, assets))
-
-    links_field = schema.field("links")
-    assets_field = schema.field("assets")
-    table = table.set_column(
-        schema.get_field_index("links"), links_field, pa.array(new_links, type=links_field.type)
-    )
-    table = table.set_column(
-        schema.get_field_index("assets"), assets_field, pa.array(new_assets, type=assets_field.type)
-    )
-    if "geometry" in schema.names:
-        has_bbox = "bbox" in schema.names
-        table = table.replace_schema_metadata(_geoparquet_metadata(schema.metadata, has_bbox=has_bbox))
-    else:
-        table = table.replace_schema_metadata(schema.metadata)
+    items = _item_documents(dataset_id, staging / dataset_id / "chips")
+    if not items:
+        sys.exit(
+            f"no item JSON found under {staging / dataset_id / 'chips'}; run: "
+            f"uv run python tools/build.py {dataset_id} --through stac"
+        )
 
     tmp_path = path.with_name(path.name + ".tmp")
     try:
-        pq.write_table(table, str(tmp_path))
+        rustac.write_sync(str(tmp_path), items, format="parquet")
+        _ensure_geoparquet_metadata(tmp_path)
     except BaseException:
         tmp_path.unlink(missing_ok=True)
         raise
@@ -643,6 +669,75 @@ def _add_item_titles(doc: dict) -> None:
             link["title"] = Path(link["href"]).stem
 
 
+def _is_chip_item_link(link: dict) -> bool:
+    """True for a ``rel: item`` link naming a chip item, ``./<chip>/<chip>.json``.
+
+    A chip item's file is named after the directory it sits in; every other
+    Feature in that directory (the imagery child items) is not, which is what
+    separates the two without hard-coding any season suffix.
+    """
+    href = PurePosixPath(link.get("href", ""))
+    return href.stem == href.parent.name
+
+
+def _child_item_links(square_dir: Path, chip_links: list[dict]) -> list[dict]:
+    """``rel: item`` links for every non-chip Feature in this square's item directories.
+
+    PTL-LNK-002: a catalog must carry a ``rel: item`` link for every Feature
+    under its own directory, and ftwd's sub-catalog lists only the chip
+    items — the season child items the imagery pass writes alongside them go
+    unlisted. ``square_dir`` is the *staging* square directory, since that is
+    where the item directories live (they are data, never committed).
+
+    A file is a child when it parses as a STAC ``Feature`` and is not the
+    chip item's own JSON; the title is its ``id``. Sorted by href, so the
+    order is stable across reruns.
+    """
+    links = []
+    for chip_link in chip_links:
+        href = PurePosixPath(chip_link.get("href", ""))
+        item_dir = square_dir / href.parent.name
+        if not item_dir.is_dir():
+            continue
+        for path in sorted(item_dir.glob("*.json")):
+            if path.name == href.name:
+                continue
+            doc = read_json(path)
+            if not isinstance(doc, dict) or doc.get("type") != "Feature":
+                continue
+            links.append(
+                {
+                    "rel": "item",
+                    "href": f"./{href.parent.name}/{path.name}",
+                    "type": "application/geo+json",
+                    "title": doc.get("id", path.stem),
+                }
+            )
+    return sorted(links, key=lambda link: link["href"])
+
+
+def _add_child_item_links(doc: dict, square_dir: Path) -> list[dict]:
+    """List every child Feature in ``doc``'s item directories, after the chip links.
+
+    Returns the chip item links, so the caller can count chips without
+    counting the children just added. Idempotent: any child link already
+    present is dropped and recomputed, and the ones kept go immediately after
+    the last chip link, leaving every other link where it was.
+    """
+    links = [
+        link
+        for link in doc.get("links", [])
+        if link.get("rel") != "item" or _is_chip_item_link(link)
+    ]
+    chip_links = [link for link in links if link.get("rel") == "item"]
+    children = _child_item_links(square_dir, chip_links)
+    if children:
+        last = max(i for i, link in enumerate(links) if link.get("rel") == "item")
+        links = links[: last + 1] + children + links[last + 1 :]
+    doc["links"] = links
+    return chip_links
+
+
 def _ensure_subcatalog_docs_links(doc: dict) -> None:
     """PTL-FIL-001/002: the sub-catalog needs ``describedby``/``agents`` links."""
     links = doc.setdefault("links", [])
@@ -697,22 +792,28 @@ def _subcatalog_agents(collection_title: str, square: str) -> str:
 def enrich_subcatalogs(
     dataset_id: str, *, catalog: Path = CATALOG, staging: Path = STAGING, collection_title: str
 ) -> list[Path]:
-    """Give every committed sub-catalog a title on each item link, and its own docs.
+    """Give every committed sub-catalog a title on each item link, its children, and its own docs.
 
     For each ``catalog/<id>/chips/<square>/catalog.json``: sets ``title`` on
-    every item link (PTL-TTL-003), adds ``describedby``/``agents`` links
+    every item link (PTL-TTL-003), adds a ``rel: item`` link for every
+    imagery child item sitting in one of its chip directories (PTL-LNK-002,
+    see ``_add_child_item_links``), adds ``describedby``/``agents`` links
     (PTL-FIL-001/002), and writes ``README.md``/``AGENTS.md`` alongside it
     (PTL-FIL-001/002/003). The same link edits are applied to the staging
     copy too, so the two stay identical — the git-owned-wins rule in
     ``upload_data.py`` then skips the staged copy rather than uploading a
     differing one.
+
+    The README's chip count counts chips, not items: it comes from the chip
+    links ``_add_child_item_links`` hands back, so the season child items it
+    just listed do not inflate it.
     """
     written = []
     for sub_path in sorted((catalog / dataset_id / "chips").glob("*/catalog.json")):
         square = sub_path.parent.name
         doc = read_json(sub_path)
         _add_item_titles(doc)
-        n_chips = sum(1 for link in doc.get("links", []) if link.get("rel") == "item")
+        n_chips = len(_add_child_item_links(doc, staging / dataset_id / "chips" / square))
         _ensure_subcatalog_docs_links(doc)
         write_json(sub_path, doc)
         written.append(sub_path)

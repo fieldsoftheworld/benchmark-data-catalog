@@ -21,10 +21,12 @@ dependencies = [
     # tools/build.py's subprocess_env imports this directly (for the CA
     # bundle fix) even though it also resolves transitively via requests.
     "certifi>=2024",
-    # items.parquet rewrite (tools/catalogize.py). Currently resolves
-    # transitively via ftw-dataset-tools/duckdb too, but catalogize.py
-    # imports it directly, so it is declared explicitly.
+    # items.parquet rebuild (tools/catalogize.py). Both resolve transitively
+    # via ftw-dataset-tools (which writes the mirror with rustac in the first
+    # place) too, but catalogize.py imports them directly, so they are
+    # declared explicitly.
     "pyarrow>=15",
+    "rustac>=0.9",
 ]
 
 [tool.uv]
