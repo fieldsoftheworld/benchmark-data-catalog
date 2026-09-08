@@ -10,6 +10,19 @@ Every claim in `catalog/**/README.md` and `catalog/**/AGENTS.md` is attested
 (copied from a source and cited), researched and cited, or derived by a query
 that is reproducible from the published data.
 
+Every link in a published document is absolute: `source.coop/ftw/benchmark-data/...`
+for the pages people read, `data.source.coop/ftw/benchmark-data/...` for the raw
+files. source.coop serves a README at a path its relative links cannot resolve
+against, so a relative link is a broken link. `catalogize.py`'s `enrich_readme`
+enforces this on the collection docs ftwd writes — it runs after
+`copy_committed` and, on the catalog's copy only, rewrites the provenance line
+to name and link the harmonized source collection, inserts the marker-delimited
+"Browse" block (thumbnail, data browser, agent guide, `items.parquet`) under the
+description, makes every remaining relative link absolute, and points
+`AGENTS.md` at the data browser. The hand-written root docs follow the same rule
+by hand; `regenerate_root` fills their collection tables with absolute URLs
+built from `catalog.public_base` / `catalog.human_base` in `datasets.yaml`.
+
 Recipes live in `datasets/<id>.yaml` and are ftwd config files. `datasets.yaml`
 names the official set. Edit those and the tools, never the generated files
 under `catalog/<id>/`.

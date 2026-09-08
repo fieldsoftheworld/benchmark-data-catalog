@@ -11,8 +11,11 @@ stays in staging; it is data, uploaded by ``upload_data.py``, never
 committed) from the item JSON on disk, so that it covers the imagery child
 items too and its links and asset hrefs are public URLs instead of
 build-machine paths, enriches the collection with the host provider, a
-version, an ``updated`` stamp, and the FTW 1.0 comparison, and — with
-``--root`` — regenerates the root catalog's child links and the ``##
+version, an ``updated`` stamp, and the FTW 1.0 comparison, post-processes the
+collection's ``README.md`` and ``AGENTS.md`` for publication (``enrich_readme``:
+a named source link, a "Browse" block, and every relative link made absolute —
+source.coop renders these files where a relative link cannot resolve), and —
+with ``--root`` — regenerates the root catalog's child links and the ``##
 Collections`` tables in the root docs.
 
     uv run python tools/catalogize.py lu            # one dataset
@@ -29,10 +32,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import posixpath
 import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
+from urllib.request import Request, urlopen
 
 import duckdb
 import pyarrow.parquet as pq
@@ -41,7 +46,15 @@ import rustac
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from build import _check_recipe as _check_dataset_recipe  # noqa: E402
-from common import CATALOG, ROOT, STAGING, public_url, read_json, write_json  # noqa: E402
+from common import (  # noqa: E402
+    CATALOG,
+    PUBLIC_BASE,
+    ROOT,
+    STAGING,
+    public_url,
+    read_json,
+    write_json,
+)
 
 from ftw_dataset_tools.api.stac import PORTOLAN_SCHEMA_URI  # noqa: E402
 
@@ -64,6 +77,27 @@ COMMITTED = ("collection.json", "README.md", "AGENTS.md")
 _MARK_START = "<!-- collections:start -->"
 _MARK_END = "<!-- collections:end -->"
 
+# The markers enrich_readme's "Browse" block sits between, in every
+# catalog/<id>/README.md, so a rerun replaces the block instead of stacking
+# another copy of it under the description.
+_BROWSE_START = "<!-- browse:start -->"
+_BROWSE_END = "<!-- browse:end -->"
+
+# The Portolan data browser renders any publicly readable STAC document; the
+# path it takes is that document's public URL with the scheme stripped.
+BROWSER_BASE = "https://browser.portolan-sdi.org/#/external/"
+
+# Where an SPDX license id is documented, for the root table's License column.
+SPDX_BASE = "https://spdx.org/licenses/"
+
+# Sent when reading a source collection's title over HTTPS: an anonymous
+# request with no User-Agent is refused by some CDNs.
+_USER_AGENT = "benchmark-data-catalog (+https://github.com/fieldsoftheworld/benchmark-data-catalog)"
+
+# How long enrich_readme waits on the harmonized collection.json before
+# falling back to the offline title. A build must not hang on a slow host.
+_FETCH_TIMEOUT = 10.0
+
 # The only document types rewrite_staging_items touches. Anything else under
 # staging/<id>/chips/ is not ftwd's own output and is left alone.
 _STAC_TYPES = {"Feature", "Catalog", "Collection"}
@@ -74,6 +108,66 @@ _STAC_TYPES = {"Feature", "Catalog", "Collection"}
 _DATA_SOURCE_COOP_RE = re.compile(
     r"^https://data\.source\.coop/(?P<org>[^/]+)/(?P<repo>[^/]+)/(?P<id>[^/]+)/collection\.json$"
 )
+
+
+# --- published URLs: raw files, human pages, the data browser -------------
+
+
+def browser_url(rel: str) -> str:
+    """The Portolan data browser URL for the published document at ``rel``.
+
+    The browser's ``#/external/`` route takes a host-plus-path, so this is
+    ``public_url(rel)`` with its scheme stripped. Never hard-codes the host:
+    the path comes from ``catalog.publish.yaml`` like every other public URL.
+    """
+    return BROWSER_BASE + public_url(rel).split("://", 1)[-1]
+
+
+def human_url(manifest: dict, rel: str = "") -> str:
+    """The human-readable catalog page for ``rel``, from ``catalog.human_base``.
+
+    ``data.source.coop`` serves bytes; ``source.coop`` serves the pages a
+    person reads. Docs link people at the second and raw files at the first.
+    Falls back to the public base only when a manifest carries no
+    ``human_base`` (``tests/test_manifest.py`` requires one in the real
+    manifest, so that is a fixture-only path).
+    """
+    base = ((manifest.get("catalog") or {}).get("human_base") or PUBLIC_BASE).rstrip("/")
+    return f"{base}/{rel}" if rel else base
+
+
+def harmonized_source(recipe: dict) -> tuple[str, str] | None:
+    """``(human page, collection.json)`` for the recipe's harmonized source.
+
+    ``source_via`` names the harmonized collection's JSON endpoint on
+    data.source.coop; the human page is the same org/repo/id path on
+    source.coop. None when the recipe points somewhere else entirely, in
+    which case the README's provenance line is left as ftwd wrote it.
+    """
+    source_via = recipe.get("source_via") or ""
+    match = _DATA_SOURCE_COOP_RE.match(source_via)
+    if not match:
+        return None
+    return "https://source.coop/{org}/{repo}/{id}".format(**match.groupdict()), source_via
+
+
+def fetch_collection_title(url: str, *, timeout: float = _FETCH_TIMEOUT) -> str | None:
+    """The ``title`` of the STAC collection served at ``url``, or None.
+
+    Any failure — offline, DNS, a 404, a timeout, JSON that is not a
+    collection — returns None with a note printed, so a build without network
+    access still produces a README (with the caller's offline fallback title)
+    instead of dying on a documentation link.
+    """
+    request = Request(url, headers={"User-Agent": _USER_AGENT})
+    try:
+        with urlopen(request, timeout=timeout) as response:  # noqa: S310 (https, from the recipe)
+            doc = json.loads(response.read().decode())
+    except Exception as exc:
+        print(f"note   could not read {url} ({exc}); using the offline source title")
+        return None
+    title = doc.get("title") if isinstance(doc, dict) else None
+    return title or None
 
 
 # --- copying the git-owned slice of staging into the catalog --------------
@@ -666,6 +760,215 @@ def enrich_collection(
     return written
 
 
+# --- post-processing the collection's README.md and AGENTS.md --------------
+
+# The provenance line ftwd writes, pointing at the harmonized collection's
+# JSON endpoint. enrich_readme replaces it with a line that names the source
+# collection and links the page a person can actually read.
+_DERIVED_FROM_RE = re.compile(
+    r"^- Derived from \[[^\]]*\]\((?P<href>https://data\.source\.coop/\S+/collection\.json)\)[ \t]*$",
+    re.MULTILINE,
+)
+
+# A markdown link or image. The target must be whitespace-free, which is
+# every link ftwd writes; a `[x](url "title")` form is left alone rather than
+# half-rewritten.
+_MD_LINK_RE = re.compile(r"(!?)\[([^\]]*)\]\(([^)\s]+)\)")
+
+
+def _absolute_target(target: str, *, base_rel: str, manifest: dict) -> str:
+    """One markdown link target, made absolute against the published catalog.
+
+    A relative target is resolved against ``base_rel`` (the document's own
+    directory inside the catalog, e.g. ``lu``) and then published: markdown
+    goes to the human page on source.coop, everything else to the raw file on
+    data.source.coop. Already-absolute targets, fragments and ``mailto:``
+    are returned untouched.
+    """
+    if "://" in target or target.startswith(("#", "mailto:")):
+        return target
+    path, sep, fragment = target.partition("#")
+    if not path:
+        return target
+    rel = posixpath.normpath(posixpath.join(base_rel, path))
+    url = human_url(manifest, rel) if rel.endswith(".md") else public_url(rel)
+    return url + sep + fragment
+
+
+def absolutize_links(text: str, *, base_rel: str, manifest: dict) -> str:
+    """Rewrite every relative markdown link in ``text`` to a published URL.
+
+    source.coop renders a README at a path that is not the file's own
+    directory, so a relative link (``[AGENTS.md](AGENTS.md)``, ``[at/](at/)``)
+    resolves against the wrong base and 404s. Every link in a published
+    document is therefore absolute. Idempotent: an absolute target is left
+    exactly as it is.
+    """
+
+    def replace(match: re.Match) -> str:
+        bang, label, target = match.groups()
+        return f"{bang}[{label}]({_absolute_target(target, base_rel=base_rel, manifest=manifest)})"
+
+    return _MD_LINK_RE.sub(replace, text)
+
+
+def _source_data_line(title: str, human: str, stac: str) -> str:
+    return (
+        f"- Source data: [{title}]({human}) (harmonized field boundaries; "
+        f"STAC [collection.json]({stac}))"
+    )
+
+
+def _replace_derived_from(text: str, *, recipe: dict, collection_title: str, fetch_title) -> str:
+    """Replace ftwd's "Derived from <json endpoint>" line with a readable one.
+
+    Names the harmonized collection (its own ``title``, read over HTTPS) and
+    links the human page, keeping the JSON endpoint as a secondary link for
+    machines. Offline, the title falls back to "Harmonized field boundaries
+    for <collection title>" so the line is still accurate and the build still
+    finishes. A README already carrying the replacement no longer matches, so
+    a rerun changes nothing.
+    """
+    if not _DERIVED_FROM_RE.search(text):
+        return text
+    source = harmonized_source(recipe)
+    if not source:
+        return text
+    human, stac = source
+    title = fetch_title(stac) or f"Harmonized field boundaries for {collection_title}"
+    return _DERIVED_FROM_RE.sub(lambda _m: _source_data_line(title, human, stac), text, count=1)
+
+
+def _browse_block(dataset_id: str, title: str, *, manifest: dict, has_thumbnail: bool) -> str:
+    """The marker-delimited "Browse" block: the thumbnail, then the three ways in."""
+    lines = [_BROWSE_START]
+    if has_thumbnail:
+        lines += [f"![{title} thumbnail]({public_url(f'{dataset_id}/thumbnail.webp')})", ""]
+    lines.append(
+        f"Open this collection in the [data browser]({browser_url(f'{dataset_id}/collection.json')}), "
+        f"read the [agent guide]({human_url(manifest, f'{dataset_id}/AGENTS.md')}), or query "
+        f"[items.parquet]({public_url(f'{dataset_id}/items.parquet')}) directly."
+    )
+    lines.append(_BROWSE_END)
+    return "\n".join(lines)
+
+
+def _description_end(lines: list[str]) -> int:
+    """Index of the line just past the H1 and the description paragraph under it.
+
+    0 when the document has no H1 at all, which puts the block at the very
+    top rather than dropping it.
+    """
+    start = next((i for i, line in enumerate(lines) if line.startswith("# ")), None)
+    if start is None:
+        return 0
+    index = start + 1
+    while index < len(lines) and not lines[index].strip():
+        index += 1
+    while index < len(lines) and lines[index].strip() and not lines[index].startswith("#"):
+        index += 1
+    return index
+
+
+def _insert_browse_block(text: str, block: str) -> str:
+    """Put ``block`` right after the H1's description paragraph, exactly once.
+
+    Idempotent by the ``browse`` markers: once a README carries them, the
+    block between them is replaced in place, wherever it sits.
+    """
+    if _BROWSE_START in text and _BROWSE_END in text:
+        before, _, rest = text.partition(_BROWSE_START)
+        _, _, after = rest.partition(_BROWSE_END)
+        return before + block + after
+    lines = text.split("\n")
+    index = _description_end(lines)
+    return "\n".join(lines[:index] + ["", block] + lines[index:])
+
+
+def _insert_after_heading(text: str, heading: str, line: str) -> str:
+    """Insert ``line`` as the first paragraph under ``heading``, once.
+
+    A no-op when the line is already there (so a rerun adds nothing) or when
+    the heading is absent (so a differently shaped document is left alone).
+    """
+    if line in text:
+        return text
+    lines = text.split("\n")
+    for i, current in enumerate(lines):
+        if current.strip() == heading:
+            return "\n".join(lines[: i + 1] + ["", line] + lines[i + 1 :])
+    return text
+
+
+def enrich_readme(
+    dataset_id: str,
+    *,
+    catalog: Path = CATALOG,
+    manifest: dict,
+    recipe: dict,
+    fetch_title=fetch_collection_title,
+) -> list[Path]:
+    """Post-process the docs ftwd wrote for one collection, for publication.
+
+    ftwd writes ``README.md`` and ``AGENTS.md`` for a collection sitting on a
+    build machine; this makes them publishable:
+
+    - the provenance line naming the source becomes a link to the harmonized
+      collection's own page (``_replace_derived_from``),
+    - a "Browse" block goes under the description: the thumbnail when one has
+      been rendered, and the data browser / agent guide / ``items.parquet``
+      links,
+    - every remaining relative link becomes an absolute published URL
+      (``absolutize_links``), because source.coop renders these files at a
+      path their relative links cannot resolve against,
+    - ``AGENTS.md`` gains the same absolute links and a one-line pointer at
+      the data browser under "## Accessing the data".
+
+    Runs after ``copy_committed``, on the catalog's copy only — staging's
+    copy is ftwd's own output and is left alone. Idempotent: rerunning
+    produces byte-identical files (a fresh copy each run, and marker-guarded
+    insertion when a README is processed twice in place).
+    """
+    dataset_dir = catalog / dataset_id
+    readme_path = dataset_dir / "README.md"
+    agents_path = dataset_dir / "AGENTS.md"
+    collection_title = read_json(dataset_dir / "collection.json").get("title", dataset_id)
+    written: list[Path] = []
+
+    if readme_path.is_file():
+        text = readme_path.read_text()
+        text = _replace_derived_from(
+            text, recipe=recipe, collection_title=collection_title, fetch_title=fetch_title
+        )
+        text = _insert_browse_block(
+            text,
+            _browse_block(
+                dataset_id,
+                collection_title,
+                manifest=manifest,
+                has_thumbnail=(dataset_dir / "thumbnail.webp").is_file(),
+            ),
+        )
+        text = absolutize_links(text, base_rel=dataset_id, manifest=manifest)
+        readme_path.write_text(text)
+        written.append(readme_path)
+
+    if agents_path.is_file():
+        text = agents_path.read_text()
+        text = _insert_after_heading(
+            text,
+            "## Accessing the data",
+            f"Browse the collection in the [Portolan data browser]"
+            f"({browser_url(f'{dataset_id}/collection.json')}), or read the files below straight "
+            f"from [collection.json]({public_url(f'{dataset_id}/collection.json')}).",
+        )
+        text = absolutize_links(text, base_rel=dataset_id, manifest=manifest)
+        agents_path.write_text(text)
+        written.append(agents_path)
+
+    return written
+
+
 # --- llms.txt for one collection -------------------------------------------
 
 
@@ -790,45 +1093,63 @@ def _ensure_subcatalog_docs_links(doc: dict) -> None:
         )
 
 
-def _subcatalog_readme(collection_title: str, square: str, n_chips: int) -> str:
+def _subcatalog_readme(
+    dataset_id: str, collection_title: str, square: str, n_chips: int, *, manifest: dict
+) -> str:
     plural = "chip" if n_chips == 1 else "chips"
+    collection_readme = human_url(manifest, f"{dataset_id}/README.md")
     return (
         f"# {collection_title} — MGRS square {square}\n\n"
         f"This square holds {n_chips} {plural} on the FTW grid. Each item carries the same "
         "asset types as the rest of the collection — label masks and, where imagery was "
-        "downloaded, clipped scenes — see the [collection README](../../README.md) for what "
+        f"downloaded, clipped scenes — see the [collection README]({collection_readme}) for what "
         "every asset means.\n"
     )
 
 
-def _subcatalog_agents(collection_title: str, square: str) -> str:
-    query = f"SELECT * FROM read_parquet('../../items.parquet') WHERE id LIKE 'ftw-{square}%';"
+def _subcatalog_agents(
+    dataset_id: str, collection_title: str, square: str, *, manifest: dict
+) -> str:
+    """The square's agent guide, with every link and the query's path published.
+
+    The query reads the collection's mirror by its public URL rather than a
+    relative path: this file is published, and a reader who found it on the
+    web has no collection directory to run it from.
+    """
+    items = public_url(f"{dataset_id}/items.parquet")
+    guide = human_url(manifest, f"{dataset_id}/AGENTS.md")
+    query = f"SELECT * FROM read_parquet('{items}') WHERE id LIKE 'ftw-{square}%';"
     return (
         f"# {collection_title} — MGRS square {square}\n\n"
         "## Overview\n\n"
         f"This is a sub-catalog of chips in MGRS 100 km square {square}. See the "
-        "[collection agent guide](../../AGENTS.md) for the full collection.\n\n"
+        f"[collection agent guide]({guide}) for the full collection.\n\n"
         "## Accessing the data\n\n"
         "Query this square's items out of the collection's `items.parquet`, filtered on the "
         "square prefix of the item id:\n\n"
         f"```sql\n{query}\n```\n\n"
         "## Schema & field notes\n\n"
         "Every column and property is documented in the "
-        "[collection agent guide](../../AGENTS.md); nothing here is specific to this square.\n\n"
+        f"[collection agent guide]({guide}); nothing here is specific to this square.\n\n"
         "## Data quality & usage notes\n\n"
-        "Every data quality note in the [collection agent guide](../../AGENTS.md) applies "
+        f"Every data quality note in the [collection agent guide]({guide}) applies "
         "equally to this square.\n\n"
         "## Example queries\n\n"
-        "See the [collection agent guide](../../AGENTS.md) for worked examples against the "
+        f"See the [collection agent guide]({guide}) for worked examples against the "
         "full collection; the query above scopes any of them to this square.\n\n"
         "## Related collections\n\n"
-        "See the [collection agent guide](../../AGENTS.md) for related collections and the "
+        f"See the [collection agent guide]({guide}) for related collections and the "
         "source field boundary data.\n"
     )
 
 
 def enrich_subcatalogs(
-    dataset_id: str, *, catalog: Path = CATALOG, staging: Path = STAGING, collection_title: str
+    dataset_id: str,
+    *,
+    catalog: Path = CATALOG,
+    staging: Path = STAGING,
+    collection_title: str,
+    manifest: dict,
 ) -> list[Path]:
     """Give every committed sub-catalog a title on each item link, its children, and its own docs.
 
@@ -857,11 +1178,15 @@ def enrich_subcatalogs(
         written.append(sub_path)
 
         readme_path = sub_path.parent / "README.md"
-        readme_path.write_text(_subcatalog_readme(collection_title, square, n_chips))
+        readme_path.write_text(
+            _subcatalog_readme(dataset_id, collection_title, square, n_chips, manifest=manifest)
+        )
         written.append(readme_path)
 
         agents_path = sub_path.parent / "AGENTS.md"
-        agents_path.write_text(_subcatalog_agents(collection_title, square))
+        agents_path.write_text(
+            _subcatalog_agents(dataset_id, collection_title, square, manifest=manifest)
+        )
         written.append(agents_path)
 
         staged_path = staging / dataset_id / "chips" / square / "catalog.json"
@@ -893,7 +1218,63 @@ def _child_links(collections: list[tuple[str, dict]]) -> list[dict]:
     ]
 
 
-def _collection_row(dataset_id: str, doc: dict, *, staging: Path) -> dict:
+def _imagery_count(items_parquet: Path) -> int | None:
+    """How many chips have season scenes, counted from the items mirror.
+
+    The imagery pass writes one child item per season alongside its chip,
+    named ``<chip>_<season>_s2``; the number of distinct chips behind those
+    ids is the number of chips with imagery, whether one season or both
+    landed. Reads only the ``id`` column, so it works on a mirror written
+    before the season properties existed. None when the mirror is not on disk
+    (a CI checkout, or a staging tree pruned after publication).
+    """
+    if not items_parquet.exists():
+        return None
+    con = duckdb.connect()
+    (count,) = con.execute(
+        "SELECT count(DISTINCT regexp_replace(id, '_(planting|harvest)_s2$', '')) "
+        "FROM read_parquet(?) WHERE regexp_matches(id, '_(planting|harvest)_s2$')",
+        [str(items_parquet)],
+    ).fetchone()
+    return count
+
+
+def _license_cell(doc: dict) -> str:
+    """The License column: an SPDX id linked to spdx.org, or the license link.
+
+    A collection whose license is ``other`` carries a ``rel: license`` link
+    naming the terms it is published under (ftwd copies it from the recipe);
+    that link's own title is what the table shows, since there is no SPDX
+    page to point at.
+    """
+    license_id = doc.get("license") or "—"
+    if license_id not in ("other", "—"):
+        return f"[{license_id}]({SPDX_BASE}{license_id}.html)"
+    for link in doc.get("links") or []:
+        if link.get("rel") == "license" and link.get("href"):
+            return f"[{link.get('title') or 'License terms'}]({link['href']})"
+    return license_id
+
+
+def _source_cell(dataset_id: str, doc: dict) -> str:
+    """The Source column: the harmonized collection's human page, from the via link."""
+    for link in doc.get("links") or []:
+        if link.get("rel") == "via" and link.get("href"):
+            return f"[harmonized/{dataset_id}]({link['href']})"
+    return "—"
+
+
+def _collection_row(
+    dataset_id: str, doc: dict, *, staging: Path, catalog: Path, manifest: dict
+) -> dict:
+    """One row of facts about a published collection, every cell already a link.
+
+    Chips and splits are measured from the staged chips parquet, imagery from
+    the items mirror; the thumbnail cell is a markdown image only when the
+    thumbnail has actually been rendered into the catalog. Every URL is built
+    from the manifest's bases, never hard-coded.
+    """
+    title = doc.get("title", dataset_id)
     chips_path = staging / dataset_id / f"{dataset_id}_chips.parquet"
     counts = _chip_counts(chips_path) if chips_path.exists() else None
     if counts is None:
@@ -901,34 +1282,64 @@ def _collection_row(dataset_id: str, doc: dict, *, staging: Path) -> dict:
             f"warning  {dataset_id}: {chips_path} is missing; root tables will show "
             "'—' for its chips/splits instead of the real counts"
         )
+    imagery = _imagery_count(staging / dataset_id / "items.parquet")
+    has_thumbnail = (catalog / dataset_id / "thumbnail.webp").is_file()
     return {
         "id": dataset_id,
-        "title": doc.get("title", dataset_id),
-        "chips": str(counts["total"]) if counts else "—",
-        "splits": f"{counts['train']}/{counts['val']}/{counts['test']}" if counts else "—",
-        "license": doc.get("license") or "—",
+        "title": title,
+        "thumbnail": (
+            f"![{title}]({public_url(f'{dataset_id}/thumbnail.webp')})" if has_thumbnail else "—"
+        ),
+        "collection": f"[{title}]({human_url(manifest, dataset_id)})",
+        "chips": f"{counts['total']:,}" if counts else "—",
+        "splits": (
+            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}" if counts else "—"
+        ),
+        "imagery": f"{imagery:,}" if imagery else "—",
+        "license": _license_cell(doc),
+        "source": _source_cell(dataset_id, doc),
+        "browse": f"[browse]({browser_url(f'{dataset_id}/collection.json')})",
     }
 
 
-def _collections_table(rows: list[dict]) -> str:
+# The root table's columns, as (heading, row key). catalog/AGENTS.md gets the
+# same facts without the image — an agent reading markdown gains nothing from
+# a thumbnail it cannot see.
+_TABLE_COLUMNS = (
+    ("Thumbnail", "thumbnail"),
+    ("Collection", "collection"),
+    ("Chips", "chips"),
+    ("Splits (train/val/test)", "splits"),
+    ("Imagery", "imagery"),
+    ("License", "license"),
+    ("Source", "source"),
+    ("Browse", "browse"),
+)
+
+
+def _collections_table(rows: list[dict], *, thumbnails: bool = True) -> str:
     if not rows:
         return ""
-    header = "| ID | Title | Chips | Splits (train/val/test) | License | Link |\n"
-    sep = "| --- | --- | --- | --- | --- | --- |\n"
+    columns = [c for c in _TABLE_COLUMNS if thumbnails or c[1] != "thumbnail"]
+    header = "| " + " | ".join(heading for heading, _ in columns) + " |\n"
+    sep = "| " + " | ".join("---" for _ in columns) + " |\n"
     body = "".join(
-        f"| {r['id']} | {r['title']} | {r['chips']} | {r['splits']} | {r['license']} "
-        f"| [{r['id']}/]({r['id']}/) |\n"
-        for r in rows
+        "| " + " | ".join(row[key] for _, key in columns) + " |\n" for row in rows
     )
     return header + sep + body
 
 
 def _collections_list(rows: list[dict]) -> str:
-    return "".join(
-        f"- [{r['title']}]({r['id']}/collection.json): {r['chips']} chips "
-        f"({r['splits']} train/val/test), {r['license']}\n"
-        for r in rows
-    )
+    """The same facts as the table, as a list, for llms.txt."""
+    lines = []
+    for row in rows:
+        collection_url = public_url(f"{row['id']}/collection.json")
+        lines.append(
+            f"- [{row['title']}]({collection_url}): {row['chips']} chips "
+            f"({row['splits']} train/val/test), {row['imagery']} with imagery, "
+            f"license {row['license']}, source {row['source']}, {row['browse']}\n"
+        )
+    return "".join(lines)
 
 
 def _replace_between_markers(path: Path, content: str) -> None:
@@ -969,10 +1380,12 @@ def regenerate_root(
     doc["updated"] = _now_iso(now)
     write_json(root_path, doc)
 
-    rows = [_collection_row(dataset_id, coll, staging=staging) for dataset_id, coll in collections]
-    table = _collections_table(rows)
-    _replace_between_markers(catalog / "README.md", table)
-    _replace_between_markers(catalog / "AGENTS.md", table)
+    rows = [
+        _collection_row(dataset_id, coll, staging=staging, catalog=catalog, manifest=manifest)
+        for dataset_id, coll in collections
+    ]
+    _replace_between_markers(catalog / "README.md", _collections_table(rows))
+    _replace_between_markers(catalog / "AGENTS.md", _collections_table(rows, thumbnails=False))
     _replace_between_markers(catalog / "llms.txt", _collections_list(rows))
 
     return [root_path, catalog / "README.md", catalog / "AGENTS.md", catalog / "llms.txt"]
@@ -1020,8 +1433,15 @@ def catalogize(
     written += enrich_collection(
         dataset_id, catalog=catalog, staging=staging, manifest=manifest, recipe=recipe, now=now
     )
+    written += enrich_readme(dataset_id, catalog=catalog, manifest=manifest, recipe=recipe)
     collection_title = read_json(catalog / dataset_id / "collection.json").get("title", dataset_id)
-    written += enrich_subcatalogs(dataset_id, catalog=catalog, staging=staging, collection_title=collection_title)
+    written += enrich_subcatalogs(
+        dataset_id,
+        catalog=catalog,
+        staging=staging,
+        collection_title=collection_title,
+        manifest=manifest,
+    )
     written.append(write_llms(dataset_id, catalog=catalog))
 
     return list(dict.fromkeys(written))

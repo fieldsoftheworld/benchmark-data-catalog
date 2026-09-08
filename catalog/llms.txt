@@ -1,15 +1,19 @@
 # Fields of the World Benchmark Data
 
-> Training and evaluation chips for field boundary delineation models, one collection per country, published as a Portolan catalog.
+> Training and evaluation chips for field boundary delineation models — Sentinel-2 imagery paired with instance, semantic and DECODE label masks cut from harmonized official field boundaries, one collection per country, published as a Portolan catalog.
 
-- [Catalog README](README.md)
-- [Agent guide](AGENTS.md)
+- [Catalog README](https://source.coop/ftw/benchmark-data/README.md)
+- [Agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md)
+- [STAC root catalog](https://data.source.coop/ftw/benchmark-data/catalog.json)
+- [Data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json)
+- [Source field boundaries](https://source.coop/ftw/harmonized-field-data)
 - [Source repository](https://github.com/fieldsoftheworld/benchmark-data-catalog)
+- [Fields of the World 1.0](https://source.coop/kerner-lab/fields-of-the-world)
 
 ## Collections
 
 <!-- collections:start -->
-- [Austria](at/collection.json): 11242 chips (9018/1153/1071 train/val/test), CC-BY-4.0
-- [Luxembourg](lu/collection.json): 775 chips (601/79/95 train/val/test), CC-BY-4.0
-- [Slovenia](si/collection.json): 5103 chips (4078/512/513 train/val/test), other
+- [Austria](https://data.source.coop/ftw/benchmark-data/at/collection.json): 11,242 chips (9,018/1,153/1,071 train/val/test), — with imagery, license [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html), source [harmonized/at](https://source.coop/ftw/harmonized-field-data/at), [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json)
+- [Luxembourg](https://data.source.coop/ftw/benchmark-data/lu/collection.json): 775 chips (601/79/95 train/val/test), 679 with imagery, license [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html), source [harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu), [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json)
+- [Slovenia](https://data.source.coop/ftw/benchmark-data/si/collection.json): 5,103 chips (4,078/512/513 train/val/test), 2,857 with imagery, license [License](https://rkg.gov.si/vstop/), source [harmonized/si](https://source.coop/ftw/harmonized-field-data/si), [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json)
 <!-- collections:end -->

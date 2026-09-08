@@ -359,7 +359,14 @@ def build_catalog_root(catalog: Path) -> None:
 
 
 MANIFEST = {
-    "catalog": {"id": "benchmark-data", "title": "Fields of the World Benchmark Data", "version": "2.0.0-test"},
+    "catalog": {
+        "id": "benchmark-data",
+        "title": "Fields of the World Benchmark Data",
+        "version": "2.0.0-test",
+        # The base every link for a *person* is built from. Never hard-coded
+        # in the tools: pages live on source.coop, bytes on data.source.coop.
+        "human_base": "https://source.coop/ftw/benchmark-data",
+    },
     "host": {"name": "Source Cooperative", "url": "https://source.coop", "roles": ["host"]},
     "datasets": {
         "lu": {
@@ -698,7 +705,10 @@ with tempfile.TemporaryDirectory() as tmp:
     # The count is chips, not items: the two child items listed above must
     # not inflate it.
     check("2 chips" in square_readme, "square README states the chip count for this square (2 chips, not 4 items)")
-    check("../../README.md" in square_readme, "square README links back to the collection README")
+    check(
+        "[collection README](https://source.coop/ftw/benchmark-data/lu/README.md)" in square_readme,
+        f"square README links back to the collection README by its published URL, got {square_readme}",
+    )
 
     square_agents = (lu_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
     for heading in (
@@ -710,12 +720,23 @@ with tempfile.TemporaryDirectory() as tmp:
         "## Related collections",
     ):
         check(heading in square_agents, f"square AGENTS.md has the {heading!r} heading")
-    check("../../AGENTS.md" in square_agents, "square AGENTS.md links back to the collection agent guide")
+    check(
+        "[collection agent guide](https://source.coop/ftw/benchmark-data/lu/AGENTS.md)" in square_agents,
+        f"square AGENTS.md links the collection agent guide by its published URL, got {square_agents}",
+    )
     check(
         "WHERE id LIKE 'ftw-32UNA%'" in square_agents,
         "square AGENTS.md gives a DuckDB query filtered on this square",
     )
-    check("../../items.parquet" in square_agents, "square AGENTS.md query reads the collection's items.parquet")
+    check(
+        public_url("lu/items.parquet") in square_agents,
+        "square AGENTS.md query reads the collection's items.parquet by its public URL, so it "
+        "runs for a reader who found this file on the web",
+    )
+    check(
+        "../.." not in square_agents and "../.." not in square_readme,
+        "no relative link survives in a square's docs",
+    )
 
     # --- staging item JSON rewritten to depth 4, no self ---
     item_doc = json.loads(
@@ -936,14 +957,28 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not any(l["rel"] == "self" for l in root_doc["links"]), "regenerate_root strips a stray self link")
 
     root_readme = (catalog / "README.md").read_text()
-    check("| lu | Luxembourg |" in root_readme, "root README collections table lists lu")
+    check(
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) |" in root_readme,
+        f"root README collections table links lu's human page, got {root_readme}",
+    )
+    check("| Thumbnail | Collection |" in root_readme, "root README table leads with Thumbnail")
     check("More prose." in root_readme, "root README prose outside the markers survives")
 
     root_agents = (catalog / "AGENTS.md").read_text()
-    check("| lu | Luxembourg |" in root_agents, "root AGENTS.md collections table lists lu")
+    check(
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) |" in root_agents,
+        "root AGENTS.md collections table lists lu",
+    )
+    check(
+        "Thumbnail" not in root_agents and "![" not in root_agents,
+        "root AGENTS.md carries the same facts without the thumbnail image",
+    )
 
     root_llms = (catalog / "llms.txt").read_text()
-    check("[Luxembourg](lu/collection.json)" in root_llms, "root llms.txt collection list mentions lu")
+    check(
+        f"[Luxembourg]({public_url('lu/collection.json')})" in root_llms,
+        "root llms.txt collection list links lu's collection.json by public URL",
+    )
 
     # --- regenerate_root is idempotent too (same `now`, so `updated` doesn't move) ---
     before = (catalog / "catalog.json").read_text()
@@ -1008,7 +1043,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check(printed.count("warning") == 1, f"exactly one warning is printed, for si only (lu's parquet exists): {printed!r}")
 
     root_readme = (catalog / "README.md").read_text()
-    check("| si | Slovenia | — | — |" in root_readme, "si's row falls back to '—' for chips/splits")
+    check(
+        "| — | [Slovenia](" in root_readme and "| — | — | — |" in root_readme,
+        f"si's row falls back to '—' for thumbnail, chips, splits and imagery, got {root_readme}",
+    )
 
 
 # --- catalogize(): a missing items.parquet or collection.json exits with a
@@ -1217,6 +1255,333 @@ with tempfile.TemporaryDirectory() as tmp:
     n = catalogize._refresh_asset_sizes(doc, sd)
     check(n == 1 and doc["assets"]["items"]["file:size"] == 1234, "file:size is re-read from the staged file")
     check(doc["assets"]["remote"]["file:size"] == 7 and doc["assets"]["missing"]["file:size"] == 9, "remote and missing assets keep their size")
+
+# --- the root table's columns: thumbnail, imagery, and the two license forms --
+#
+# Every cell is a link or a measured number, and the same facts (minus the
+# image) go into catalog/AGENTS.md and catalog/llms.txt. The fixture pairs a
+# collection with everything (a rendered thumbnail, a chips table, an items
+# mirror carrying season child items, an SPDX license, a via link) against one
+# with none of it and an 'other' license, which is the pair the row builder has
+# to tell apart.
+
+def build_mirror_ids(path: Path, ids: list[str]) -> None:
+    """A minimal items mirror: only the `id` column _imagery_count reads."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table({"id": ids}), str(path))
+
+
+def build_counted_chips_parquet(path: Path, *, train: int, val: int, test: int) -> None:
+    """A chips table whose totals are big enough to prove thousands separators."""
+    splits = ["train"] * train + ["val"] * val + ["test"] * test
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(
+        pa.table({"id": [f"c{i}" for i in range(len(splits))], "split": splits}), str(path)
+    )
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    staging = tmp / "staging"
+    catalog = tmp / "catalog"
+
+    write_json(
+        catalog / "lu" / "collection.json",
+        {
+            "type": "Collection",
+            "id": "lu",
+            "title": "Luxembourg",
+            "license": "CC-BY-4.0",
+            "links": [
+                {
+                    "rel": "via",
+                    "href": "https://source.coop/ftw/harmonized-field-data/lu",
+                    "type": "text/html",
+                }
+            ],
+        },
+    )
+    (catalog / "lu" / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
+    build_counted_chips_parquet(staging / "lu" / "lu_chips.parquet", train=1200, val=20, test=14)
+    # Two chips, one of which has both season child items: one chip with imagery.
+    build_mirror_ids(
+        staging / "lu" / "items.parquet",
+        [
+            "ftw-32UNA7238_2023",
+            "ftw-32UNA7238_2023_planting_s2",
+            "ftw-32UNA7238_2023_harvest_s2",
+            "ftw-32UNA7240_2023",
+        ],
+    )
+
+    write_json(
+        catalog / "si" / "collection.json",
+        {
+            "type": "Collection",
+            "id": "si",
+            "title": "Slovenia",
+            "license": "other",
+            "links": [
+                {"rel": "license", "href": "https://example.invalid/terms", "title": "Ministry terms"}
+            ],
+        },
+    )
+
+    lu_row = catalogize._collection_row(
+        "lu",
+        json.loads((catalog / "lu" / "collection.json").read_text()),
+        staging=staging,
+        catalog=catalog,
+        manifest=MANIFEST,
+    )
+    si_row = catalogize._collection_row(
+        "si",
+        json.loads((catalog / "si" / "collection.json").read_text()),
+        staging=staging,
+        catalog=catalog,
+        manifest=MANIFEST,
+    )
+
+    check(
+        lu_row["thumbnail"] == f"![Luxembourg]({public_url('lu/thumbnail.webp')})",
+        f"a rendered thumbnail becomes a markdown image in the row, got {lu_row['thumbnail']!r}",
+    )
+    check(
+        si_row["thumbnail"] == "—",
+        f"a collection with no thumbnail.webp gets '—', got {si_row['thumbnail']!r}",
+    )
+    check(
+        lu_row["collection"] == "[Luxembourg](https://source.coop/ftw/benchmark-data/lu)",
+        f"the Collection cell links the human page from the manifest, got {lu_row['collection']!r}",
+    )
+    check(lu_row["chips"] == "1,234", f"chips carry thousands separators, got {lu_row['chips']!r}")
+    check(
+        lu_row["splits"] == "1,200/20/14", f"splits are measured per split, got {lu_row['splits']!r}"
+    )
+    check(
+        lu_row["imagery"] == "1",
+        f"imagery counts the chips with season scenes, not the season items, got {lu_row['imagery']!r}",
+    )
+    check(
+        si_row["imagery"] == "—",
+        f"a collection with no items mirror shows '—' for imagery, got {si_row['imagery']!r}",
+    )
+    check(
+        lu_row["license"] == "[CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)",
+        f"an SPDX license id links its spdx.org page, got {lu_row['license']!r}",
+    )
+    check(
+        si_row["license"] == "[Ministry terms](https://example.invalid/terms)",
+        f"an 'other' license shows its license link's title, got {si_row['license']!r}",
+    )
+    check(
+        lu_row["source"] == "[harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu)",
+        f"the Source cell links the harmonized human page from the via link, got {lu_row['source']!r}",
+    )
+    check(si_row["source"] == "—", f"no via link means no source cell, got {si_row['source']!r}")
+    check(
+        lu_row["browse"] == f"[browse]({catalogize.browser_url('lu/collection.json')})",
+        f"the Browse cell links the data browser, got {lu_row['browse']!r}",
+    )
+
+    table = catalogize._collections_table([lu_row, si_row])
+    header = table.splitlines()[0]
+    check(
+        header == "| Thumbnail | Collection | Chips | Splits (train/val/test) | Imagery | License "
+        "| Source | Browse |",
+        f"the README table's header names every column, got {header!r}",
+    )
+    check(table.count("\n") == 4, f"header, separator and one row per collection, got {table!r}")
+
+    agents_table = catalogize._collections_table([lu_row, si_row], thumbnails=False)
+    check(
+        agents_table.splitlines()[0].startswith("| Collection |") and "![" not in agents_table,
+        f"the AGENTS.md table drops the image column and keeps the rest, got {agents_table!r}",
+    )
+    check(
+        all(cell in agents_table for cell in (lu_row["chips"], lu_row["imagery"], lu_row["source"])),
+        "the AGENTS.md table carries the same facts as the README one",
+    )
+
+    listed = catalogize._collections_list([lu_row, si_row])
+    check(
+        f"[Luxembourg]({public_url('lu/collection.json')}): 1,234 chips" in listed,
+        f"llms.txt lists each collection by public URL with its chip count, got {listed!r}",
+    )
+    check("1 with imagery" in listed, f"llms.txt carries the imagery count, got {listed!r}")
+    check("![" not in listed, "llms.txt carries no image")
+
+
+# --- enrich_readme: source line, Browse block, absolute links, idempotence ----
+#
+# ftwd writes these two files for a tree on a build machine. Everything here is
+# what publication needs on top: a source line naming a page a person can read,
+# a Browse block under the description, and no relative link anywhere — a
+# relative link resolves against the wrong base on source.coop and 404s.
+
+FTWD_README = """# Luxembourg
+
+Benchmark chips for Luxembourg cut from the harmonized field boundary collection.
+
+## Provenance
+
+- License: [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)
+- Derived from [Source field boundary collection](https://data.source.coop/ftw/harmonized-field-data/lu/collection.json)
+- Masks rasterized at 10 m per pixel
+
+## Access
+
+See [AGENTS.md](AGENTS.md) for the schema, and [the styles](styles/default.json).
+"""
+
+FTWD_AGENTS = """# Luxembourg
+
+## Overview
+
+Benchmark chips for Luxembourg.
+
+## Accessing the data
+
+Query `items.parquet` with DuckDB; see the [collection README](README.md).
+"""
+
+
+def build_collection_docs(catalog: Path, *, thumbnail: bool = False) -> Path:
+    lu_dir = catalog / "lu"
+    write_json(lu_dir / "collection.json", {"type": "Collection", "id": "lu", "title": "Luxembourg"})
+    (lu_dir / "README.md").write_text(FTWD_README)
+    (lu_dir / "AGENTS.md").write_text(FTWD_AGENTS)
+    if thumbnail:
+        (lu_dir / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
+    return lu_dir
+
+
+recipe_lu = catalogize._load_recipe("lu")
+SOURCE_STAC = recipe_lu["source_via"]
+SOURCE_PAGE = "https://source.coop/ftw/harmonized-field-data/lu"
+
+with tempfile.TemporaryDirectory() as tmp:
+    catalog = Path(tmp) / "catalog"
+    lu_dir = build_collection_docs(catalog)
+
+    fetched: list[str] = []
+
+    def offline_fetch(url: str, **_kwargs) -> None:
+        """The offline case: the harmonized collection.json cannot be read."""
+        fetched.append(url)
+        return None
+
+    written = catalogize.enrich_readme(
+        "lu", catalog=catalog, manifest=MANIFEST, recipe=recipe_lu, fetch_title=offline_fetch
+    )
+    check(
+        written == [lu_dir / "README.md", lu_dir / "AGENTS.md"],
+        f"enrich_readme reports both documents it rewrote, got {written}",
+    )
+    check(
+        fetched == [SOURCE_STAC],
+        f"the source title is read from the harmonized collection.json exactly once, got {fetched}",
+    )
+
+    readme = (lu_dir / "README.md").read_text()
+    check("Derived from" not in readme, "ftwd's 'Derived from' line is replaced, not kept alongside")
+    check(
+        f"- Source data: [Harmonized field boundaries for Luxembourg]({SOURCE_PAGE}) "
+        f"(harmonized field boundaries; STAC [collection.json]({SOURCE_STAC}))" in readme,
+        f"offline, the source line falls back to a derived title and still links both, got {readme}",
+    )
+
+    # --- the Browse block: once, under the description, above the first
+    # section, with no image when no thumbnail has been rendered ---
+    check(
+        readme.count(catalogize._BROWSE_START) == 1 and readme.count(catalogize._BROWSE_END) == 1,
+        "the Browse block is inserted exactly once",
+    )
+    check(
+        readme.index("Benchmark chips for Luxembourg")
+        < readme.index(catalogize._BROWSE_START)
+        < readme.index("## Provenance"),
+        "the Browse block sits between the description paragraph and the first section",
+    )
+    check(
+        f"Open this collection in the [data browser]({catalogize.browser_url('lu/collection.json')}), "
+        f"read the [agent guide](https://source.coop/ftw/benchmark-data/lu/AGENTS.md), or query "
+        f"[items.parquet]({public_url('lu/items.parquet')}) directly." in readme,
+        f"the Browse paragraph offers the browser, the agent guide and the mirror, got {readme}",
+    )
+    check("![" not in readme, "no thumbnail image when no thumbnail.webp has been rendered")
+
+    # --- every relative link is absolute: markdown to the human page, data
+    # files to the bucket ---
+    check(
+        "[AGENTS.md](https://source.coop/ftw/benchmark-data/lu/AGENTS.md)" in readme,
+        f"a relative markdown link becomes a source.coop page URL, got {readme}",
+    )
+    check(
+        f"[the styles]({public_url('lu/styles/default.json')})" in readme,
+        f"a relative non-markdown link becomes a data.source.coop URL, got {readme}",
+    )
+    check(
+        "](AGENTS.md)" not in readme and "](styles/" not in readme,
+        "no relative link survives in the README",
+    )
+    check(
+        "[CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)" in readme,
+        "an already-absolute link is left exactly as it was",
+    )
+
+    agents = (lu_dir / "AGENTS.md").read_text()
+    check(
+        catalogize.browser_url("lu/collection.json") in agents,
+        f"AGENTS.md gains a data browser pointer, got {agents}",
+    )
+    check(
+        agents.index("## Accessing the data")
+        < agents.index("Browse the collection")
+        < agents.index("Query `items.parquet`"),
+        f"the pointer is the first paragraph under '## Accessing the data', got {agents}",
+    )
+    check(
+        "[collection README](https://source.coop/ftw/benchmark-data/lu/README.md)" in agents,
+        f"AGENTS.md's relative links are absolute too, got {agents}",
+    )
+
+    # --- rerunning in place changes nothing (markers, and an absolute link
+    # stays absolute) ---
+    catalogize.enrich_readme(
+        "lu", catalog=catalog, manifest=MANIFEST, recipe=recipe_lu, fetch_title=offline_fetch
+    )
+    check((lu_dir / "README.md").read_text() == readme, "enrich_readme is idempotent on the README")
+    check((lu_dir / "AGENTS.md").read_text() == agents, "enrich_readme is idempotent on AGENTS.md")
+
+
+# --- enrich_readme with a reachable source and a rendered thumbnail ----------
+
+with tempfile.TemporaryDirectory() as tmp:
+    catalog = Path(tmp) / "catalog"
+    lu_dir = build_collection_docs(catalog, thumbnail=True)
+
+    catalogize.enrich_readme(
+        "lu",
+        catalog=catalog,
+        manifest=MANIFEST,
+        recipe=recipe_lu,
+        fetch_title=lambda url, **_kwargs: "Luxembourg field boundaries",
+    )
+    readme = (lu_dir / "README.md").read_text()
+    check(
+        f"- Source data: [Luxembourg field boundaries]({SOURCE_PAGE})" in readme,
+        f"the source collection's own title is used when it can be read, got {readme}",
+    )
+    check(
+        readme.count(f"![Luxembourg thumbnail]({public_url('lu/thumbnail.webp')})") == 1,
+        f"the thumbnail image appears once in the Browse block, got {readme}",
+    )
+    check(
+        readme.index("![Luxembourg thumbnail") < readme.index("Open this collection"),
+        "the image comes before the Browse paragraph",
+    )
+
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
