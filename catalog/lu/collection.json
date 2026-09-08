@@ -164,7 +164,7 @@
       "title": "Chip preview"
     }
   },
-  "updated": "2026-09-07T18:50:15Z",
+  "updated": "2026-09-08T18:00:14Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -449,7 +449,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 166301,
+      "file:size": 574600,
       "table:columns": [
         {
           "name": "type",
@@ -542,7 +542,8 @@
       "roles": [
         "style",
         "default"
-      ]
+      ],
+      "file:size": 911
     },
     "style-field-coverage": {
       "href": "./styles/field-coverage.json",
@@ -550,7 +551,8 @@
       "title": "Field coverage",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 1077
     },
     "style-outline": {
       "href": "./styles/outline.json",
@@ -558,7 +560,8 @@
       "title": "Field outlines",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 710
     },
     "thumbnail": {
       "href": "./thumbnail.webp",

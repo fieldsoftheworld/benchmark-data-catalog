@@ -169,7 +169,7 @@
       "title": "Chip preview"
     }
   },
-  "updated": "2026-09-08T04:21:40Z",
+  "updated": "2026-09-08T18:00:23Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -535,7 +535,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 1049805,
+      "file:size": 1383251,
       "table:columns": [
         {
           "name": "type",
@@ -644,7 +644,8 @@
       "roles": [
         "style",
         "default"
-      ]
+      ],
+      "file:size": 911
     },
     "style-field-coverage": {
       "href": "./styles/field-coverage.json",
@@ -652,7 +653,8 @@
       "title": "Field coverage",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 1076
     },
     "style-dominant-crop": {
       "href": "./styles/dominant-crop.json",
@@ -660,7 +662,8 @@
       "title": "Dominant crop per chip",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 2274
     },
     "style-crops": {
       "href": "./styles/crops.json",
@@ -668,7 +671,8 @@
       "title": "Crops",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 2287
     },
     "style-outline": {
       "href": "./styles/outline.json",
@@ -676,7 +680,8 @@
       "title": "Field outlines",
       "roles": [
         "style"
-      ]
+      ],
+      "file:size": 710
     },
     "thumbnail": {
       "href": "./thumbnail.webp",
