@@ -52,6 +52,6 @@ stages:
     num_buffer_expansions: 3
     buffer_expansion_size: 14
   download_images:
-    enabled: false
+    enabled: true
     bands: [red, green, blue, nir]
     resolution: 10.0
