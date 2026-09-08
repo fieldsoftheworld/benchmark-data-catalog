@@ -19,6 +19,13 @@ The collection ships these files alongside `collection.json`:
 | `si_boundary_lines.parquet` | Field boundary lines |
 | `si_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
+| `chips.pmtiles` | Chips (PMTiles) |
+| `fields.pmtiles` | Field boundaries (PMTiles) |
+| `styles/split.json` | Chips by split |
+| `styles/field-coverage.json` | Field coverage |
+| `styles/dominant-crop.json` | Dominant crop per chip |
+| `styles/crops.json` | Crops |
+| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -45,13 +52,27 @@ Columns in the chips table:
 
 FTW properties on each STAC item:
 
+- `ftw:buffer_days`: half-width of the search window around the target day, in days
+- `ftw:buffer_expansion_size`: set by the FTW pipeline; see the item JSON
 - `ftw:calendar_year`: calendar year of the crop cycle the chip documents
+- `ftw:cloud_cover_chip_threshold`: set by the FTW pipeline; see the item JSON
+- `ftw:expansions_performed`: set by the FTW pipeline; see the item JSON
 - `ftw:field_coverage_pct`: percent of the chip's area covered by mapped field polygons
+- `ftw:harvest_buffer_used`: set by the FTW pipeline; see the item JSON
+- `ftw:harvest_cloud_cover`: cloud cover of the selected harvest scene, in percent
+- `ftw:harvest_day`: day of year the harvest window is centred on
 - `ftw:hcat_dominant_code`: EuroCrops HCAT code of the crop covering most of the chip's fields
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
+- `ftw:num_buffer_expansions`: set by the FTW pipeline; see the item JSON
+- `ftw:planting_buffer_used`: set by the FTW pipeline; see the item JSON
+- `ftw:planting_cloud_cover`: cloud cover of the selected planting scene, in percent
+- `ftw:planting_day`: day of year the planting window is centred on
+- `ftw:season`: which crop-calendar window a child imagery item covers
+- `ftw:source`: satellite mission the imagery came from
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
+- `ftw:stac_host`: STAC API the imagery was selected from
 
 Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
 
@@ -61,6 +82,7 @@ Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`,
 - Masks are derived from boundaries declared for one year; later parcel changes are not reflected.
 - Empty area inside a chip means unmapped, not necessarily fieldless.
 - Chips on the dataset border may be only partly covered by the source boundaries.
+- Imagery is chosen against a crop calendar, so acquisition dates and cloud cover vary between chips; check `eo:cloud_cover` on the season child items.
 - Respect the pre-assigned splits: they are spatially blocked, so resampling chips at random leaks information between train and test.
 
 ## Example queries
@@ -74,6 +96,7 @@ SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet'
 -- result: test | 513
 -- result: train | 4078
 -- result: val | 512
+-- result: ... 1 more rows
 ```
 
 ### Chips with the highest field coverage
