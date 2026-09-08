@@ -283,8 +283,9 @@ def s3_client(session, endpoint_url: str | None = None):
 # retry policy gives up quickly and does not classify every proxy error as
 # retryable; the standard mode with more attempts does.
 RETRY_MAX_ATTEMPTS = 8
-# Fewer, larger parts mean fewer chances for the proxy to drop one.
-MULTIPART_CHUNK_BYTES = 64 * 1024 * 1024
+# The proxy closed the connection mid-part on 64 MB parts of a 1.5 GB file
+# (SSL EOF on part 9, twice); 16 MB parts with little concurrency get through.
+MULTIPART_CHUNK_BYTES = 16 * 1024 * 1024
 
 
 def _retry_config():
@@ -302,7 +303,7 @@ def _transfer_config():
         from boto3.s3.transfer import TransferConfig
     except ImportError:
         return None
-    return TransferConfig(multipart_chunksize=MULTIPART_CHUNK_BYTES, max_concurrency=4)
+    return TransferConfig(multipart_chunksize=MULTIPART_CHUNK_BYTES, max_concurrency=2)
 
 
 def remote_index(
