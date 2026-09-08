@@ -594,6 +594,29 @@ def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) ->
     return f"\n## Compared with Fields of the World 1.0\n\n{text}\n"
 
 
+def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
+    """Re-read ``file:size`` for every relative asset that exists in staging.
+
+    ftwd stamps ``file:size`` when it writes the collection, but catalogize
+    rebuilds ``items.parquet`` afterwards (parents plus imagery children), so
+    the mirror's declared size went stale and a live check compared it
+    against the served Content-Length. Returns how many sizes changed.
+    """
+    changed = 0
+    for asset in (doc.get("assets") or {}).values():
+        href = asset.get("href", "")
+        if not href.startswith("./"):
+            continue
+        local = staging_dir / href[2:]
+        if not local.is_file():
+            continue
+        size = local.stat().st_size
+        if asset.get("file:size") != size:
+            asset["file:size"] = size
+            changed += 1
+    return changed
+
+
 def enrich_collection(
     dataset_id: str,
     *,
@@ -625,6 +648,7 @@ def enrich_collection(
     _rewrite_via_link(doc)
     _ensure_license_link(doc, recipe)
     _ensure_pmtiles_links(doc)
+    _refresh_asset_sizes(doc, staging / dataset_id)
     doc["updated"] = _now_iso(now)
     write_json(collection_path, doc)
     written = [collection_path]

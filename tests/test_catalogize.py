@@ -1209,6 +1209,15 @@ _links = catalogize._rewrite_item_links(
 check(_links[0]["href"] == catalogize.public_url("lu/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
 check(_links[1]["href"] == "https://x/y", "an absolute via link is untouched")
 
+# --- collection asset sizes follow the staged files ----------------------------
+with tempfile.TemporaryDirectory() as tmp:
+    sd = Path(tmp) / "staging" / "lu"; sd.mkdir(parents=True)
+    (sd / "items.parquet").write_bytes(b"x" * 1234)
+    doc = {"assets": {"items": {"href": "./items.parquet", "file:size": 1}, "remote": {"href": "https://x/y", "file:size": 7}, "missing": {"href": "./nope.parquet", "file:size": 9}}}
+    n = catalogize._refresh_asset_sizes(doc, sd)
+    check(n == 1 and doc["assets"]["items"]["file:size"] == 1234, "file:size is re-read from the staged file")
+    check(doc["assets"]["remote"]["file:size"] == 7 and doc["assets"]["missing"]["file:size"] == 9, "remote and missing assets keep their size")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
