@@ -8,6 +8,12 @@
 #               year, parcels, chips, train, val, test, license. Omitted
 #               when ftw1_name is "none".
 #   thumbnail:  framing for tools/thumbnail.py (next plan): style, zoom, rank.
+#
+# Every recipe asks for the DECODE mask types (decode_boundary,
+# decode_distance) alongside the instance and semantic masks. The masks stage
+# sets skip_existing, so rerunning it on a collection built before those types
+# existed writes only the missing DECODE rasters and leaves every mask already
+# on disk untouched; the stac stage then picks the new files up as item assets.
 
 catalog:
   id: benchmark-data

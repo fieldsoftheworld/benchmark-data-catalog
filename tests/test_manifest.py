@@ -7,8 +7,9 @@ but not the others is a mistake: a recipe nobody builds, a collection nobody
 maintains, or a child link to nothing.
 
 Also checks that every official recipe carries the fields a publishable
-collection needs (a license, a title, a source href) so a build cannot start
-from an incomplete recipe. Dependency-free apart from PyYAML.
+collection needs (a license, a title, a source href, the full set of label
+mask types) so a build cannot start from an incomplete recipe. Dependency-free
+apart from PyYAML.
 
 Run: python3 tests/test_manifest.py
 """
@@ -31,6 +32,17 @@ from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manif
 MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
 errors: list[str] = []
+
+# The label masks every official recipe asks ftwd for. `skip_existing` on the
+# masks stage means adding a type here is a cheap backfill: a rerun writes only
+# the rasters that are missing.
+REQUIRED_MASK_TYPES = (
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance",
+)
 
 
 def err(msg: str) -> None:
@@ -128,6 +140,16 @@ for dataset_id in sorted(declared & recipes):
         )
     if "TODO(attest)" in json.dumps(recipe):
         err(f"datasets/{dataset_id}.yaml: unattested value remains (TODO(attest))")
+    # Every official collection publishes the same label set, so a model
+    # trained on one country finds the same assets on the next. The DECODE
+    # pair is part of it: their rasters become item assets like the rest.
+    mask_types = ((recipe.get("stages") or {}).get("masks") or {}).get("mask_types") or []
+    for required in REQUIRED_MASK_TYPES:
+        if required not in mask_types:
+            err(
+                f"datasets/{dataset_id}.yaml: stages.masks.mask_types is missing {required!r} "
+                f"(got {mask_types})"
+            )
     spec = MANIFEST["datasets"][dataset_id] or {}
     ftw1_name = spec.get("ftw1_name")
     if not ftw1_name:

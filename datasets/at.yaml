@@ -35,7 +35,8 @@ stages:
     split_percents: [80, 10, 10]
     random_seed: 42
   masks:
-    mask_types: [instance, semantic_2_class, semantic_3_class]
+    # DECODE labels ship as item assets alongside the instance and semantic masks.
+    mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 10.0
     workers: null
     presence_only: false
