@@ -11,6 +11,8 @@ Licensed [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html).
 
 ## Accessing the data
 
+Browse the collection in the [Portolan data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json), or read the files below straight from [collection.json](https://data.source.coop/ftw/benchmark-data/lu/collection.json).
+
 The collection ships these files alongside `collection.json`:
 
 | file | what it is |
@@ -19,11 +21,6 @@ The collection ships these files alongside `collection.json`:
 | `lu_boundary_lines.parquet` | Field boundary lines |
 | `lu_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
-| `chips.pmtiles` | Chips (PMTiles) |
-| `fields.pmtiles` | Field boundaries (PMTiles) |
-| `styles/split.json` | Chips by split |
-| `styles/field-coverage.json` | Field coverage |
-| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -46,11 +43,23 @@ Columns in the chips table:
 
 FTW properties on each STAC item:
 
+- `ftw:buffer_days`: half-width of the search window around the target day, in days
+- `ftw:buffer_expansion_size`: set by the FTW pipeline; see the item JSON
 - `ftw:calendar_year`: calendar year of the crop cycle the chip documents
+- `ftw:cloud_cover_chip_threshold`: set by the FTW pipeline; see the item JSON
+- `ftw:expansions_performed`: set by the FTW pipeline; see the item JSON
 - `ftw:field_coverage_pct`: percent of the chip's area covered by mapped field polygons
+- `ftw:harvest_buffer_used`: set by the FTW pipeline; see the item JSON
+- `ftw:harvest_cloud_cover`: cloud cover of the selected harvest scene, in percent
+- `ftw:harvest_day`: day of year the harvest window is centred on
+- `ftw:num_buffer_expansions`: set by the FTW pipeline; see the item JSON
+- `ftw:planting_buffer_used`: set by the FTW pipeline; see the item JSON
+- `ftw:planting_cloud_cover`: cloud cover of the selected planting scene, in percent
+- `ftw:planting_day`: day of year the planting window is centred on
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
+- `ftw:stac_host`: STAC API the imagery was selected from
 
-Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
+Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
 ## Data quality & usage notes
 

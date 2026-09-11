@@ -42,28 +42,32 @@ def exit_message(call) -> str:
 
 
 # --- command() builds the ftwd argv, in the documented flag order --------
+import sys
+from pathlib import Path as _P
+
+_FTWD = str(_P(sys.executable).with_name("ftwd"))
 check(
-    build.command("lu") == ["ftwd", "run", "datasets/lu.yaml"],
-    "the plain command carries no flags",
+    build.command("lu") == [_FTWD, "run", "datasets/lu.yaml"],
+    "the plain command runs this interpreter's own ftwd, not one from PATH",
 )
 check(
     build.command("lu", from_="select_images")
-    == ["ftwd", "run", "datasets/lu.yaml", "--from", "select_images"],
+    == [_FTWD, "run", "datasets/lu.yaml", "--from", "select_images"],
     "--from select_images passes through",
 )
 check(
     build.command("lu", through="stac")
-    == ["ftwd", "run", "datasets/lu.yaml", "--through", "stac"],
+    == [_FTWD, "run", "datasets/lu.yaml", "--through", "stac"],
     "--through stac passes through",
 )
 check(
     build.command("lu", only="masks")
-    == ["ftwd", "run", "datasets/lu.yaml", "--only", "masks"],
+    == [_FTWD, "run", "datasets/lu.yaml", "--only", "masks"],
     "--only masks passes through",
 )
 check(
     build.command("lu", dry_run=True)
-    == ["ftwd", "run", "datasets/lu.yaml", "--dry-run"],
+    == [_FTWD, "run", "datasets/lu.yaml", "--dry-run"],
     "--dry-run is appended",
 )
 
@@ -132,7 +136,7 @@ try:
 finally:
     build.subprocess.run = _real_run
 check(_recorded.get("kwargs", {}).get("cwd") == build.ROOT, "ftwd runs with cwd=ROOT")
-check(_recorded.get("cmd", [None])[0] == "ftwd", "the recorded command is ftwd")
+check(_recorded.get("cmd", [None])[0] == _FTWD, "the recorded command is this interpreter's ftwd")
 # Isolate from whatever PROJ_LIB/PROJ_DATA/GDAL_DATA the ambient shell
 # happens to carry (a conda env on PATH, say), so the note is checked against
 # a known, controlled set: PROJ_LIB present, the other two absent.

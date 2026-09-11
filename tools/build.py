@@ -44,8 +44,22 @@ def command(
     ``--from`` and ``--through`` flags, in that order; ftwd itself rejects
     ``--only`` combined with the other two, so this does not police that.
     ``dry_run`` appends ``--dry-run`` last.
+
+    The executable is the ``ftwd`` console script that sits beside THIS
+    interpreter, never a bare ``ftwd`` from PATH. The pin check in main()
+    inspects this interpreter's installed ftw-dataset-tools, so the binary
+    launched has to be the same install - a bare name silently resolves to
+    whatever other environment is first on PATH (a conda env, say), and the
+    pin check then guards a binary that never runs. That happened: a build
+    passed the pin check and ran a stale conda ftwd.
     """
-    argv = ["ftwd", "run", f"datasets/{dataset_id}.yaml"]
+    ftwd = Path(sys.executable).with_name("ftwd")
+    if not ftwd.exists():
+        raise SystemExit(
+            f"ftwd console script not found at {ftwd}; is ftw-dataset-tools "
+            "installed in this interpreter's environment? (run via uv run / .venv)"
+        )
+    argv = [str(ftwd), "run", f"datasets/{dataset_id}.yaml"]
     if only is not None:
         argv += ["--only", only]
     if from_ is not None:

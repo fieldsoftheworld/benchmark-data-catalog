@@ -1,0 +1,55 @@
+11 staged file(s) skipped because catalog/ owns them
+data_dir:    /Users/cholmes/repos/benchmark-data-catalog/staging/
+target:      s3://ftw/benchmark-data
+aws profile: source-coop
+suffixes:    .jpeg, .jpg, .json, .laz, .parquet, .pmtiles, .tif, .tiff, .webp
+9416 file(s) staged, 4370 to upload
+this never deletes; removing a file here does not unpublish it
+  100/4370 done
+  200/4370 done
+  300/4370 done
+  400/4370 done
+  500/4370 done
+  600/4370 done
+  700/4370 done
+  800/4370 done
+  900/4370 done
+  1000/4370 done
+  1100/4370 done
+  1200/4370 done
+  1300/4370 done
+  1400/4370 done
+  1500/4370 done
+  1600/4370 done
+  1700/4370 done
+  1800/4370 done
+  1900/4370 done
+  2000/4370 done
+  FAILED  benchmark-data/lu/chips/32UKA/ftw-32UKA8612_2025/ftw-32UKA8612_2025_planting_image_s2.jpg: Failed to upload /Users/cholmes/repos/benchmark-data-catalog/staging/lu/chips/32UKA/ftw-32UKA8612_2025/ftw-32UKA8612_2025_planting_image_s2.jpg to ftw/benchmark-data/lu/chips/32UKA/ftw-32UKA8612_2025/ftw-32UKA8612_2025_planting_image_s2.jpg: An error occurred (520) when calling the PutObject operation: 
+  2100/4370 done
+  2200/4370 done
+  2300/4370 done
+  2400/4370 done
+  2500/4370 done
+  2600/4370 done
+  2700/4370 done
+  2800/4370 done
+  2900/4370 done
+  3000/4370 done
+  3100/4370 done
+  3200/4370 done
+  3300/4370 done
+  3400/4370 done
+  3500/4370 done
+  3600/4370 done
+  3700/4370 done
+  3800/4370 done
+  3900/4370 done
+  4000/4370 done
+  4100/4370 done
+  4200/4370 done
+  4300/4370 done
+  4370/4370 done
+
+1 of 4370 file(s) failed:
+  benchmark-data/lu/chips/32UKA/ftw-32UKA8612_2025/ftw-32UKA8612_2025_planting_image_s2.jpg

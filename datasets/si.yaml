@@ -30,6 +30,11 @@ metadata:
 stages:
   chips:
     min_coverage: 0.01
+    # Slovenia is 38,289 grid cells against 809k fields. Coverage batching bounds
+    # memory by re-joining the fields side once per window, so a small batch means
+    # many rebuilds: 2,000 took ~10 min/batch. 10,000 keeps memory well under the
+    # single-statement version that OOM'd while cutting the rebuilds from 19 to 4.
+    coverage_batch_size: 10000
     drop_border_chips: false
   splits:
     split_type: block3x3
@@ -53,6 +58,9 @@ stages:
     num_buffer_expansions: 3
     buffer_expansion_size: 14
   download_images:
-    enabled: true
+    # Slovenia keeps the remote scene COG as its <season>_visual asset rather than
+    # storing a clipped copy per chip; the browser clips client-side. Thumbnails are
+    # generated from that remote COG, so no per-chip download is needed.
+    enabled: false
     bands: [red, green, blue, nir]
     resolution: 10.0

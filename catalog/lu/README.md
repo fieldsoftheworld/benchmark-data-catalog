@@ -2,6 +2,12 @@
 
 Benchmark chips for Luxembourg cut from the harmonized field boundary collection for Luxembourg (edition 2026).
 
+<!-- browse:start -->
+![Luxembourg thumbnail](https://data.source.coop/ftw/benchmark-data/lu/thumbnail.webp)
+
+Open this collection in the [data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json), read the [agent guide](https://source.coop/ftw/benchmark-data/lu/AGENTS.md), or query [items.parquet](https://data.source.coop/ftw/benchmark-data/lu/items.parquet) directly.
+<!-- browse:end -->
+
 ## What is in this collection
 
 This collection holds 775 chips and 87,997 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
@@ -24,9 +30,9 @@ How much of a chip is mapped field, as a distribution over the chips (`field_cov
 | 75th | 63.5% |
 | 95th | 82.2% |
 
-Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
+Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
-679 chips have Sentinel-2 scenes selected for them, one in the planting window and one in the harvest window of the crop calendar. Planting imagery was acquired between 2025-03-22T10:47:28.853000Z and 2025-05-11T10:47:38.751000Z, averaging 0.1% cloud cover (worst 1.9%). Harvest imagery was acquired between 2025-07-25T10:47:07.706000Z and 2025-09-30T10:47:21.386000Z, averaging 0.2% cloud cover (worst 2.0%).
+680 chips have Sentinel-2 scenes selected for them, one in the planting window and one in the harvest window of the crop calendar. Planting imagery was acquired between 2025-03-22T10:47:28.853000Z and 2025-05-11T10:47:38.751000Z, averaging 0.1% cloud cover (worst 1.9%). Harvest imagery was acquired between 2025-07-25T10:47:07.706000Z and 2025-09-30T10:47:21.386000Z, averaging 0.2% cloud cover (worst 2.0%).
 
 ## Styles
 
@@ -41,7 +47,7 @@ Ready-made map styles ship with the collection:
 - [Administration des services techniques de l'agriculture](https://asta.etat.lu/en): producer, licensor
 - [Fields of the World](https://fieldsofthe.world): processor
 - License: [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)
-- Derived from [Source field boundary collection](https://data.source.coop/ftw/harmonized-field-data/lu/collection.json)
+- Source data: [Luxembourg FLIK Parcels](https://source.coop/ftw/harmonized-field-data/lu) (harmonized field boundaries; STAC [collection.json](https://data.source.coop/ftw/harmonized-field-data/lu/collection.json))
 - Splits assigned with the `block3x3` strategy, random seed 42
 - Masks rasterized at 10 m per pixel
 
@@ -65,7 +71,7 @@ INSTALL spatial; LOAD spatial;
 SELECT * FROM read_parquet('items.parquet') LIMIT 5;
 ```
 
-See [AGENTS.md](AGENTS.md) for the schema, field notes and more queries.
+See [AGENTS.md](https://source.coop/ftw/benchmark-data/lu/AGENTS.md) for the schema, field notes and more queries.
 
 ## Compared with Fields of the World 1.0
 

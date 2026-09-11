@@ -90,6 +90,15 @@ BROWSER_BASE = "https://browser.portolan-sdi.org/#/external/"
 # Where an SPDX license id is documented, for the root table's License column.
 SPDX_BASE = "https://spdx.org/licenses/"
 
+# How wide the root table's thumbnails render, in CSS pixels. Markdown image
+# syntax carries no size, so a renderer draws the file at its native 1024x683
+# and one row fills a screen. source.coop renders inline HTML in a README —
+# verified against planet/eu-field-boundaries, whose README's
+# `<img ... width="100%"/>` reaches the page as a real <img> element with its
+# width attribute intact — so the cell is written as an <img> tag instead.
+# 120 px keeps the 3:2 thumbnail 80 px tall, one scannable table row.
+THUMBNAIL_WIDTH_PX = 120
+
 # Sent when reading a source collection's title over HTTPS: an anonymous
 # request with no User-Agent is refused by some CDNs.
 _USER_AGENT = "benchmark-data-catalog (+https://github.com/fieldsoftheworld/benchmark-data-catalog)"
@@ -656,6 +665,28 @@ def _row_count(parquet_path: Path) -> int:
     return count
 
 
+def _fields_parquet(dataset_dir: Path) -> Path | None:
+    """The field polygons the chips and masks were actually cut from.
+
+    The class-filtered set when a ``class_filter`` was configured (ftwd writes
+    ``<id>_fields_filtered.parquet`` then), otherwise the full reprojected
+    set. None when neither is on disk — a CI checkout, or a staging tree
+    pruned after publication.
+    """
+    dataset_id = dataset_dir.name
+    for name in (f"{dataset_id}_fields_filtered.parquet", f"{dataset_id}_fields.parquet"):
+        path = dataset_dir / name
+        if path.exists():
+            return path
+    return None
+
+
+def _field_count(dataset_dir: Path) -> int | None:
+    """How many field polygons this collection was cut from, or None."""
+    path = _fields_parquet(dataset_dir)
+    return _row_count(path) if path else None
+
+
 def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) -> str:
     """The '## Compared with Fields of the World 1.0' section, or "" without an ftw1 block.
 
@@ -668,11 +699,7 @@ def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) ->
     if not ftw1:
         return ""
     counts = _chip_counts(staging / dataset_id / f"{dataset_id}_chips.parquet")
-    # The class-filtered polygons are what the chips and masks were cut from;
-    # fall back to the full reprojected set when no filter was configured.
-    filtered = staging / dataset_id / f"{dataset_id}_fields_filtered.parquet"
-    fields_file = filtered if filtered.exists() else staging / dataset_id / f"{dataset_id}_fields.parquet"
-    n_fields = _row_count(fields_file)
+    n_fields = _row_count(_fields_parquet(staging / dataset_id))
     description = (recipe.get("metadata") or {}).get("description") or ""
     match = re.search(r"edition (\d{4})", description)
     edition_year = match.group(1) if match else "?"
@@ -1218,22 +1245,89 @@ def _child_links(collections: list[tuple[str, dict]]) -> list[dict]:
     ]
 
 
-def _imagery_count(items_parquet: Path) -> int | None:
-    """How many chips have season scenes, counted from the items mirror.
+def _imagery_count(dataset_dir: Path) -> int | None:
+    """How many chips have Sentinel-2 season scenes, or None when unknowable.
 
     The imagery pass writes one child item per season alongside its chip,
     named ``<chip>_<season>_s2``; the number of distinct chips behind those
     ids is the number of chips with imagery, whether one season or both
-    landed. Reads only the ``id`` column, so it works on a mirror written
-    before the season properties existed. None when the mirror is not on disk
-    (a CI checkout, or a staging tree pruned after publication).
+    landed. The items mirror is read first (only its ``id`` column, so this
+    works on a mirror written before the season properties existed).
+
+    A mirror that reports none is not trusted on its own: ftwd's ``stac``
+    stage writes ``items.parquet`` *before* the imagery pass runs, and
+    ``rewrite_items_parquet`` only rebuilds it when ``catalogize <id>`` is run
+    for that dataset. Running ``--root`` alone against a tree whose imagery
+    landed after the last ``stac`` stage would otherwise report a real
+    collection as having no imagery at all. So when the mirror shows none, the
+    season item JSON on disk — which is the ground truth the mirror is rebuilt
+    from — is counted instead.
+
+    None only when there is neither a mirror nor a ``chips/`` tree to count:
+    a CI checkout, or a staging tree pruned after publication. Zero means
+    measured and genuinely none, and the two are shown differently.
+    """
+    count: int | None = None
+    items_parquet = dataset_dir / "items.parquet"
+    if items_parquet.exists():
+        con = duckdb.connect()
+        (count,) = con.execute(
+            "SELECT count(DISTINCT regexp_replace(id, '_(planting|harvest)_s2$', '')) "
+            "FROM read_parquet(?) WHERE regexp_matches(id, '_(planting|harvest)_s2$')",
+            [str(items_parquet)],
+        ).fetchone()
+    chips_root = dataset_dir / "chips"
+    if not count and chips_root.is_dir():
+        chips = {path.parent.name for path in chips_root.glob("*/*/*_s2.json")}
+        count = len(chips)
+    return count
+
+
+def _imagery_mode(dataset_dir: Path) -> str | None:
+    """``"stored"``, ``"linked"``, or None — how this collection carries imagery.
+
+    Two shapes are in use and they are not interchangeable for a data loader.
+    With ``download_images`` enabled ftwd clips each selected scene to the
+    chip and stores a four-band GeoTIFF beside it (``stored``); with it
+    disabled the season item is written anyway but its bands stay the whole
+    Sentinel-2 scene COG on the source STAC API, to be windowed by the reader
+    (``linked``).
+
+    Read from the collection's own resolved recipe, which ftwd writes into
+    the staging tree, so it says what this build actually did rather than what
+    the recipe in git says today. None when that file is absent or does not
+    declare the stage.
+    """
+    import yaml
+
+    resolved = dataset_dir / "ftwd-config.resolved.yaml"
+    if not resolved.is_file():
+        return None
+    doc = yaml.safe_load(resolved.read_text()) or {}
+    stages = ((doc.get("config") or doc).get("stages") or {})
+    enabled = (stages.get("download_images") or {}).get("enabled")
+    if enabled is None:
+        return None
+    return "stored" if enabled else "linked"
+
+
+def _crop_label_count(items_parquet: Path) -> int | None:
+    """How many chip items carry an HCAT crop label, or None without a mirror.
+
+    ``ftw:hcat_dominant_code`` is written only when the harmonized source
+    carries HCAT crop codes, so the column is absent entirely for a collection
+    whose source has none — which is a zero, not a missing measurement.
     """
     if not items_parquet.exists():
         return None
     con = duckdb.connect()
+    columns = {
+        d[0] for d in con.execute("SELECT * FROM read_parquet(?) LIMIT 0", [str(items_parquet)]).description
+    }
+    if "ftw:hcat_dominant_code" not in columns:
+        return 0
     (count,) = con.execute(
-        "SELECT count(DISTINCT regexp_replace(id, '_(planting|harvest)_s2$', '')) "
-        "FROM read_parquet(?) WHERE regexp_matches(id, '_(planting|harvest)_s2$')",
+        'SELECT count(*) FROM read_parquet(?) WHERE "ftw:hcat_dominant_code" IS NOT NULL',
         [str(items_parquet)],
     ).fetchone()
     return count
@@ -1264,41 +1358,96 @@ def _source_cell(dataset_id: str, doc: dict) -> str:
     return "—"
 
 
+def _thumbnail_cell(dataset_id: str, title: str, *, rendered: bool) -> str:
+    """The Thumbnail column: a width-constrained ``<img>``, or ``—``.
+
+    Deliberately not ``![title](href)``. Markdown image syntax carries no size,
+    so the renderer draws the 1024x683 thumbnail at native resolution and a
+    single table row fills the viewport. An inline ``<img>`` with an explicit
+    ``width`` is the only way to say "small" in a markdown document, and
+    source.coop passes inline HTML through to the page (see
+    ``THUMBNAIL_WIDTH_PX``).
+
+    If a renderer ever did sanitize the tag away, the fix is to stop rendering
+    this column rather than to go back to a full-bleed image: pass
+    ``thumbnails=False`` to ``_collections_block`` for the README too, as
+    ``catalog/AGENTS.md`` already does, and let the Browse column and the data
+    browser's own card grid carry the pictures.
+    """
+    if not rendered:
+        return "—"
+    href = public_url(f"{dataset_id}/thumbnail.webp")
+    return f'<img src="{href}" alt="{title}" width="{THUMBNAIL_WIDTH_PX}">'
+
+
+def _imagery_cell(imagery: int | None, mode: str | None) -> str:
+    """The Imagery column: how many chips have scenes, and in which shape.
+
+    Three distinguishable answers, because the collections here genuinely
+    differ and a single number would imply they do not: ``—`` for not
+    measurable, ``none`` for measured and zero (a labels-only collection,
+    whose chips still carry masks and a split), and a count qualified by
+    ``stored`` or ``linked`` (see ``_imagery_mode``) where scenes exist. An
+    unqualified count is the fallback when the resolved recipe is not on disk
+    to say which shape was built.
+    """
+    if imagery is None:
+        return "—"
+    if not imagery:
+        return "none"
+    return f"{imagery:,} {mode}" if mode else f"{imagery:,}"
+
+
 def _collection_row(
     dataset_id: str, doc: dict, *, staging: Path, catalog: Path, manifest: dict
 ) -> dict:
     """One row of facts about a published collection, every cell already a link.
 
-    Chips and splits are measured from the staged chips parquet, imagery from
-    the items mirror; the thumbnail cell is a markdown image only when the
-    thumbnail has actually been rendered into the catalog. Every URL is built
-    from the manifest's bases, never hard-coded.
+    Chips and splits are measured from the staged chips parquet, fields from
+    the field polygons the chips were cut from, imagery and crop labels from
+    the collection's own item JSON and items mirror; the thumbnail cell is a
+    markdown image only when the thumbnail has actually been rendered into the
+    catalog. Every URL is built from the manifest's bases, never hard-coded.
+
+    The measured integers are kept alongside the rendered cells (``n_chips``,
+    ``n_imagery``, ``n_crops``, ``n_fields``) so the coverage table and the
+    summary line can do arithmetic on them without re-measuring or reparsing a
+    formatted string. ``None`` means "not measurable here"; ``0`` means
+    "measured, and there are none" — the two render differently, because a
+    collection that genuinely has no imagery is a fact about the data and a
+    missing staging tree is a fact about this machine.
     """
     title = doc.get("title", dataset_id)
-    chips_path = staging / dataset_id / f"{dataset_id}_chips.parquet"
+    dataset_dir = staging / dataset_id
+    chips_path = dataset_dir / f"{dataset_id}_chips.parquet"
     counts = _chip_counts(chips_path) if chips_path.exists() else None
     if counts is None:
         print(
             f"warning  {dataset_id}: {chips_path} is missing; root tables will show "
             "'—' for its chips/splits instead of the real counts"
         )
-    imagery = _imagery_count(staging / dataset_id / "items.parquet")
+    imagery = _imagery_count(dataset_dir)
+    crops = _crop_label_count(dataset_dir / "items.parquet")
+    fields = _field_count(dataset_dir)
     has_thumbnail = (catalog / dataset_id / "thumbnail.webp").is_file()
     return {
         "id": dataset_id,
         "title": title,
-        "thumbnail": (
-            f"![{title}]({public_url(f'{dataset_id}/thumbnail.webp')})" if has_thumbnail else "—"
-        ),
+        "thumbnail": _thumbnail_cell(dataset_id, title, rendered=has_thumbnail),
         "collection": f"[{title}]({human_url(manifest, dataset_id)})",
         "chips": f"{counts['total']:,}" if counts else "—",
         "splits": (
             f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}" if counts else "—"
         ),
-        "imagery": f"{imagery:,}" if imagery else "—",
+        "imagery": _imagery_cell(imagery, _imagery_mode(dataset_dir)),
+        "imagery_n": _count_cell(imagery),
         "license": _license_cell(doc),
         "source": _source_cell(dataset_id, doc),
         "browse": f"[browse]({browser_url(f'{dataset_id}/collection.json')})",
+        "n_chips": counts["total"] if counts else None,
+        "n_imagery": imagery,
+        "n_crops": crops,
+        "n_fields": fields,
     }
 
 
@@ -1336,10 +1485,87 @@ def _collections_list(rows: list[dict]) -> str:
         collection_url = public_url(f"{row['id']}/collection.json")
         lines.append(
             f"- [{row['title']}]({collection_url}): {row['chips']} chips "
-            f"({row['splits']} train/val/test), {row['imagery']} with imagery, "
+            f"({row['splits']} train/val/test), {row['imagery_n']} with imagery, "
             f"license {row['license']}, source {row['source']}, {row['browse']}\n"
         )
     return "".join(lines)
+
+
+# --- the generated Collections block: totals, the table, and coverage ------
+
+# The columns of the coverage table, which says what each collection actually
+# carries rather than what the catalog carries on average. Every cell is a
+# count of *chips*, so the columns are comparable with each other and with the
+# Chips column of the main table.
+_COVERAGE_COLUMNS = ("Collection", "Label masks", "Sentinel-2 imagery", "HCAT crop labels")
+
+_COVERAGE_NOTE = (
+    "`stored` means a four-band GeoTIFF clipped to the chip and published with it; "
+    "`linked` means the chip's season item points at the whole Sentinel-2 scene on the "
+    "source STAC API, for a reader to window. A chip with no scene still carries its "
+    "masks and its split — pair it with imagery of your own, on the footprint in "
+    "`items.parquet`."
+)
+
+
+def _count_cell(value: int | None, *, zero: str = "none") -> str:
+    """A measured count as a table cell: ``—`` unknown, ``zero`` for 0, else the number."""
+    if value is None:
+        return "—"
+    return zero if not value else f"{value:,}"
+
+
+def _summary_line(rows: list[dict]) -> str:
+    """The headline numbers, above the table: collections, chips, field polygons.
+
+    Every number is summed from the rows, which measured them; a quantity no
+    row could measure is left out of the line rather than shown as a wrong
+    total. Bold, and on its own line, because this is the first thing a reader
+    landing on the catalog sees after the opening paragraph.
+    """
+    parts = [f"{len(rows)} collection" + ("s" if len(rows) != 1 else "")]
+    for key, noun in (("n_chips", "chips"), ("n_fields", "field polygons")):
+        measured = [row[key] for row in rows if row.get(key) is not None]
+        if len(measured) == len(rows) and rows:
+            parts.append(f"{sum(measured):,} {noun}")
+    return "**" + " · ".join(parts) + "**\n"
+
+
+def _coverage_table(rows: list[dict]) -> str:
+    """Which components each collection actually carries, in chips.
+
+    The main table has one Imagery number per collection, which is easy to
+    read as a detail. This one puts the components side by side so that an
+    uneven catalog reads as uneven: a labels-only collection shows ``none``
+    next to its neighbours' counts instead of being a footnote.
+    """
+    header = "| " + " | ".join(_COVERAGE_COLUMNS) + " |\n"
+    sep = "| " + " | ".join("---" for _ in _COVERAGE_COLUMNS) + " |\n"
+    body = ""
+    for row in rows:
+        body += (
+            f"| {row['collection']} | {_count_cell(row.get('n_chips'))} "
+            f"| {row['imagery']} | {_count_cell(row.get('n_crops'))} |\n"
+        )
+    return header + sep + body
+
+
+def _collections_block(rows: list[dict], *, thumbnails: bool = True) -> str:
+    """Everything between the ``collections`` markers: totals, table, coverage.
+
+    One marker pair rather than three, so a document only has to carry the
+    pair it already has. Empty for an empty catalog, which is what
+    ``_replace_between_markers`` renders as a blank block.
+    """
+    if not rows:
+        return ""
+    return (
+        f"{_summary_line(rows)}\n"
+        f"{_collections_table(rows, thumbnails=thumbnails)}\n"
+        "### What each collection carries\n\n"
+        f"{_coverage_table(rows)}\n"
+        f"{_COVERAGE_NOTE}\n"
+    )
 
 
 def _replace_between_markers(path: Path, content: str) -> None:
@@ -1364,9 +1590,11 @@ def regenerate_root(
     ``stac_extensions`` to the Portolan schema URI plus the version extension
     (PTL-CNF-003: required wherever a document carries a top-level
     ``version``), ``version`` from the manifest, and stamps ``updated``
-    (PTL-PRO-003). Fills the marker-delimited ``## Collections`` tables in
-    ``catalog/README.md`` and ``catalog/AGENTS.md``, and the collection list
-    in ``catalog/llms.txt``.
+    (PTL-PRO-003). Fills the marker-delimited ``## Collections`` block in
+    ``catalog/README.md`` and ``catalog/AGENTS.md`` — headline totals, the
+    collections table, and the coverage table that says what each collection
+    actually carries (``_collections_block``) — and the collection list in
+    ``catalog/llms.txt``.
     """
     root_path = catalog / "catalog.json"
     doc = read_json(root_path)
@@ -1384,8 +1612,8 @@ def regenerate_root(
         _collection_row(dataset_id, coll, staging=staging, catalog=catalog, manifest=manifest)
         for dataset_id, coll in collections
     ]
-    _replace_between_markers(catalog / "README.md", _collections_table(rows))
-    _replace_between_markers(catalog / "AGENTS.md", _collections_table(rows, thumbnails=False))
+    _replace_between_markers(catalog / "README.md", _collections_block(rows))
+    _replace_between_markers(catalog / "AGENTS.md", _collections_block(rows, thumbnails=False))
     _replace_between_markers(catalog / "llms.txt", _collections_list(rows))
 
     return [root_path, catalog / "README.md", catalog / "AGENTS.md", catalog / "llms.txt"]

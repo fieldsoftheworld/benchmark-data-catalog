@@ -1343,8 +1343,11 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     check(
-        lu_row["thumbnail"] == f"![Luxembourg]({public_url('lu/thumbnail.webp')})",
-        f"a rendered thumbnail becomes a markdown image in the row, got {lu_row['thumbnail']!r}",
+        lu_row["thumbnail"]
+        == f'<img src="{public_url("lu/thumbnail.webp")}" alt="Luxembourg" '
+        f'width="{catalogize.THUMBNAIL_WIDTH_PX}">',
+        f"a rendered thumbnail becomes a width-constrained <img> in the row — markdown image "
+        f"syntax carries no size and renders at native resolution, got {lu_row['thumbnail']!r}",
     )
     check(
         si_row["thumbnail"] == "—",

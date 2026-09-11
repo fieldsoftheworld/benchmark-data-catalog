@@ -2,6 +2,12 @@
 
 Benchmark chips for Slovenia cut from the harmonized field boundary collection for Slovenia (edition 2024).
 
+<!-- browse:start -->
+![Slovenia thumbnail](https://data.source.coop/ftw/benchmark-data/si/thumbnail.webp)
+
+Open this collection in the [data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json), read the [agent guide](https://source.coop/ftw/benchmark-data/si/AGENTS.md), or query [items.parquet](https://data.source.coop/ftw/benchmark-data/si/items.parquet) directly.
+<!-- browse:end -->
+
 ## What is in this collection
 
 This collection holds 5,103 chips and 809,044 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
@@ -24,7 +30,7 @@ How much of a chip is mapped field, as a distribution over the chips (`field_cov
 | 75th | 33.2% |
 | 95th | 60.5% |
 
-Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
+Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
 2,857 chips have Sentinel-2 scenes selected for them, one in the planting window and one in the harvest window of the crop calendar. Planting imagery was acquired between 2024-03-05T10:08:07.326000Z and 2024-05-24T10:07:47.398000Z, averaging 0.1% cloud cover (worst 2.0%). Harvest imagery was acquired between 2024-08-25T10:17:50.795000Z and 2024-11-25T10:08:08.116000Z, averaging 0.1% cloud cover (worst 2.0%).
 
@@ -60,7 +66,7 @@ Ready-made map styles ship with the collection:
 - [Ministry of Agriculture, Forestry and Food (Ministrstvo za kmetijstvo, gozdarstvo in prehrano)](https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-kmetijstvo-gozdarstvo-in-prehrano/): producer, licensor
 - [Fields of the World](https://fieldsofthe.world): processor
 - License: [License](https://rkg.gov.si/vstop/)
-- Derived from [Source field boundary collection](https://data.source.coop/ftw/harmonized-field-data/si/collection.json)
+- Source data: [Slovenia Crop Fields](https://source.coop/ftw/harmonized-field-data/si) (harmonized field boundaries; STAC [collection.json](https://data.source.coop/ftw/harmonized-field-data/si/collection.json))
 - Splits assigned with the `block3x3` strategy, random seed 42
 - Masks rasterized at 10 m per pixel
 
@@ -85,7 +91,7 @@ INSTALL spatial; LOAD spatial;
 SELECT * FROM read_parquet('items.parquet') LIMIT 5;
 ```
 
-See [AGENTS.md](AGENTS.md) for the schema, field notes and more queries.
+See [AGENTS.md](https://source.coop/ftw/benchmark-data/si/AGENTS.md) for the schema, field notes and more queries.
 
 ## Compared with Fields of the World 1.0
 

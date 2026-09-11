@@ -9,9 +9,13 @@ collection per country or region. Each collection holds chip items on the FTW
 grid (a fixed, MGRS-derived grid, so a cell id means the same square of ground
 in every collection). Each chip item carries label masks — instance, semantic
 2-class, semantic 3-class, and the DECODE boundary and distance layers — and,
-where imagery was downloaded, two clipped Sentinel-2 scenes (planting and
-harvest) as child items alongside it. Every chip carries a `ftw:split`
-assignment of `train`, `val` or `test`, made in spatial blocks.
+where the collection has imagery, two Sentinel-2 scenes (planting and harvest)
+as child items alongside it. Those scenes are either `stored` (a four-band
+GeoTIFF clipped to the chip, published with it) or `linked` (the whole scene
+COG on the source STAC API, for the reader to window); the coverage table below
+says which, per collection, and some collections carry no imagery at all. Every
+chip carries a `ftw:split` assignment of `train`, `val` or `test`, made in
+spatial blocks.
 
 Collection-level assets carry the field polygons the masks were cut from, their
 boundary lines, the chips table with split assignments and field coverage, and
@@ -49,15 +53,31 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
+**3 collections · 17,120 chips · 1,553,660 field polygons**
+
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 9,018/1,153/1,071 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json) |
-| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 601/79/95 | 679 | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json) |
-| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 4,078/512/513 | 2,857 | [License](https://rkg.gov.si/vstop/) | [harmonized/si](https://source.coop/ftw/harmonized-field-data/si) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json) |
+| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 9,018/1,153/1,071 | 103 linked | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json) |
+| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 601/79/95 | 680 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json) |
+| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 4,078/512/513 | 2,857 linked | [License](https://rkg.gov.si/vstop/) | [harmonized/si](https://source.coop/ftw/harmonized-field-data/si) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json) |
+
+### What each collection carries
+
+| Collection | Label masks | Sentinel-2 imagery | HCAT crop labels |
+| --- | --- | --- | --- |
+| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 103 linked | 11,242 |
+| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 680 stored | none |
+| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 2,857 linked | 5,103 |
+
+`stored` means a four-band GeoTIFF clipped to the chip and published with it; `linked` means the chip's season item points at the whole Sentinel-2 scene on the source STAC API, for a reader to window. A chip with no scene still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
 <!-- collections:end -->
 
-Chips and splits are measured from each collection's chips table; Imagery is
-the number of chips with Sentinel-2 season scenes.
+Every number above is measured, not declared: chips and splits from each
+collection's `<id>_chips.parquet`, field polygons from the `<id>_fields`
+table the masks were cut from, imagery from the season child items on disk,
+and crop labels from the `ftw:hcat_dominant_code` property in `items.parquet`.
+Do not assume a collection carries imagery or crop labels because its
+neighbours do — check the coverage table, or the collection's own assets.
 
 ## Provenance and versioning
 

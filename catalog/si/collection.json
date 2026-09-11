@@ -107,6 +107,7 @@
   "stac_extensions": [
     "https://stac-extensions.github.io/file/v2.1.0/schema.json",
     "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
     "https://stac-extensions.github.io/version/v1.2.0/schema.json",
     "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
     "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
@@ -154,12 +155,26 @@
       ],
       "title": "Planting season imagery"
     },
+    "planting_visual": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "visual"
+      ],
+      "title": "Planting season scene (true colour)"
+    },
     "harvest_image": {
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "roles": [
         "data"
       ],
       "title": "Harvest season imagery"
+    },
+    "harvest_visual": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "visual"
+      ],
+      "title": "Harvest season scene (true colour)"
     },
     "thumbnail": {
       "type": "image/jpeg",
@@ -169,7 +184,52 @@
       "title": "Chip preview"
     }
   },
-  "updated": "2026-09-08T18:00:23Z",
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-09-11T11:38:05Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -181,7 +241,9 @@
   "ftw:mask_types": [
     "instance",
     "semantic_2_class",
-    "semantic_3_class"
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
   ],
   "ftw:mask_resolution_m": 10.0,
   "ftw:presence_only": false,
@@ -193,9 +255,9 @@
   "ftw:buffer_expansion_size": 14,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "74d0b3410b4d31c43fd7f4151f12fb3407dc212c",
+    "ftwd_git_commit": "3a214bf1903dfa6a01d0757769427edd73bb1512",
     "config_schema_version": 1,
-    "generated_at": "2026-09-05T18:40:54.094011+00:00",
+    "generated_at": "2026-09-11T11:31:28.145728+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/si/collection.json",
@@ -216,7 +278,8 @@
           "drop_border_chips": false,
           "grid_file": null,
           "grid_source": null,
-          "crop_stats": true
+          "crop_stats": true,
+          "coverage_batch_size": 10000
         },
         "splits": {
           "split_type": "block3x3",
@@ -231,7 +294,9 @@
           "mask_types": [
             "instance",
             "semantic_2_class",
-            "semantic_3_class"
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
           ],
           "resolution": 10.0,
           "workers": null,
@@ -245,7 +310,8 @@
           "nodata_max": 0.0,
           "buffer_days": 14,
           "num_buffer_expansions": 3,
-          "buffer_expansion_size": 14
+          "buffer_expansion_size": 14,
+          "workers": 4
         },
         "download_images": {
           "enabled": false,
@@ -255,7 +321,10 @@
             "blue",
             "nir"
           ],
-          "resolution": 10.0
+          "resolution": 10.0,
+          "workers": 4,
+          "resume": true,
+          "mode": "clip"
         },
         "stac": {
           "checksums": false
@@ -407,7 +476,7 @@
         },
         {
           "name": "bbox",
-          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+          "type": "struct"
         }
       ],
       "table:row_count": 809044,
@@ -467,7 +536,7 @@
         },
         {
           "name": "bbox",
-          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+          "type": "struct"
         }
       ],
       "table:row_count": 809044,
@@ -511,7 +580,7 @@
         },
         {
           "name": "hcat_top",
-          "type": "struct(code bigint, name_en varchar, pct double)[]"
+          "type": "struct"
         },
         {
           "name": "split",
@@ -523,7 +592,7 @@
         },
         {
           "name": "bbox",
-          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+          "type": "struct"
         }
       ],
       "table:row_count": 5103,
@@ -535,7 +604,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 1383251,
+      "file:size": 1795881,
       "table:columns": [
         {
           "name": "type",
@@ -554,20 +623,20 @@
           "type": "varchar"
         },
         {
-          "name": "ftw:hcat_top",
-          "type": "struct(code bigint, name_en varchar, pct double)[]"
+          "name": "ftw:harvest_cloud_cover",
+          "type": "double"
         },
         {
-          "name": "ftw:hcat_dominant_pct",
+          "name": "ftw:planting_cloud_cover",
           "type": "double"
         },
         {
           "name": "links",
-          "type": "struct(href varchar, rel varchar, \"type\" varchar, title varchar)[]"
+          "type": "struct"
         },
         {
           "name": "assets",
-          "type": "struct(instance_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), description varchar)[]), semantic_2class_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), \"classification:classes\" struct(\"value\" bigint, \"name\" varchar, description varchar)[])[]), semantic_3class_mask struct(href varchar, title varchar, \"type\" varchar, roles varchar[], \"file:size\" bigint, \"raster:bands\" struct(data_type varchar, spatial_resolution double, \"statistics\" struct(minimum double, maximum double, mean double, stddev double), \"classification:classes\" struct(\"value\" bigint, \"name\" varchar, description varchar)[])[]))"
+          "type": "struct"
         },
         {
           "name": "collection",
@@ -606,8 +675,64 @@
           "type": "varchar"
         },
         {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "portolan:render_order",
+          "type": "varchar[]"
+        },
+        {
+          "name": "ftw:planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:stac_host",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:cloud_cover_chip_threshold",
+          "type": "double"
+        },
+        {
+          "name": "ftw:buffer_days",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:num_buffer_expansions",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:buffer_expansion_size",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:planting_buffer_used",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:harvest_buffer_used",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:expansions_performed",
+          "type": "bigint"
+        },
+        {
           "name": "bbox",
-          "type": "struct(xmin double, ymin double, xmax double, ymax double)"
+          "type": "struct"
         },
         {
           "name": "geometry",
@@ -672,7 +797,7 @@
       "roles": [
         "style"
       ],
-      "file:size": 2287
+      "file:size": 2374
     },
     "style-outline": {
       "href": "./styles/outline.json",

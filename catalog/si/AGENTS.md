@@ -11,6 +11,8 @@ Licensed [License](https://rkg.gov.si/vstop/).
 
 ## Accessing the data
 
+Browse the collection in the [Portolan data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json), or read the files below straight from [collection.json](https://data.source.coop/ftw/benchmark-data/si/collection.json).
+
 The collection ships these files alongside `collection.json`:
 
 | file | what it is |
@@ -19,13 +21,6 @@ The collection ships these files alongside `collection.json`:
 | `si_boundary_lines.parquet` | Field boundary lines |
 | `si_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
-| `chips.pmtiles` | Chips (PMTiles) |
-| `fields.pmtiles` | Field boundaries (PMTiles) |
-| `styles/split.json` | Chips by split |
-| `styles/field-coverage.json` | Field coverage |
-| `styles/dominant-crop.json` | Dominant crop per chip |
-| `styles/crops.json` | Crops |
-| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -69,12 +64,10 @@ FTW properties on each STAC item:
 - `ftw:planting_buffer_used`: set by the FTW pipeline; see the item JSON
 - `ftw:planting_cloud_cover`: cloud cover of the selected planting scene, in percent
 - `ftw:planting_day`: day of year the planting window is centred on
-- `ftw:season`: which crop-calendar window a child imagery item covers
-- `ftw:source`: satellite mission the imagery came from
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:stac_host`: STAC API the imagery was selected from
 
-Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`.
+Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
 ## Data quality & usage notes
 
@@ -96,7 +89,6 @@ SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet'
 -- result: test | 513
 -- result: train | 4078
 -- result: val | 512
--- result: ... 1 more rows
 ```
 
 ### Chips with the highest field coverage

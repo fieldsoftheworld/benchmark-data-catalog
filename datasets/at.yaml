@@ -47,6 +47,9 @@ stages:
     checksums: false
   select_images:
     enabled: true
+    # Selection is network-bound (STAC searches plus per-scene cloud reads);
+    # alpine chips need buffer expansions, so give it more threads than the default 4.
+    workers: 16
     cloud_cover_chip: 2.0
     nodata_max: 0.0
     buffer_days: 14

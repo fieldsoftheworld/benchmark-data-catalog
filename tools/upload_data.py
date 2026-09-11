@@ -73,6 +73,12 @@ PUBLISHABLE_SUFFIXES = {
     ".tiff",
     ".laz",
     ".json",
+    # Chip previews. Without these the item JSON advertises a thumbnail the
+    # browser then 404s on, which is what every chip card showed until now.
+    # .webp is admitted ahead of ftwd emitting it, so the switch needs no edit here.
+    ".jpg",
+    ".jpeg",
+    ".webp",
 }
 
 
