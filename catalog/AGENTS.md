@@ -57,17 +57,17 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
-| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 9,018/1,153/1,071 | 103 linked | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json) |
+| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 9,018/1,153/1,071 | 1,022 linked | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json) |
 | [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 601/79/95 | 680 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json) |
-| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 4,078/512/513 | 2,857 linked | [License](https://rkg.gov.si/vstop/) | [harmonized/si](https://source.coop/ftw/harmonized-field-data/si) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json) |
+| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 4,078/512/513 | 2,857 stored | [License](https://rkg.gov.si/vstop/) | [harmonized/si](https://source.coop/ftw/harmonized-field-data/si) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json) |
 
 ### What each collection carries
 
 | Collection | Label masks | Sentinel-2 imagery | HCAT crop labels |
 | --- | --- | --- | --- |
-| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 103 linked | 11,242 |
+| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 1,022 linked | 11,242 |
 | [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 680 stored | none |
-| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 2,857 linked | 5,103 |
+| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 2,857 stored | 5,103 |
 
 `stored` means a four-band GeoTIFF clipped to the chip and published with it; `linked` means the chip's season item points at the whole Sentinel-2 scene on the source STAC API, for a reader to window. A chip with no scene still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
 <!-- collections:end -->

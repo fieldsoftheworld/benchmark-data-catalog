@@ -61,6 +61,10 @@ stages:
     # Slovenia keeps the remote scene COG as its <season>_visual asset rather than
     # storing a clipped copy per chip; the browser clips client-side. Thumbnails are
     # generated from that remote COG, so no per-chip download is needed.
-    enabled: false
+    enabled: true
+    # Render each chip's overlay preview from the remote scene COG; no clipped
+    # per-chip GeoTIFF is stored. Cheap enough to run over the whole dataset.
+    mode: preview
+    workers: 16
     bands: [red, green, blue, nir]
     resolution: 10.0

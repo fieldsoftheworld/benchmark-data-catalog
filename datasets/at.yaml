@@ -56,6 +56,10 @@ stages:
     num_buffer_expansions: 3
     buffer_expansion_size: 14
   download_images:
-    enabled: false
+    enabled: true
+    # Render each chip's overlay preview from the remote scene COG; no clipped
+    # per-chip GeoTIFF is stored. Cheap enough to run over the whole dataset.
+    mode: preview
+    workers: 16
     bands: [red, green, blue, nir]
     resolution: 10.0

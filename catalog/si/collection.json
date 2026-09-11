@@ -229,7 +229,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-09-11T11:38:05Z",
+  "updated": "2026-09-11T15:30:59Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -255,9 +255,9 @@
   "ftw:buffer_expansion_size": 14,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "3a214bf1903dfa6a01d0757769427edd73bb1512",
+    "ftwd_git_commit": "65bf813f74d70f992fba23166a68796dc5f638e4",
     "config_schema_version": 1,
-    "generated_at": "2026-09-11T11:31:28.145728+00:00",
+    "generated_at": "2026-09-11T15:24:00.196701+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/si/latest/si.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/si/collection.json",
@@ -314,7 +314,7 @@
           "workers": 4
         },
         "download_images": {
-          "enabled": false,
+          "enabled": true,
           "bands": [
             "red",
             "green",
@@ -322,9 +322,9 @@
             "nir"
           ],
           "resolution": 10.0,
-          "workers": 4,
+          "workers": 16,
           "resume": true,
-          "mode": "clip"
+          "mode": "preview"
         },
         "stac": {
           "checksums": false
@@ -604,7 +604,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 1795881,
+      "file:size": 1820121,
       "table:columns": [
         {
           "name": "type",

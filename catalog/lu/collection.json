@@ -224,7 +224,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-09-11T11:37:55Z",
+  "updated": "2026-09-11T15:30:50Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -250,9 +250,9 @@
   "ftw:buffer_expansion_size": 14,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "3a214bf1903dfa6a01d0757769427edd73bb1512",
+    "ftwd_git_commit": "65bf813f74d70f992fba23166a68796dc5f638e4",
     "config_schema_version": 1,
-    "generated_at": "2026-09-11T11:37:27.932050+00:00",
+    "generated_at": "2026-09-11T15:30:24.023951+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/lu/latest/lu.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/lu/collection.json",
@@ -519,7 +519,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 720470,
+      "file:size": 720449,
       "table:columns": [
         {
           "name": "type",
