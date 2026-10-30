@@ -42,7 +42,11 @@ for r in rows:
     d = r["dataset_id"]
     check(r["status"] in tracking.STATUSES, f"{d}: unknown status {r['status']!r}")
     check(r["imagery"] in tracking.IMAGERY, f"{d}: unknown imagery {r['imagery']!r}")
-    check(d == f"{r['harmonized_id']}_{r['year']}", f"{d}: id is not <harmonized_id>_<year>")
+    check(d == f"{tracking.source_stem(r)}_{r['year']}", f"{d}: id is not <source stem>_<year>")
+    check(
+        tracking.source_stem(r).startswith(r["harmonized_id"]),
+        f"{d}: source_stem {r['source_stem']!r} is not a sub-region of {r['harmonized_id']!r}",
+    )
     if r["imagery"] == "none":
         check(r["status"] != "include", f"{d}: no imagery, so it cannot be 'include'")
     if r["filter"]:
@@ -82,10 +86,24 @@ ROW = {
     "imagery": "scenes+mosaics",
     "filter": "xx_filter.yaml",
 }
-urls = new_dataset.source_urls("xx", 2022)
+urls = new_dataset.source_urls(ROW)
 check(
     urls["parquet"].endswith("/xx/year=2022/xx-2022.parquet"),
     "fields_file is the year's own parquet, never latest",
+)
+canton = new_dataset.source_urls({**ROW, "dataset_id": "xx_ab_2022", "source_stem": "xx_ab"})
+check(
+    canton["parquet"].endswith("/xx/year=2022/xx_ab-2022.parquet")
+    and canton["collection"].endswith("/xx/collection.json"),
+    "a sub-region reads its own file from the parent collection",
+)
+two_items = {"links": [
+    {"rel": "item", "href": "./year=2022/xx_aa-2022.json", "title": "AA — 2022"},
+    {"rel": "item", "href": "./year=2022/xx_ab-2022.json", "title": "AB — 2022"},
+]}
+check(
+    new_dataset.item_title(two_items, canton["item"], "fallback") == "AB — 2022",
+    "title comes from the sub-region's own item, not the first item of that year",
 )
 recipe = yaml.safe_load(new_dataset.recipe_text("xx_2022", ROW, COLLECTION, urls, "9.9.9"))
 check(recipe["name"] == "xx_2022" and recipe["year"] == 2022, "name and year")

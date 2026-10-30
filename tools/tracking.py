@@ -70,6 +70,16 @@ def update(dataset_id: str, path: Path = TRACKING, **fields: str) -> None:
     save(rows, path)
 
 
+def source_stem(r: dict[str, str]) -> str:
+    """The harmonized file stem: ``<stem>-<year>.parquet`` under ``<harmonized_id>/year=<year>/``.
+
+    Usually the collection id itself. A collection that publishes one file per
+    sub-region (Switzerland's cantons, ``ch_ag-2025.parquet``) names the
+    sub-region in ``source_stem``, and each sub-region is its own dataset.
+    """
+    return r.get("source_stem") or r["harmonized_id"]
+
+
 def imagery_modes(r: dict[str, str]) -> tuple[str, ...]:
     """The ftwd imagery modes a row's ``imagery`` value asks for."""
     try:

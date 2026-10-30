@@ -39,7 +39,7 @@ def check_row(con, row: dict[str, str], filters: list[Path]) -> str:
     """The row's issue, or "" when it is ready to build."""
     from ftw_dataset_tools.api.config import ClassFilter, ClassFilterError
 
-    url = source_urls(row["harmonized_id"], int(row["year"]))["parquet"]
+    url = source_urls(row)["parquet"]
     try:
         cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()]
     except Exception:  # noqa: BLE001 - duckdb raises a family of IO errors here
