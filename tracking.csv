@@ -78,7 +78,7 @@ de_by_2026,de_by,,2026,Germany-BY,include,scenes,de-by-filter.yaml,Yes,Yes,,Migh
 de_mv_2026,de_mv,,2026,Germany-MV,include,scenes,de-mv-filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
 de_nds_2025,de_nds,,2025,Germany-NDS,include,scenes+mosaics,de-bb-nds-nrw_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
 de_nrw_2026,de_nrw,,2026,Germany-NRW,include,scenes,de-bb-nds-nrw_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
-de_sax_2026,de_sax,,2026,Germany-SAX,include,scenes,de-sax-filter.yaml,Yes,Yes,,https://github.com/fieldsoftheworld/harmonized-field-data-catalog/issues/19,,,,,
+de_sax_2026,de_sax,,2026,Germany-SAX,exclude,scenes,de-sax-filter.yaml,Yes,Yes,,"Skipped: geometries are LPIS field blocks (several fields each), not parcels",,,,,
 de_sh_2023,de_sh,,2023,Germany-SH,include,scenes,de-sh-filter.yaml,Yes,Yes,,,,,,,
 de_sh_2024,de_sh,,2024,Germany-SH,include,scenes+mosaics,de-sh-filter.yaml,Yes,Yes,,,,,,,
 de_sh_2025,de_sh,,2025,Germany-SH,include,scenes+mosaics,de-sh-filter.yaml,Yes,Yes,,,,,,,
