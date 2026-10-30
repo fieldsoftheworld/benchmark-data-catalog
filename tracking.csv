@@ -15,7 +15,7 @@ be_vlg_2022,be_vlg,2022,Belgium-Flanders,include,scenes+mosaics,be-flanders_filt
 be_vlg_2023,be_vlg,2023,Belgium-Flanders,include,scenes,be-flanders_filter.yaml,Yes,Yes,,,,,,,
 be_vlg_2024,be_vlg,2024,Belgium-Flanders,include,scenes+mosaics,be-flanders_filter.yaml,Yes,Yes,,,,,,,
 be_vlg_2025,be_vlg,2025,Belgium-Flanders,include,scenes+mosaics,be-flanders_filter.yaml,Yes,Yes,,,,,,,
-be_vlg_2026,be_vlg,2026,Belgium-Flanders,include,scenes,be-flanders_filter.yaml,Yes,Yes,,,,,,,
+be_vlg_2026,be_vlg,2026,Belgium-Flanders,include,scenes,be-flanders_filter.yaml,Yes,Yes,,,,,,,filter gap: 663
 be_wal_2022,be_wal,2022,Belgium-Wallonia,include,scenes+mosaics,be-wallonia_filter.yaml,Yes,Yes,,Redid class filters,,,,,
 hr_2011,hr,2011,Croatia,skip-no-imagery,none,croatia_filter.yaml,Yes,No,,"Redid class filters. They are kind of weird, only 20 classes. Some are unclear so would appreciate a second look.",,,,,
 hr_2012,hr,2012,Croatia,skip-no-imagery,none,croatia_filter.yaml,Yes,No,,,,,,,
@@ -59,26 +59,26 @@ ee_2021,ee,2021,Estonia,include,scenes+mosaics,estonia_filter.yaml,Yes,Yes,,,,,,
 ee_2022,ee,2022,Estonia,include,scenes+mosaics,estonia_filter.yaml,Yes,Yes,,,,,,,
 ee_2023,ee,2023,Estonia,include,scenes,estonia_filter.yaml,Yes,Yes,,,,,,,
 ee_2024,ee,2024,Estonia,include,scenes+mosaics,estonia_filter.yaml,Yes,Yes,,,,,,,
-fi_2020,fi,2020,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,
-fi_2021,fi,2021,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,
-fi_2022,fi,2022,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,
+fi_2020,fi,2020,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,"filter gap: 2175, 2180, 2196, 2197, 3230, 5101, 5133, 5175 (+49 more)"
+fi_2021,fi,2021,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,"filter gap: 2175, 2180, 2196, 2197, 3230, 4930, 5101, 5133 (+43 more)"
+fi_2022,fi,2022,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,"filter gap: 1130, 2175, 2180, 2196, 2197, 3230, 5101, 5175 (+41 more)"
 fi_2023,fi,2023,Finland,include,scenes,finland_filter.yaml,Yes,Yes,,Asked Ivor to confirm only 2023 is available,,,,,
-fi_2024,fi,2024,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,
-fi_2025,fi,2025,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,
+fi_2024,fi,2024,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,"filter gap: 1401, 2460, 5175, 9416"
+fi_2025,fi,2025,Finland,include,scenes+mosaics,finland_filter.yaml,,,,,,,,,"filter gap: 1130, 1401, 2460, 9416"
 fr_2017,fr,2017,France,include,scenes,france_filter.yaml,Yes,Yes,,,,,,,
-ec_fr_2018,ec_fr,2018,France,include,scenes+mosaics,,Yes,Yes,,,,,,,
+ec_fr_2018,ec_fr,2018,France,include,scenes+mosaics,,Yes,Yes,,,,,,,no source
 fr_2019,fr,2019,France,include,scenes+mosaics,france_filter.yaml,Yes,Yes,,TODO class filters,,,,,
 fr_2020,fr,2020,France,include,scenes+mosaics,france_filter.yaml,Yes,Yes,,Includes Corsica (previously a separate region),,,,,
 fr_2021,fr,2021,France,include,scenes+mosaics,france_filter.yaml,Yes,Yes,,,,,,,
 fr_2022,fr,2022,France,include,scenes+mosaics,france_filter.yaml,Yes,Yes,,,,,,,
 fr_2023,fr,2023,France,include,scenes,france_filter.yaml,Yes,Yes,,,,,,,
 fr_2024,fr,2024,France,include,scenes+mosaics,france_filter.yaml,Yes,Yes,,,,,,,
-de_bb_2026,de_bb,2026,Germany-BB,include,scenes,de-bb-nds-nrw_filter.yaml,Yes,Yes,,need second looks on crop type filters,,,,,
+de_bb_2026,de_bb,2026,Germany-BB,include,scenes,de-bb-nds-nrw_filter.yaml,Yes,Yes,,need second looks on crop type filters,,,,,"filter gap: 1, 11, 12, 13, 14, 4, 5, 6 (+4 more)"
 de_by_2026,de_by,2026,Germany-BY,include,scenes,de-by-filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
-de_mv_2026,de_mv,2026,Germany-MV,include,scenes,de-mv-filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
+de_mv_2026,de_mv,2026,Germany-MV,include,scenes,de-mv-filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,filter gap: UV
 de_nds_2025,de_nds,2025,Germany-NDS,include,scenes+mosaics,de-bb-nds-nrw_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
-de_nrw_2026,de_nrw,2026,Germany-NRW,include,scenes,de-bb-nds-nrw_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
-de_sax_2026,de_sax,2026,Germany-SAX,include,scenes,,Yes,Yes,,https://github.com/fieldsoftheworld/harmonized-field-data-catalog/issues/19,,,,,
+de_nrw_2026,de_nrw,2026,Germany-NRW,include,scenes,de-bb-nds-nrw_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,filter gap: 640
+de_sax_2026,de_sax,2026,Germany-SAX,include,scenes,,Yes,Yes,,https://github.com/fieldsoftheworld/harmonized-field-data-catalog/issues/19,,,,,no filter
 de_sh_2023,de_sh,2023,Germany-SH,include,scenes,de-sh-filter.yaml,Yes,Yes,,,,,,,
 de_sh_2024,de_sh,2024,Germany-SH,include,scenes+mosaics,de-sh-filter.yaml,Yes,Yes,,,,,,,
 de_sh_2025,de_sh,2025,Germany-SH,include,scenes+mosaics,de-sh-filter.yaml,Yes,Yes,,,,,,,
@@ -96,11 +96,11 @@ lv_2022,lv,2022,Latvia,include,scenes+mosaics,latvia_filter.yaml,,,,,,,,,
 lv_2023,lv,2023,Latvia,include,scenes,latvia_filter.yaml,,,,,,,,,
 lv_2024,lv,2024,Latvia,include,scenes+mosaics,latvia_filter.yaml,Yes,Yes,,asked Ivor to check on these,,,,,
 lv_2025,lv,2025,Latvia,include,scenes+mosaics,latvia_filter.yaml,,,,,,,,,
-lv_2026,lv,2026,Latvia,include,scenes,latvia_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,
-ec_lt_2021,ec_lt,2021,Lithuania,include,scenes+mosaics,,Yes,Coarse,,,,,,,
+lv_2026,lv,2026,Latvia,include,scenes,latvia_filter.yaml,Yes,Yes,,Might need to be careful about valid years/dates,,,,,no source
+ec_lt_2021,ec_lt,2021,Lithuania,include,scenes+mosaics,,Yes,Coarse,,,,,,,no filter
 lt_2024,lt,2024,Lithuania,include,scenes+mosaics,lithuania_filter.yaml,Yes,Coarse,,,,,,,
 lt_2025,lt,2025,Lithuania,include,scenes+mosaics,lithuania_filter.yaml,,,,,,,,,
-lu_2026,lu,2026,Luxembourg,include,scenes,,No,No,,Might need to be careful about valid years/dates,,,,,
+lu_2026,lu,2026,Luxembourg,include,scenes,,No,No,,Might need to be careful about valid years/dates,,,,,no filter
 nl_2009,nl,2009,Netherlands,skip-no-imagery,none,netherlands_filter.yaml,Yes,Yes,,,,,,,
 nl_2010,nl,2010,Netherlands,skip-no-imagery,none,netherlands_filter.yaml,Yes,Yes,,,,,,,
 nl_2011,nl,2011,Netherlands,skip-no-imagery,none,netherlands_filter.yaml,Yes,Yes,,,,,,,
@@ -127,15 +127,15 @@ pt_2021,pt,2021,Portugal,include,scenes+mosaics,portugal_filter.yaml,Yes,Yes,,,,
 pt_2022,pt,2022,Portugal,include,scenes+mosaics,portugal_filter.yaml,Yes,Yes,,,,,,,
 pt_2023,pt,2023,Portugal,include,scenes,portugal_filter.yaml,Yes,Yes,,,,,,,
 pt_2025,pt,2025,Portugal,include,scenes+mosaics,portugal_filter.yaml,Yes,Yes,,,,,,,
-sk_2018,sk,2018,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2019,sk,2019,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2020,sk,2020,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2021,sk,2021,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2022,sk,2022,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2023,sk,2023,Slovakia,include,scenes,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2024,sk,2024,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2025,sk,2025,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,
-sk_2026,sk,2026,Slovakia,include,scenes,slovakia_filter.yaml,Yes,Yes,,,,,,,
+sk_2018,sk,2018,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Baklažán, Cesnak, Cibuľa, Cícer, Dyňa, Fazuľa mesiacovitá, Fazuľa obyčajná, Horské kosné lúky (typ C) (+45 more)"
+sk_2019,sk,2019,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Brokolica, Fazuľa šarlátová, Horské kosné lúky (typ C), Jarabina čierna, Ligurček lekársky, Mezofilné trvalé trávne porasty (typ B), Nížinné aluviálne porasty (typ E), Paprika ročná (+21 more)"
+sk_2020,sk,2020,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Brokolica, Horské kosné lúky (typ C), Jarabina čierna, Kapusta sitinová, Ligurček lekársky, Mezofilné trvalé trávne porasty (typ B), Nížinné aluviálne porasty (typ E), Paprika ročná (+22 more)"
+sk_2021,sk,2021,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Bazalka pravá, Horské kosné lúky (typ C), Jarabina čierna, Kapusta sitinová, Mezofilné trvalé trávne porasty (typ B), Nížinné aluviálne porasty (typ E), Paprika ročná, Povojník batátový (batát) (+17 more)"
+sk_2022,sk,2022,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Bazalka pravá, Fazuľa ostrolistá, Horské kosné lúky (typ C), Jarabina čierna, Mezofilné trvalé trávne porasty (typ B), Nížinné aluviálne porasty (typ E), Paprika ročná, Poľná zelenina (+18 more)"
+sk_2023,sk,2023,Slovakia,include,scenes,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Bazalka pravá, Brokolica, Fazuľa ostrolistá, Horské kosné lúky (typ C), Kapucínka väčšia, Kapusta čínska, Koriander siaty, Mezofilné trvalé trávne porasty (typ B) (+9 more)"
+sk_2024,sk,2024,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,filter gap: Kukurica cukrová s podsevom
+sk_2025,sk,2025,Slovakia,include,scenes+mosaics,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Bedrovník anízový, Biopás pre medonosné plodiny kosený po 31. júli, Brokolica, Chren dedinský, Fazuľa šarlátová, Jastrabina východná, Kapusta pekinská, Komonica lekárska (+11 more)"
+sk_2026,sk,2026,Slovakia,include,scenes,slovakia_filter.yaml,Yes,Yes,,,,,,,"filter gap: Biopás pre medonosné plodiny kosený po 31. júli, Borák lekársky, Chren dedinský, Jarabina oskorušová, Jastrabina východná, Kapusta pekinská, Kel hlávkový s podsevom, Komonica biela (+17 more)"
 si_2019,si,2019,Slovenia,include,scenes+mosaics,slovenia_filter.yaml,Yes,Yes,,,,,,,
 si_2020,si,2020,Slovenia,include,scenes+mosaics,slovenia_filter.yaml,Yes,Yes,,,,,,,
 si_2021,si,2021,Slovenia,include,scenes+mosaics,slovenia_filter.yaml,Yes,Yes,,,,,,,
@@ -209,12 +209,12 @@ cz_2023,cz,2023,Czech Republic,include,scenes,czechia_filter.yaml,Yes,Yes,,,,,,,
 cz_2024,cz,2024,Czech Republic,include,scenes+mosaics,czechia_filter.yaml,Yes,Yes,,,,,,,
 cz_2025,cz,2025,Czech Republic,include,scenes+mosaics,czechia_filter.yaml,Yes,Yes,,,,,,,
 cz_2026,cz,2026,Czech Republic,include,scenes,czechia_filter.yaml,Yes,Yes,,,,,,,
-jp_2021,jp,2021,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,
-jp_2022,jp,2022,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,
-jp_2023,jp,2023,Japan,include,scenes,,Yes,Rice or not,,,,,,,
-jp_2024,jp,2024,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,
-ch_2025,ch,2025,Switzerland,include,scenes+mosaics,switzerland_filter.yaml,Yes,Yes,,,,,,,
-it_1_2023,it_1,2023,Italy-Tuscany,include,scenes,it_tuscany_filter.yaml,,Yes,,,,,,,
+jp_2021,jp,2021,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,no filter
+jp_2022,jp,2022,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,no filter
+jp_2023,jp,2023,Japan,include,scenes,,Yes,Rice or not,,,,,,,no filter
+jp_2024,jp,2024,Japan,include,scenes+mosaics,,Yes,Rice or not,,,,,,,no filter
+ch_2025,ch,2025,Switzerland,include,scenes+mosaics,switzerland_filter.yaml,Yes,Yes,,,,,,,no source
+it_1_2023,it_1,2023,Italy-Tuscany,include,scenes,it_tuscany_filter.yaml,,Yes,,,,,,,no source
 us_usda_cropland_2017,us_usda_cropland,2017,USDA Crop Sequence Boundaries,exclude,scenes,,Yes?,Yes (if merged with CDL),,"Not sure we should be training (def not evaluating) on these. If we use them we should at least subselect to high quality areas, some places are 🗑️
 
 https://github.com/fieldsoftheworld/harmonized-field-data-catalog/issues/28",,,,,

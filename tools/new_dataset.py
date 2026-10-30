@@ -144,9 +144,9 @@ def _providers_yaml(items: list[dict]) -> str:
 def _imagery_yaml(modes: tuple[str, ...]) -> str:
     """The select/download stage blocks for the row's imagery modes."""
     mode = modes[0] if len(modes) == 1 else f"[{', '.join(modes)}]"
-    # Mosaics have no ready-made true-colour image to preview from, so they
-    # are clipped; preview mode is for scenes only.
-    download_mode = "clip" if "mosaics" in modes else "preview"
+    # With both modes, ftwd's preview previews the scenes and clips the mosaics
+    # (mosaics have no ready-made true-colour image); alone, mosaics need clip.
+    download_mode = "clip" if modes == ("mosaics",) else "preview"
     return f"""\
   select_images:
     enabled: true

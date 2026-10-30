@@ -54,7 +54,7 @@ stages:
     buffer_expansion_size: 14
   download_images:
     enabled: true
-    mode: clip
+    mode: preview
     workers: 16
     bands: [red, green, blue, nir]
     resolution: 10.0

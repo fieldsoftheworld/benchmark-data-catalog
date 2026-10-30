@@ -64,12 +64,16 @@ def tool_argv(template: list[str], dataset_id: str) -> list[str]:
 
 
 def next_ids(rows: list[dict[str, str]], n: int, *, imagery: bool) -> list[str]:
-    """The first ``n`` 'include' rows still waiting for this pass."""
+    """The first ``n`` 'include' rows still waiting for this pass.
+
+    Rows with ``issues`` (a preflight finding from ``check_filters.py`` or an
+    earlier failed build) are skipped until fixed; name them explicitly to retry.
+    """
     if imagery:
         waiting = [r for r in rows if r["built"] and not r["imagery_done"]]
     else:
         waiting = [r for r in rows if not r["built"]]
-    return [r["dataset_id"] for r in waiting if r["status"] == "include"][:n]
+    return [r["dataset_id"] for r in waiting if r["status"] == "include" and not r["issues"]][:n]
 
 
 def _run(argv: list[str], log) -> int:

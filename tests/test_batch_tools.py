@@ -101,7 +101,10 @@ for mask_type in ("instance", "semantic_2_class", "semantic_3_class",
     check(mask_type in recipe["stages"]["masks"]["mask_types"], f"mask type {mask_type}")
 select = recipe["stages"]["select_images"]
 check(select["imagery_mode"] == ["scenes", "mosaics"], f"both modes: {select['imagery_mode']}")
-check(recipe["stages"]["download_images"]["mode"] == "clip", "mosaics are clipped")
+check(
+    recipe["stages"]["download_images"]["mode"] == "preview",
+    "both modes: ftwd previews the scenes and clips the mosaics",
+)
 
 scenes_only = yaml.safe_load(
     new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes", "filter": ""},
@@ -138,7 +141,10 @@ queue = [
     {"dataset_id": "b", "status": "exclude", "built": "", "imagery_done": ""},
     {"dataset_id": "c", "status": "include", "built": "2026-10-30", "imagery_done": ""},
     {"dataset_id": "d", "status": "include", "built": "2026-10-30", "imagery_done": "2026-10-31"},
+    {"dataset_id": "e", "status": "include", "built": "", "imagery_done": "", "issues": "no source"},
 ]
+for q in queue:
+    q.setdefault("issues", "")
 check(run_batch.next_ids(queue, 5, imagery=False) == ["a"], "metadata pass takes unbuilt includes")
 check(run_batch.next_ids(queue, 5, imagery=True) == ["c"], "imagery pass takes built, no imagery")
 argv = run_batch.tool_argv(["build.py", "{id}", "--only", "docs"], "xx_2022")
