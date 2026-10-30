@@ -2,7 +2,7 @@
 # Manage the EC2 instance that builds catalog datasets.
 #
 #   tools/aws/builder.sh launch [branch]   # create key/SG if needed, start one instance
-#   tools/aws/builder.sh ssh               # ssh in (forwards 8400 for source-coop auth login)
+#   tools/aws/builder.sh ssh               # ssh in (forwards 8400 for source-coop login)
 #   tools/aws/builder.sh status
 #   tools/aws/builder.sh stop | start
 #   tools/aws/builder.sh allow-my-ip       # re-open SSH after your IP changes

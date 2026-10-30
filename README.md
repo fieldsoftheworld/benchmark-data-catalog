@@ -195,7 +195,7 @@ imagery. From a machine with AWS credentials:
 
     tools/aws/builder.sh launch                # r7i.4xlarge, 1 TB gp3, bootstraps itself (~10 min)
     tools/aws/builder.sh ssh                   # forwards port 8400 for the login below
-    source-coop auth login --port 8400         # on the instance, once; open the printed URL locally
+    source-coop login --port 8400              # on the instance, once; open the printed URL locally
     tmux new -s build                          # builds outlive the SSH session
     cd benchmark-data-catalog && uv run python tools/run_batch.py ...
 
