@@ -40,7 +40,8 @@ curl --proto '=https' --tlsv1.2 -LsSf \
     https://github.com/source-cooperative/source-coop-cli/releases/latest/download/source-coop-cli-installer.sh | sh
 
 # credential_process runs without a login shell, so it needs the absolute path.
-SOURCE_COOP=$(ls "$HOME/.cargo/bin/source-coop" "$HOME/.local/bin/source-coop" 2>/dev/null | head -1)
+SOURCE_COOP="$HOME/.cargo/bin/source-coop"
+[ -x "$SOURCE_COOP" ] || SOURCE_COOP="$HOME/.local/bin/source-coop"
 mkdir -p "$HOME/.aws"
 cat > "$HOME/.aws/config" <<AWS
 [profile source-coop]
