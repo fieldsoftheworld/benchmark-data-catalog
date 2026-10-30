@@ -17,6 +17,8 @@
 # Environment: AWS_PROFILE (default tg), FTW_INSTANCE_TYPE (default r7i.4xlarge),
 # FTW_DISK_GB (default 1000).
 set -euo pipefail
+# macOS ships bash 3.2, where set -e does not reach inside $(...): every AWS call
+# whose output is captured ends in `|| exit 1` so a failure stops the script.
 
 export AWS_PROFILE="${AWS_PROFILE:-tg}"
 export AWS_REGION=us-west-2
@@ -56,25 +58,33 @@ ensure_key() {
 
 ensure_security_group() {
     local sg
-    sg=$(security_group)
+    sg=$(security_group) || exit 1
     if [[ -z "$sg" ]]; then
         local vpc
         vpc=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true \
-            --query 'Vpcs[0].VpcId' --output text)
+            --query 'Vpcs[0].VpcId' --output text) || exit 1
         sg=$(aws ec2 create-security-group --group-name "$NAME-ssh" --vpc-id "$vpc" \
-            --description "SSH to $NAME from the maintainer's IP" --query GroupId --output text)
+            --description "SSH to $NAME from the maintainer IP" --query GroupId --output text) \
+            || exit 1
         echo "created security group $sg" >&2
     fi
-    allow_ip "$sg" >&2
+    allow_ip "$sg" >&2 || exit 1
     echo "$sg"
 }
 
 allow_ip() {
-    local sg="$1" cidr
+    local sg="$1" cidr err
+    [[ -n "$sg" ]] || { echo "no $NAME-ssh security group" >&2; exit 1; }
     cidr=$(my_cidr)
-    aws ec2 authorize-security-group-ingress --group-id "$sg" \
-        --protocol tcp --port 22 --cidr "$cidr" >/dev/null 2>&1 \
-        && echo "opened SSH to $cidr" || echo "SSH already open to $cidr"
+    if err=$(aws ec2 authorize-security-group-ingress --group-id "$sg" \
+        --protocol tcp --port 22 --cidr "$cidr" 2>&1 >/dev/null); then
+        echo "opened SSH to $cidr"
+    elif [[ "$err" == *InvalidPermission.Duplicate* ]]; then
+        echo "SSH already open to $cidr"
+    else
+        echo "$err" >&2
+        exit 1
+    fi
 }
 
 cmd_launch() {
