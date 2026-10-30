@@ -175,7 +175,8 @@ def recipe_text(
     """The full ``datasets/<id>.yaml`` text for one region-year."""
     year = int(row["year"])
     title = item_title(collection, urls["item"], f"{row['region']} — {year}")
-    filter_line = f"    class_filter: filters/{row['filter']}\n" if row["filter"] else ""
+    name = tracking.filter_file(row)
+    filter_line = f"    class_filter: filters/{name}\n" if name else ""
     keywords = ["field-boundaries", "benchmark", tracking.source_stem(row), str(year)]
     return f"""\
 # ftwd recipe for {title}. Input is one year of the harmonized (fiboa) collection.
@@ -255,9 +256,8 @@ def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = Fal
     manifest = load_manifest()
     version = manifest["catalog"]["version"]
 
-    if row["filter"]:
-        dest = ROOT / "datasets" / "filters" / row["filter"]
-        dest.write_bytes(filter_bytes(row["filter"], checkout))
+    if name := tracking.filter_file(row):
+        (ROOT / "datasets" / "filters" / name).write_bytes(filter_bytes(name, checkout))
     recipe_path.write_text(recipe_text(dataset_id, row, collection, urls, version))
 
     if dataset_id not in manifest["datasets"]:

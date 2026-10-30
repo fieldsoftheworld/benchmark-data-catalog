@@ -12,7 +12,7 @@ ones ``ftwd run`` would fail on hours into a build. Writes the outcome into
 ``run_batch.py --next`` skips:
 
 - ``no source``: the year's parquet is not published.
-- ``no filter``: the row names no class filter.
+- ``no filter``: the row names no class filter (``none`` means none is needed).
 - ``filter column missing``: none of the filter's columns are in the data.
 - ``filter gap: <codes>``: classes in the data the filter neither includes
   nor excludes.
@@ -44,9 +44,12 @@ def check_row(con, row: dict[str, str], filters: list[Path]) -> str:
         cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()]
     except Exception:  # noqa: BLE001 - duckdb raises a family of IO errors here
         return "no source"
-    if not row["filter"]:
+    if row["filter"] == tracking.NO_FILTER:
+        return ""
+    name = tracking.filter_file(row)
+    if name is None:
         return "no filter"
-    path = next((d / row["filter"] for d in filters if (d / row["filter"]).is_file()), None)
+    path = next((d / name for d in filters if (d / name).is_file()), None)
     if path is None:
         sys.exit(f"{row['dataset_id']}: filter {row['filter']} not found in {filters}")
     class_filter = ClassFilter.from_file(path)

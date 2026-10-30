@@ -49,7 +49,7 @@ for r in rows:
     )
     if r["imagery"] == "none":
         check(r["status"] != "include", f"{d}: no imagery, so it cannot be 'include'")
-    if r["filter"]:
+    if tracking.filter_file(r):
         check(r["filter"].endswith(".yaml"), f"{d}: filter {r['filter']!r} is not a yaml file")
 
 # --- update() round-trips and refuses unknown columns ---------------------
@@ -131,6 +131,10 @@ scenes_only = yaml.safe_load(
 check(scenes_only["stages"]["select_images"]["imagery_mode"] == "scenes", "single mode")
 check(scenes_only["stages"]["download_images"]["mode"] == "preview", "scenes-only previews")
 check("class_filter" not in scenes_only["stages"]["masks"], "no filter, no class_filter key")
+unfiltered = yaml.safe_load(
+    new_dataset.recipe_text("xx_2022", {**ROW, "filter": tracking.NO_FILTER}, COLLECTION, urls, "9.9.9")
+)
+check("class_filter" not in unfiltered["stages"]["masks"], "'none' writes no class_filter")
 
 other = {
     **COLLECTION,

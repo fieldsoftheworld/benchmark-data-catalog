@@ -70,6 +70,15 @@ def update(dataset_id: str, path: Path = TRACKING, **fields: str) -> None:
     save(rows, path)
 
 
+#: ``filter`` value for a source with no class column to filter on (lu): every parcel is a field.
+NO_FILTER = "none"
+
+
+def filter_file(r: dict[str, str]) -> str | None:
+    """The row's class filter file name; None when it has none (yet, or by design)."""
+    return r["filter"] if r["filter"] not in ("", NO_FILTER) else None
+
+
 def source_stem(r: dict[str, str]) -> str:
     """The harmonized file stem: ``<stem>-<year>.parquet`` under ``<harmonized_id>/year=<year>/``.
 
