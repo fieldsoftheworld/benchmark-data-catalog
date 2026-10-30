@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Scaffold a region-year dataset: recipe, class filter and manifest entry.
+
+    uv run python tools/new_dataset.py be_wal_2022
+    uv run python tools/new_dataset.py be_wal_2022 --ftwd-checkout ../ftw-dataset-tools
+
+Reads the dataset's row in ``tracking.csv`` and the harmonized source over
+HTTPS, then writes:
+
+- ``datasets/<id>.yaml``: the ftwd recipe. ``fields_file`` is the year's own
+  parquet (``<hid>/year=<Y>/<hid>-<Y>.parquet``), never ``latest``. The title
+  is the harmonized year item's link title; license and producer/licensor
+  providers are copied from the harmonized collection, which is the attested
+  source. Fields of the World is appended as processor.
+- ``datasets/filters/<filter>``: a byte-for-byte copy of ftwd's
+  ``configs/filters/<filter>`` at the pinned commit (or from a local checkout
+  with ``--ftwd-checkout``). ``tests/test_filters.py`` fails if they drift.
+- a ``datasets.yaml`` entry with ``ftw1_name: none`` and the default
+  thumbnail framing (``thumbnail_spec``).
+
+Refuses to overwrite an existing recipe unless ``--force``; the manifest entry
+is only appended when missing.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import tracking  # noqa: E402
+from common import ROOT, STAGING, ftwd_pin, load_manifest  # noqa: E402
+
+HARMONIZED = "https://data.source.coop/ftw/harmonized-field-data"
+FTWD_RAW = "https://raw.githubusercontent.com/fieldsoftheworld/ftw-dataset-tools"
+FTW_PROVIDER = {
+    "name": "Fields of the World",
+    "roles": ["processor"],
+    "url": "https://fieldsofthe.world",
+}
+# The framing every new collection starts from. Override per dataset in
+# datasets.yaml only after looking at the rendered thumbnail.
+DEFAULT_ZOOM = 12
+DEFAULT_RANK = 0
+
+
+def _open(url: str):
+    # data.source.coop answers 403 to urllib's default Python-urllib User-Agent.
+    request = urllib.request.Request(url, headers={"User-Agent": "benchmark-data-catalog"})
+    return urllib.request.urlopen(request, timeout=30)
+
+
+def fetch_json(url: str) -> dict:
+    with _open(url) as resp:
+        return json.load(resp)
+
+
+def source_urls(harmonized_id: str, year: int) -> dict[str, str]:
+    """The harmonized collection, year item and year parquet for one region-year."""
+    base = f"{HARMONIZED}/{harmonized_id}"
+    return {
+        "collection": f"{base}/collection.json",
+        "item": f"{base}/year={year}/{harmonized_id}-{year}.json",
+        "parquet": f"{base}/year={year}/{harmonized_id}-{year}.parquet",
+    }
+
+
+def item_title(collection: dict, year: int, fallback: str) -> str:
+    """The harmonized collection's own title for its ``year`` item."""
+    suffix = f"year={year}/"
+    for link in collection.get("links", []):
+        if link.get("rel") == "item" and suffix in link.get("href", "") and link.get("title"):
+            return link["title"]
+    return f"{fallback} — {year}"
+
+
+def providers(collection: dict) -> list[dict]:
+    """The source's providers minus its own FTW entry, then FTW as processor."""
+    kept = [
+        {k: p[k] for k in ("name", "roles", "url") if k in p}
+        for p in collection.get("providers", [])
+        if p.get("name") != FTW_PROVIDER["name"]
+    ]
+    return [*kept, FTW_PROVIDER]
+
+
+def attribution(collection: dict) -> str:
+    """The source's attribution, else its producer's name."""
+    if collection.get("attribution"):
+        return collection["attribution"]
+    for p in collection.get("providers", []):
+        if "producer" in p.get("roles", []) and p.get("name") != FTW_PROVIDER["name"]:
+            return p["name"]
+    return "TODO(attest)"
+
+
+def license_lines(collection: dict) -> str:
+    """``license`` (and ``license_url`` for a non-SPDX license) recipe lines.
+
+    The source's ``rel: license`` link is the attested terms; ftwd and the
+    manifest gate require it whenever the license is ``other``.
+    """
+    license_ = collection.get("license") or "TODO(attest)"
+    lines = f"  license: {license_}\n"
+    if license_ == "other":
+        hrefs = [l["href"] for l in collection.get("links", []) if l.get("rel") == "license"]
+        lines += f"  license_url: {hrefs[0] if hrefs else 'TODO(attest)'}\n"
+    return lines
+
+
+def thumbnail_spec(collection: dict) -> dict:
+    """The default thumbnail framing for a new collection.
+
+    ``dominant-crop`` needs HCAT crop codes; the harmonized collection
+    publishes a ``style-hcat-crops`` asset exactly when its data carries them.
+    Without crop codes the benchmark collection has no dominant-crop style
+    (see the lu note in docs/build-log.md), so ``field-coverage`` is used.
+    """
+    has_crops = "style-hcat-crops" in collection.get("assets", {})
+    return {
+        "style": "dominant-crop" if has_crops else "field-coverage",
+        "zoom": DEFAULT_ZOOM,
+        "rank": DEFAULT_RANK,
+    }
+
+
+def _yaml_str(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _providers_yaml(items: list[dict]) -> str:
+    lines = []
+    for p in items:
+        lines.append(f"    - name: {_yaml_str(p['name'])}")
+        lines.append(f"      roles: [{', '.join(p.get('roles', []))}]")
+        if p.get("url"):
+            lines.append(f"      url: {p['url']}")
+    return "\n".join(lines)
+
+
+def _imagery_yaml(modes: tuple[str, ...]) -> str:
+    """The select/download stage blocks for the row's imagery modes."""
+    mode = modes[0] if len(modes) == 1 else f"[{', '.join(modes)}]"
+    # Mosaics have no ready-made true-colour image to preview from, so they
+    # are clipped; preview mode is for scenes only.
+    download_mode = "clip" if "mosaics" in modes else "preview"
+    return f"""\
+  select_images:
+    enabled: true
+    imagery_mode: {mode}
+    cloud_cover_chip: 2.0
+    nodata_max: 0.0
+    buffer_days: 14
+    num_buffer_expansions: 3
+    buffer_expansion_size: 14
+  download_images:
+    enabled: true
+    mode: {download_mode}
+    workers: 16
+    bands: [red, green, blue, nir]
+    resolution: 10.0"""
+
+
+def recipe_text(
+    dataset_id: str,
+    row: dict[str, str],
+    collection: dict,
+    urls: dict[str, str],
+    version: str,
+) -> str:
+    """The full ``datasets/<id>.yaml`` text for one region-year."""
+    year = int(row["year"])
+    title = item_title(collection, year, row["region"])
+    filter_line = f"    class_filter: filters/{row['filter']}\n" if row["filter"] else ""
+    keywords = ["field-boundaries", "benchmark", row["harmonized_id"], str(year)]
+    return f"""\
+# ftwd recipe for {title}. Input is one year of the harmonized (fiboa) collection.
+# Generated by tools/new_dataset.py from tracking.csv; edit freely afterwards.
+# Build with: ftwd run datasets/{dataset_id}.yaml   (tools/build.py wraps this)
+version: 1
+
+fields_file: {urls["parquet"]}
+source_via: {urls["collection"]}
+output_dir: {STAGING.relative_to(ROOT)}/{dataset_id}
+name: {dataset_id}
+year: {year}
+
+metadata:
+  title: {_yaml_str(title)}
+  description: >
+    Benchmark chips for {row["region"]} cut from the {year} edition of the
+    harmonized field boundary collection {row["harmonized_id"]}.
+{license_lines(collection)}  version: {version}
+  attribution: {_yaml_str(attribution(collection))}
+  keywords: [{", ".join(keywords)}]
+  providers:
+{_providers_yaml(providers(collection))}
+
+stages:
+  chips:
+    min_coverage: 0.01
+    drop_border_chips: false
+  splits:
+    split_type: block3x3
+    split_percents: [80, 10, 10]
+    random_seed: 42
+  masks:
+    mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
+    resolution: 10.0
+    workers: null
+    presence_only: false
+    # Reuse non-empty mask files on rerun so a repeated masks stage only fills gaps.
+    skip_existing: true
+{filter_line}  stac:
+    checksums: false
+{_imagery_yaml(tracking.imagery_modes(row))}
+"""
+
+
+def filter_bytes(name: str, checkout: Path | None) -> bytes:
+    """ftwd's ``configs/filters/<name>``, from a checkout or the pinned commit."""
+    if checkout is not None:
+        return (checkout / "configs" / "filters" / name).read_bytes()
+    pin = ftwd_pin()
+    if pin.kind != "commit":
+        sys.exit("ftwd is pinned by version; pass --ftwd-checkout to copy filters")
+    with _open(f"{FTWD_RAW}/{pin.value}/configs/filters/{name}") as r:
+        return r.read()
+
+
+def manifest_entry(dataset_id: str, thumb: dict) -> str:
+    return (
+        f"  {dataset_id}:\n"
+        f"    ftw1_name: none\n"
+        f"    thumbnail: {{style: {thumb['style']}, zoom: {thumb['zoom']}, rank: {thumb['rank']}}}\n"
+    )
+
+
+def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = False) -> Path:
+    """Write the recipe, filter and manifest entry for ``dataset_id``."""
+    row = tracking.row(dataset_id)
+    if row["status"] != "include":
+        sys.exit(f"{dataset_id}: tracking.csv status is {row['status']!r}, not 'include'")
+    recipe_path = ROOT / "datasets" / f"{dataset_id}.yaml"
+    if recipe_path.exists() and not force:
+        sys.exit(f"{recipe_path.relative_to(ROOT)} exists (use --force to regenerate it)")
+
+    urls = source_urls(row["harmonized_id"], int(row["year"]))
+    collection = fetch_json(urls["collection"])
+    fetch_json(urls["item"])  # fails loudly when the year was never published
+    manifest = load_manifest()
+    version = manifest["catalog"]["version"]
+
+    if row["filter"]:
+        dest = ROOT / "datasets" / "filters" / row["filter"]
+        dest.write_bytes(filter_bytes(row["filter"], checkout))
+    recipe_path.write_text(recipe_text(dataset_id, row, collection, urls, version))
+
+    if dataset_id not in manifest["datasets"]:
+        with (ROOT / "datasets.yaml").open("a") as f:
+            f.write(manifest_entry(dataset_id, thumbnail_spec(collection)))
+    return recipe_path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("dataset_ids", nargs="+", help="region-year ids from tracking.csv")
+    parser.add_argument(
+        "--ftwd-checkout",
+        type=Path,
+        default=None,
+        help="copy class filters from this ftwd checkout instead of the pinned commit",
+    )
+    parser.add_argument("--force", action="store_true", help="overwrite an existing recipe")
+    args = parser.parse_args(argv)
+    for dataset_id in args.dataset_ids:
+        path = scaffold(dataset_id, checkout=args.ftwd_checkout, force=args.force)
+        print(f"wrote  {path.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

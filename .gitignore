@@ -38,3 +38,6 @@ __pycache__/
 staging/
 # per-dataset item trees are bucket-only (committed: collection.json, docs, styles, sub-catalogs)
 catalog/*/chips/*/*/
+
+# run_batch.py per-dataset build logs
+logs/

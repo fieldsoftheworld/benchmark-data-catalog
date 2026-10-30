@@ -159,6 +159,50 @@ background) before it's written and registered as the collection's
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
 
+## Building region-years in batches
+
+Each region-year of a harmonized collection is its own dataset, `<id>_<year>`
+(`be_wal_2022`). `tracking.csv` is the queue: one row per region-year, with
+its `status` (`include`, `skip-no-imagery`, `discuss`, `exclude`), which
+imagery exists for that year (`scenes+mosaics`, `scenes`, `none`), its class
+filter, and the progress columns the batch runner fills in. Years before
+Sentinel-2 (pre-2015) are `skip-no-imagery` and are not published at all.
+
+    uv run python tools/new_dataset.py be_wal_2022         # recipe, filter copy, datasets.yaml entry
+    uv run python tools/run_batch.py be_wal_2022 hr_2024 --jobs 2
+    uv run python tools/run_batch.py --next 10 --jobs 4    # next 10 unbuilt 'include' rows
+    uv run python tools/run_batch.py be_wal_2022 --imagery # second pass, once metadata is published
+
+`new_dataset.py` reads the year's own parquet
+(`<hid>/year=<Y>/<hid>-<Y>.parquet`), copies title, license and providers
+from the harmonized collection, and copies the class filter byte for byte
+from ftwd's `configs/filters/` at the pinned commit; `tests/test_filters.py`
+fails if a copy drifts, so filter fixes go to ftwd first. The thumbnail
+defaults to `dominant-crop` when the source has HCAT crop codes and
+`field-coverage` otherwise, at zoom 12 on the densest cluster; override in
+`datasets.yaml` only after looking at the render.
+
+`run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
+logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the
+gates once for the batch, and records the outcome in `tracking.csv`. It never
+uploads: it prints the `upload_data.py --only ...` and `publish.py` commands
+to run with the maintainer's say-so, then `--mark-published`.
+
+### On AWS
+
+Builds run on one EC2 instance in us-west-2, next to the bucket and the
+imagery. From a machine with AWS credentials:
+
+    tools/aws/builder.sh launch                # r7i.4xlarge, 1 TB gp3, bootstraps itself (~10 min)
+    tools/aws/builder.sh ssh                   # forwards port 8400 for the login below
+    source-coop auth login --port 8400         # on the instance, once; open the printed URL locally
+    tmux new -s build                          # builds outlive the SSH session
+    cd benchmark-data-catalog && uv run python tools/run_batch.py ...
+
+The instance stops itself after an hour with no build and nobody logged in,
+keeping its disk (`staging/`); `builder.sh start` brings it back.
+`builder.sh terminate` deletes the disk too.
+
 ## Version
 
 2.0.0-alpha.1, the reviewer sample. Version 1.0 lives at

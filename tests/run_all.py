@@ -18,6 +18,8 @@ TESTS = [
     "test_overlay.py",
     "test_ftwd_pin.py",
     "test_build.py",
+    "test_batch_tools.py",
+    "test_filters.py",
     "test_catalogize.py",
     "test_thumbnails.py",
     "test_links.py",
