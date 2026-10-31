@@ -172,6 +172,18 @@ check(run_batch.next_ids(queue, 5, imagery=True) == ["c"], "imagery pass takes b
 argv = run_batch.tool_argv(["build.py", "{id}", "--only", "docs"], "xx_2022")
 check(argv[1].endswith("tools/build.py") and argv[2:] == ["xx_2022", "--only", "docs"], "argv")
 
+
+# --- a chiitiler that never starts fails the thumbnails, not the run ------
+def _no_chiitiler():
+    raise RuntimeError("chiitiler did not come up")
+
+
+run_batch.start_chiitiler = _no_chiitiler
+check(
+    run_batch.thumbnails(["a", "b"]) == dict.fromkeys(["a", "b"], "chiitiler did not come up"),
+    "thumbnails reports a chiitiler failure per dataset instead of exiting",
+)
+
 if errors:
     for e in errors:
         print(f"error  {e}")

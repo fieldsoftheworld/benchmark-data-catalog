@@ -125,13 +125,18 @@ def start_chiitiler() -> subprocess.Popen | None:
             return proc
         time.sleep(1)
     proc.terminate()
-    sys.exit("chiitiler did not come up in 5 minutes; see logs/chiitiler.log")
+    raise RuntimeError("chiitiler did not come up in 5 minutes; see logs/chiitiler.log")
 
 
 def thumbnails(dataset_ids: list[str]) -> dict[str, str]:
     """Render each thumbnail; failures as {id: message}."""
     failed = {}
-    proc = start_chiitiler()
+    try:
+        proc = start_chiitiler()
+    except RuntimeError as err:
+        # The builds are done; record why the thumbnails are missing rather than
+        # losing every row's outcome to an exit.
+        return dict.fromkeys(dataset_ids, str(err))
     try:
         for dataset_id in dataset_ids:
             with (LOGS / f"{dataset_id}.log").open("a") as log:
