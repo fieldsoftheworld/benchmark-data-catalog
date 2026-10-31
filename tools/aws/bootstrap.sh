@@ -21,6 +21,9 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y build-essential git tmux htop unzip curl ca-certificates \
     libsqlite3-dev zlib1g-dev
+# chiitiler's headless GL runtime (the list its Dockerfile uses on Noble).
+apt-get install -y xvfb libopengl0 libglx0 libcurl4t64 libjpeg-turbo8 libuv1t64 \
+    libx11-6 libxext6 libwebp7 libicu74 libpng16-16t64
 
 # Node 22 for chiitiler (Ubuntu's packaged node is too old).
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
