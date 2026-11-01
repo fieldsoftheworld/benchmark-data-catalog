@@ -178,9 +178,8 @@ Sentinel-2 (pre-2015) are `skip-no-imagery` and are not published at all.
 from the harmonized collection, and copies the class filter byte for byte
 from ftwd's `configs/filters/` at the pinned commit; `tests/test_filters.py`
 fails if a copy drifts, so filter fixes go to ftwd first. The thumbnail
-defaults to `dominant-crop` when the source has HCAT crop codes and
-`field-coverage` otherwise, at zoom 12 on the densest cluster; override in
-`datasets.yaml` only after looking at the render.
+defaults to the field `outline` style at zoom 13 on the densest cluster of
+fields; override in `datasets.yaml` only after looking at the render.
 
 `run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
 logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the

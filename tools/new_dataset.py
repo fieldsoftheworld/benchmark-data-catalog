@@ -43,8 +43,7 @@ FTW_PROVIDER = {
 }
 # The framing every new collection starts from. Override per dataset in
 # datasets.yaml only after looking at the rendered thumbnail.
-DEFAULT_ZOOM = 12
-DEFAULT_RANK = 0
+DEFAULT_THUMBNAIL = {"style": "outline", "zoom": 13, "rank": 0}
 
 
 def _open(url: str):
@@ -107,25 +106,21 @@ def license_lines(collection: dict) -> str:
     license_ = collection.get("license") or "TODO(attest)"
     lines = f"  license: {license_}\n"
     if license_ == "other":
-        hrefs = [l["href"] for l in collection.get("links", []) if l.get("rel") == "license"]
+        hrefs = [link["href"] for link in collection.get("links", []) if link.get("rel") == "license"]
         lines += f"  license_url: {hrefs[0] if hrefs else 'TODO(attest)'}\n"
     return lines
 
 
-def thumbnail_spec(collection: dict) -> dict:
+def thumbnail_spec() -> dict:
     """The default thumbnail framing for a new collection.
 
-    ``dominant-crop`` needs HCAT crop codes; the harmonized collection
-    publishes a ``style-hcat-crops`` asset exactly when its data carries them.
-    Without crop codes the benchmark collection has no dominant-crop style
-    (see the lu note in docs/build-log.md), so ``field-coverage`` is used.
+    The field outlines at zoom 13 (about 5 km across) on the densest cluster of
+    fields: every dataset has them, crop codes or not, and they show the field
+    geometry the benchmark is about. The chip-level styles read as coloured
+    squares at that size, and ``dominant-crop`` goes flat where one class
+    dominates (hr_2024's generic "Arable land").
     """
-    has_crops = "style-hcat-crops" in collection.get("assets", {})
-    return {
-        "style": "dominant-crop" if has_crops else "field-coverage",
-        "zoom": DEFAULT_ZOOM,
-        "rank": DEFAULT_RANK,
-    }
+    return dict(DEFAULT_THUMBNAIL)
 
 
 def _yaml_str(value: str) -> str:
@@ -262,7 +257,7 @@ def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = Fal
 
     if dataset_id not in manifest["datasets"]:
         with (ROOT / "datasets.yaml").open("a") as f:
-            f.write(manifest_entry(dataset_id, thumbnail_spec(collection)))
+            f.write(manifest_entry(dataset_id, thumbnail_spec()))
     return recipe_path
 
 

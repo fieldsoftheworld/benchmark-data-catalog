@@ -148,12 +148,11 @@ check("license_url" not in recipe["metadata"], "an SPDX license needs no license
 no_attr = {**COLLECTION, "providers": []}
 check(new_dataset.attribution(no_attr) == "TODO(attest)", "missing attribution is flagged")
 
-# --- thumbnail default follows the source's crop codes --------------------
-check(new_dataset.thumbnail_spec(COLLECTION)["style"] == "dominant-crop", "crops -> dominant")
-check(
-    new_dataset.thumbnail_spec({"assets": {"data": {}}})["style"] == "field-coverage",
-    "no crop codes -> field-coverage",
-)
+# --- thumbnail default: field outlines, whatever the source carries -------
+check(new_dataset.thumbnail_spec() == {"style": "outline", "zoom": 13, "rank": 0}, "outline default")
+spec = new_dataset.thumbnail_spec()
+spec["zoom"] = 99
+check(new_dataset.thumbnail_spec()["zoom"] == 13, "callers get their own copy of the default")
 entry = yaml.safe_load(new_dataset.manifest_entry("xx_2022", {"style": "s", "zoom": 12, "rank": 0}))
 check(entry["xx_2022"]["ftw1_name"] == "none", "new region-years have no FTW 1.0 counterpart")
 
