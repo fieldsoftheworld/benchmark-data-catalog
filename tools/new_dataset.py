@@ -204,7 +204,7 @@ metadata:
 stages:
   chips:
     min_coverage: 0.01
-    drop_border_chips: false
+    drop_border_chips: true
   splits:
     split_type: block3x3
     split_percents: [80, 10, 10]
