@@ -49,15 +49,15 @@ stages:
     checksums: false
   select_images:
     enabled: true
-    imagery_mode: [scenes, mosaics]
+    imagery_mode: mosaics
     cloud_cover_chip: 2.0
-    nodata_max: 0.0
+    nodata_max: 100.0
     buffer_days: 14
     num_buffer_expansions: 3
     buffer_expansion_size: 14
   download_images:
     enabled: true
-    mode: preview
+    mode: clip
     workers: 16
     bands: [red, green, blue, nir]
     resolution: 10.0

@@ -7,7 +7,7 @@ byte for byte; this gate fetches each copy's original at the ftwd pin and
 fails on any difference, so a filter fix lands in ftwd and reaches here by
 moving the pin and re-copying, never by a local edit.
 
-Files with no counterpart in ftwd (``at.yaml``, written before filters moved
+Files with no counterpart in ftwd (written before filters moved
 there) are skipped with a note. Offline, the gate notes and skips rather
 than failing.
 

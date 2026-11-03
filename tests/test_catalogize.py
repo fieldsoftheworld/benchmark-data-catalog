@@ -23,8 +23,8 @@ this gate proves that with DuckDB — ``typeof(geometry)`` must start with
 
 ``catalogize._load_recipe()`` is not parameterized: it always reads the real
 ``datasets/<id>.yaml`` in this repository. So the dataset ids used here are
-real ones (``lu``, ``si``) whose recipes already exist and carry the facts
-this gate exercises (``lu``: license CC-BY-4.0, a ``source_via``; ``si``:
+real ones (``be_wal_2022``, ``hr_2024``) whose recipes already exist and carry the facts
+this gate exercises (``be_wal_2022``: license CC-BY-4.0, a ``source_via``; ``hr_2024``:
 license "other" with a ``license_url``). Only ``staging/`` and ``catalog/``
 are temporary.
 
@@ -169,13 +169,13 @@ def build_fields_parquet(path: Path) -> None:
     pq.write_table(table, str(path))
 
 
-def build_staging_lu(staging: Path) -> None:
-    root = staging / "lu"
+def build_staging_be_wal_2022(staging: Path) -> None:
+    root = staging / "be_wal_2022"
     write_json(
         root / "collection.json",
         {
             "type": "Collection",
-            "id": "lu",
+            "id": "be_wal_2022",
             "title": "Luxembourg",
             "description": "Benchmark chips for Luxembourg. See the recipe for details.",
             "license": "CC-BY-4.0",
@@ -189,13 +189,13 @@ def build_staging_lu(staging: Path) -> None:
             ],
             "providers": [{"name": "Fields of the World", "roles": ["processor"], "url": "https://fieldsofthe.world"}],
             "assets": {
-                "fields": {"href": "./lu_fields.parquet", "type": "application/vnd.apache.parquet", "title": "Fields"},
+                "fields": {"href": "./be_wal_2022_fields.parquet", "type": "application/vnd.apache.parquet", "title": "Fields"},
                 "boundary_lines": {
-                    "href": "./lu_boundary_lines.parquet",
+                    "href": "./be_wal_2022_boundary_lines.parquet",
                     "type": "application/vnd.apache.parquet",
                     "title": "Boundary lines",
                 },
-                "chips": {"href": "./lu_chips.parquet", "type": "application/vnd.apache.parquet", "title": "Chips"},
+                "chips": {"href": "./be_wal_2022_chips.parquet", "type": "application/vnd.apache.parquet", "title": "Chips"},
                 "items": {"href": "./items.parquet", "type": "application/vnd.apache.parquet", "title": "Items"},
                 "chips_tiles": {"href": "./chips.pmtiles", "type": "application/vnd.pmtiles", "title": "Chip tiles"},
                 "style-default": {"href": "./styles/default.json", "roles": ["style", "default"]},
@@ -322,8 +322,8 @@ def build_staging_lu(staging: Path) -> None:
     )
 
     build_items_parquet(root / "items.parquet")
-    build_chips_parquet(root / "lu_chips.parquet")
-    build_fields_parquet(root / "lu_fields.parquet")
+    build_chips_parquet(root / "be_wal_2022_chips.parquet")
+    build_fields_parquet(root / "be_wal_2022_fields.parquet")
 
 
 def build_catalog_root(catalog: Path) -> None:
@@ -369,7 +369,7 @@ MANIFEST = {
     },
     "host": {"name": "Source Cooperative", "url": "https://source.coop", "roles": ["host"]},
     "datasets": {
-        "lu": {
+        "be_wal_2022": {
             "ftw1_name": "luxembourg",
             "ftw1": {"year": 2022, "parcels": 29018, "chips": 808, "train": 643, "val": 81, "test": 84,
                       "license": "CC0-1.0"},
@@ -486,7 +486,7 @@ doc = {
     "links": [
         {
             "rel": "via",
-            "href": "https://data.source.coop/ftw/harmonized-field-data/lu/collection.json",
+            "href": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json",
             "type": "application/json",
             "title": "Source collection",
         }
@@ -497,7 +497,7 @@ check(
     doc["links"][0]
     == {
         "rel": "via",
-        "href": "https://source.coop/ftw/harmonized-field-data/lu",
+        "href": "https://source.coop/ftw/harmonized-field-data/be_wal",
         "type": "text/html",
         "title": "Source field boundary collection",
     },
@@ -548,21 +548,21 @@ check(
 )
 
 
-# --- full pipeline: catalogize("lu", ...) ----------------------------------
+# --- full pipeline: catalogize("be_wal_2022", ...) ----------------------------------
 
 with tempfile.TemporaryDirectory() as tmp:
     tmp = Path(tmp)
     staging = tmp / "staging"
     catalog = tmp / "catalog"
-    build_staging_lu(staging)
+    build_staging_be_wal_2022(staging)
     build_catalog_root(catalog)
 
     now1 = datetime(2026, 1, 1, tzinfo=UTC)
-    written1 = catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog, now=now1)
+    written1 = catalogize.catalogize("be_wal_2022", manifest=MANIFEST, staging=staging, catalog=catalog, now=now1)
 
     # --- files copied, and only those ---
-    lu_dir = catalog / "lu"
-    all_files = {p.relative_to(lu_dir) for p in lu_dir.rglob("*") if p.is_file()}
+    be_wal_2022_dir = catalog / "be_wal_2022"
+    all_files = {p.relative_to(be_wal_2022_dir) for p in be_wal_2022_dir.rglob("*") if p.is_file()}
     expected = {
         Path("collection.json"),
         Path("README.md"),
@@ -574,13 +574,13 @@ with tempfile.TemporaryDirectory() as tmp:
         Path("chips/32UNA/AGENTS.md"),
     }
     check(all_files == expected, f"exactly the committed files are written, got {sorted(all_files)}")
-    check(not (lu_dir / "chips" / "32UNA" / "ftw-32UNA7238_2023").exists(), "item directories are never copied")
+    check(not (be_wal_2022_dir / "chips" / "32UNA" / "ftw-32UNA7238_2023").exists(), "item directories are never copied")
     check(
-        set(written1) == {lu_dir / p for p in expected},
+        set(written1) == {be_wal_2022_dir / p for p in expected},
         f"catalogize() returns exactly the files it wrote, got {sorted(written1)}",
     )
 
-    collection = json.loads((lu_dir / "collection.json").read_text())
+    collection = json.loads((be_wal_2022_dir / "collection.json").read_text())
 
     # --- root link at depth 1, no self ---
     root_links = [l for l in collection["links"] if l["rel"] == "root"]
@@ -595,13 +595,13 @@ with tempfile.TemporaryDirectory() as tmp:
     check(collection.get("version") == "2.0.0-test", "version set from the manifest")
     check(collection.get("updated") == "2026-01-01T00:00:00Z", "updated stamped from `now`")
 
-    # --- via link ensured from the real lu recipe's source_via, then
-    # rewritten to a browsable page (PTL-PRO-001): lu's source_via matches
+    # --- via link ensured from the real be_wal_2022 recipe's source_via, then
+    # rewritten to a browsable page (PTL-PRO-001): be_wal_2022's source_via matches
     # the data.source.coop/<org>/<repo>/<id>/collection.json shape ---
-    recipe_lu = catalogize._load_recipe("lu")
+    recipe_be_wal_2022 = catalogize._load_recipe("be_wal_2022")
     via_links = [l for l in collection["links"] if l["rel"] == "via"]
     check(
-        len(via_links) == 1 and via_links[0]["href"] == "https://source.coop/ftw/harmonized-field-data/lu",
+        len(via_links) == 1 and via_links[0]["href"] == "https://source.coop/ftw/harmonized-field-data/be_wal",
         f"via link rewritten to the source.coop page, got {via_links}",
     )
     check(via_links[0]["type"] == "text/html", "via link type is text/html")
@@ -642,10 +642,10 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     # --- sub-catalog rewritten to depth 3, in both staging and catalog ---
-    sub_catalog = json.loads((lu_dir / "chips" / "32UNA" / "catalog.json").read_text())
+    sub_catalog = json.loads((be_wal_2022_dir / "chips" / "32UNA" / "catalog.json").read_text())
     sub_root = [l for l in sub_catalog["links"] if l["rel"] == "root"][0]
     check(sub_root["href"] == "../../../catalog.json", "sub-catalog root link at depth 3")
-    staged_sub_catalog = json.loads((staging / "lu" / "chips" / "32UNA" / "catalog.json").read_text())
+    staged_sub_catalog = json.loads((staging / "be_wal_2022" / "chips" / "32UNA" / "catalog.json").read_text())
     check(staged_sub_catalog == sub_catalog, "staging sub-catalog matches the copied catalog one (git-owned wins)")
 
     # --- rel: item links get a title (PTL-TTL-003), and every Feature under
@@ -697,7 +697,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     # --- the square's own README.md and AGENTS.md (PTL-FIL-001/002/003) ---
-    square_readme = (lu_dir / "chips" / "32UNA" / "README.md").read_text()
+    square_readme = (be_wal_2022_dir / "chips" / "32UNA" / "README.md").read_text()
     check(
         square_readme.startswith("# Luxembourg — MGRS square 32UNA"),
         f"square README titled with the collection title and square, got {square_readme[:60]!r}",
@@ -706,11 +706,11 @@ with tempfile.TemporaryDirectory() as tmp:
     # not inflate it.
     check("2 chips" in square_readme, "square README states the chip count for this square (2 chips, not 4 items)")
     check(
-        "[collection README](https://source.coop/ftw/benchmark-data/lu/README.md)" in square_readme,
+        "[collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md)" in square_readme,
         f"square README links back to the collection README by its published URL, got {square_readme}",
     )
 
-    square_agents = (lu_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
+    square_agents = (be_wal_2022_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
     for heading in (
         "## Overview",
         "## Accessing the data",
@@ -721,7 +721,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ):
         check(heading in square_agents, f"square AGENTS.md has the {heading!r} heading")
     check(
-        "[collection agent guide](https://source.coop/ftw/benchmark-data/lu/AGENTS.md)" in square_agents,
+        "[collection agent guide](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md)" in square_agents,
         f"square AGENTS.md links the collection agent guide by its published URL, got {square_agents}",
     )
     check(
@@ -729,7 +729,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "square AGENTS.md gives a DuckDB query filtered on this square",
     )
     check(
-        public_url("lu/items.parquet") in square_agents,
+        public_url("be_wal_2022/items.parquet") in square_agents,
         "square AGENTS.md query reads the collection's items.parquet by its public URL, so it "
         "runs for a reader who found this file on the web",
     )
@@ -740,35 +740,35 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # --- staging item JSON rewritten to depth 4, no self ---
     item_doc = json.loads(
-        (staging / "lu" / "chips" / "32UNA" / "ftw-32UNA7238_2023" / "ftw-32UNA7238_2023.json").read_text()
+        (staging / "be_wal_2022" / "chips" / "32UNA" / "ftw-32UNA7238_2023" / "ftw-32UNA7238_2023.json").read_text()
     )
     item_root = [l for l in item_doc["links"] if l["rel"] == "root"][0]
     check(item_root["href"] == "../../../../catalog.json", "staging item root link at depth 4")
     check(not any(l["rel"] == "self" for l in item_doc["links"]), "staging item has no self link")
 
     # --- non-STAC JSON under chips/ is skipped, not rewritten or crashed on ---
-    scratch = json.loads((staging / "lu" / "chips" / "32UNA" / "scratch.json").read_text())
+    scratch = json.loads((staging / "be_wal_2022" / "chips" / "32UNA" / "scratch.json").read_text())
     check(scratch == ["not", "a", "stac", "doc"], "a non-STAC JSON array under chips/ is left untouched")
 
     # --- README carries the FTW 1.0 section with computed numbers ---
-    readme = (lu_dir / "README.md").read_text()
+    readme = (be_wal_2022_dir / "README.md").read_text()
     check("## Compared with Fields of the World 1.0" in readme, "FTW 1.0 section present")
     check("`4` chips" in readme, "computed chip count (4) appears in the FTW 1.0 section")
     check("`2`/`1`/`1`" in readme, "computed split counts (2/1/1) appear in the FTW 1.0 section")
     check("`10` fields" in readme, "computed field count (10) appears in the FTW 1.0 section")
     check("`808` chips" in readme, "the FTW 1.0 chip count (808) appears verbatim from the manifest")
 
-    agents_text1 = (lu_dir / "AGENTS.md").read_text()
+    agents_text1 = (be_wal_2022_dir / "AGENTS.md").read_text()
 
     # --- llms.txt written with public URLs ---
-    llms = (lu_dir / "llms.txt").read_text()
-    check(public_url("lu/collection.json") in llms, "llms.txt links the collection")
-    check(public_url("lu/items.parquet") in llms, "llms.txt links items.parquet")
-    check(public_url("lu/lu_chips.parquet") in llms, "llms.txt links the chips parquet")
-    check(public_url("lu/chips.pmtiles") in llms, "llms.txt links the pmtiles")
+    llms = (be_wal_2022_dir / "llms.txt").read_text()
+    check(public_url("be_wal_2022/collection.json") in llms, "llms.txt links the collection")
+    check(public_url("be_wal_2022/items.parquet") in llms, "llms.txt links items.parquet")
+    check(public_url("be_wal_2022/be_wal_2022_chips.parquet") in llms, "llms.txt links the chips parquet")
+    check(public_url("be_wal_2022/chips.pmtiles") in llms, "llms.txt links the pmtiles")
 
     # --- items.parquet: rebuilt from disk, public URLs, no local paths, GeoParquet typing ---
-    items_path = staging / "lu" / "items.parquet"
+    items_path = staging / "be_wal_2022" / "items.parquet"
     table = pq.read_table(items_path)
     # 2 chip items + 2 child items. The stale mirror had 1 row and knew
     # nothing of the children, so anything but 4 means it was patched rather
@@ -814,7 +814,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # The rebuild writes to a temp file and os.replace()s it into place; no
     # leftover .tmp file should remain once it's done.
     check(
-        not (staging / "lu" / "items.parquet.tmp").exists(),
+        not (staging / "be_wal_2022" / "items.parquet.tmp").exists(),
         "no leftover items.parquet.tmp after the rebuild",
     )
 
@@ -853,18 +853,18 @@ with tempfile.TemporaryDirectory() as tmp:
         "matched item's root link is the public root catalog URL",
     )
     check(
-        matched_links.get("collection") == public_url("lu/collection.json"),
+        matched_links.get("collection") == public_url("be_wal_2022/collection.json"),
         "matched item's collection link is the public collection URL",
     )
     check(
-        matched_links.get("parent") == public_url("lu/chips/32UNA/catalog.json"),
+        matched_links.get("parent") == public_url("be_wal_2022/chips/32UNA/catalog.json"),
         "matched item's parent link is the public sub-catalog URL",
     )
     check("self" not in matched_links, "self link dropped from items.parquet")
     matched_assets = dict(rows["ftw-32UNA7238_2023"]["assets"])
     check(
         matched_assets["instance"]["href"]
-        == public_url("lu/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_instance.tif"),
+        == public_url("be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_instance.tif"),
         "asset href rewritten to public_url('<id>/chips/<square>/<item>/<file>')",
     )
 
@@ -874,7 +874,7 @@ with tempfile.TemporaryDirectory() as tmp:
     child_assets = dict(rows["ftw-32UNA7238_2023_planting_s2"]["assets"])
     check(
         child_assets["image"]["href"]
-        == public_url("lu/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_image_s2.tif"),
+        == public_url("be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_image_s2.tif"),
         f"a child item's image asset is a public URL under its chip's directory, "
         f"got {child_assets['image']['href']!r}",
     )
@@ -884,7 +884,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     child_links = {l["rel"]: l["href"] for l in rows["ftw-32UNA7238_2023_planting_s2"]["links"]}
     check(
-        child_links.get("parent") == public_url("lu/chips/32UNA/catalog.json"),
+        child_links.get("parent") == public_url("be_wal_2022/chips/32UNA/catalog.json"),
         f"a child item's parent link is its square's public sub-catalog URL, got {child_links}",
     )
     check(
@@ -894,9 +894,9 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # --- second run: idempotent apart from `updated` ---
     now2 = datetime(2026, 1, 2, tzinfo=UTC)
-    catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog, now=now2)
+    catalogize.catalogize("be_wal_2022", manifest=MANIFEST, staging=staging, catalog=catalog, now=now2)
 
-    collection2 = json.loads((lu_dir / "collection.json").read_text())
+    collection2 = json.loads((be_wal_2022_dir / "collection.json").read_text())
     check(collection2.get("updated") == "2026-01-02T00:00:00Z", "updated advances on rerun")
     collection_sans_updated = {k: v for k, v in collection.items() if k != "updated"}
     collection2_sans_updated = {k: v for k, v in collection2.items() if k != "updated"}
@@ -905,15 +905,15 @@ with tempfile.TemporaryDirectory() as tmp:
     host_providers2 = [p for p in collection2["providers"] if "host" in p.get("roles", [])]
     check(len(host_providers2) == 1, "host provider still appears exactly once after a second run")
 
-    readme2 = (lu_dir / "README.md").read_text()
+    readme2 = (be_wal_2022_dir / "README.md").read_text()
     check(readme2 == readme, "README.md is byte-identical on rerun (no duplicated FTW 1.0 section)")
 
-    check((lu_dir / "AGENTS.md").read_text() == agents_text1, "AGENTS.md stable on rerun")
-    check((lu_dir / "llms.txt").read_text() == llms, "llms.txt stable on rerun")
+    check((be_wal_2022_dir / "AGENTS.md").read_text() == agents_text1, "AGENTS.md stable on rerun")
+    check((be_wal_2022_dir / "llms.txt").read_text() == llms, "llms.txt stable on rerun")
 
     for rel in ("chips/32UNA/catalog.json",):
         check(
-            (catalog / "lu" / rel).read_text() == (staging / "lu" / rel).read_text(),
+            (catalog / "be_wal_2022" / rel).read_text() == (staging / "be_wal_2022" / rel).read_text(),
             f"{rel} stays git-owned-wins consistent after a second run",
         )
 
@@ -921,12 +921,12 @@ with tempfile.TemporaryDirectory() as tmp:
     # rerun, not appended to (_subcatalog_readme/_subcatalog_agents write_text
     # the whole file every time; a regression to append-mode would double up
     # the headings and prose checked above) ---
-    square_readme2 = (lu_dir / "chips" / "32UNA" / "README.md").read_text()
+    square_readme2 = (be_wal_2022_dir / "chips" / "32UNA" / "README.md").read_text()
     check(
         square_readme2 == square_readme,
         "sub-catalog README.md is regenerated byte-identically on rerun, not appended to",
     )
-    square_agents2 = (lu_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
+    square_agents2 = (be_wal_2022_dir / "chips" / "32UNA" / "AGENTS.md").read_text()
     check(
         square_agents2 == square_agents,
         "sub-catalog AGENTS.md is regenerated byte-identically on rerun, not appended to",
@@ -941,8 +941,8 @@ with tempfile.TemporaryDirectory() as tmp:
     root_doc = json.loads((catalog / "catalog.json").read_text())
     child_links = [l for l in root_doc["links"] if l["rel"] == "child"]
     check(
-        child_links == [{"rel": "child", "href": "./lu/collection.json", "type": "application/json", "title": "Luxembourg"}],
-        f"root catalog gets exactly one child link for lu, got {child_links}",
+        child_links == [{"rel": "child", "href": "./be_wal_2022/collection.json", "type": "application/json", "title": "Luxembourg"}],
+        f"root catalog gets exactly one child link for be_wal_2022, got {child_links}",
     )
     check(
         set(root_doc["stac_extensions"]) == {catalogize.PORTOLAN_SCHEMA_URI, catalogize.VERSION_EXTENSION_URI}
@@ -958,16 +958,16 @@ with tempfile.TemporaryDirectory() as tmp:
 
     root_readme = (catalog / "README.md").read_text()
     check(
-        "| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) |" in root_readme,
-        f"root README collections table links lu's human page, got {root_readme}",
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022) |" in root_readme,
+        f"root README collections table links be_wal_2022's human page, got {root_readme}",
     )
     check("| Thumbnail | Collection |" in root_readme, "root README table leads with Thumbnail")
     check("More prose." in root_readme, "root README prose outside the markers survives")
 
     root_agents = (catalog / "AGENTS.md").read_text()
     check(
-        "| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) |" in root_agents,
-        "root AGENTS.md collections table lists lu",
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022) |" in root_agents,
+        "root AGENTS.md collections table lists be_wal_2022",
     )
     check(
         "Thumbnail" not in root_agents and "![" not in root_agents,
@@ -976,8 +976,8 @@ with tempfile.TemporaryDirectory() as tmp:
 
     root_llms = (catalog / "llms.txt").read_text()
     check(
-        f"[Luxembourg]({public_url('lu/collection.json')})" in root_llms,
-        "root llms.txt collection list links lu's collection.json by public URL",
+        f"[Luxembourg]({public_url('be_wal_2022/collection.json')})" in root_llms,
+        "root llms.txt collection list links be_wal_2022's collection.json by public URL",
     )
 
     # --- regenerate_root is idempotent too (same `now`, so `updated` doesn't move) ---
@@ -990,19 +990,19 @@ with tempfile.TemporaryDirectory() as tmp:
     # tools/thumbnail.py (a concurrent task) adds a role: thumbnail asset
     # straight to the published collection.json; staging's copy never has
     # one. copy_committed must carry it forward rather than clobber it.
-    thumb_collection = json.loads((lu_dir / "collection.json").read_text())
+    thumb_collection = json.loads((be_wal_2022_dir / "collection.json").read_text())
     thumb_collection["assets"]["thumbnail"] = {
         "href": "./thumbnail.webp",
         "type": "image/webp",
         "roles": ["thumbnail"],
         "title": "Thumbnail",
     }
-    (lu_dir / "collection.json").write_text(json.dumps(thumb_collection, indent=2) + "\n")
+    (be_wal_2022_dir / "collection.json").write_text(json.dumps(thumb_collection, indent=2) + "\n")
 
     now3 = datetime(2026, 1, 4, tzinfo=UTC)
-    catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog, now=now3)
+    catalogize.catalogize("be_wal_2022", manifest=MANIFEST, staging=staging, catalog=catalog, now=now3)
 
-    collection3 = json.loads((lu_dir / "collection.json").read_text())
+    collection3 = json.loads((be_wal_2022_dir / "collection.json").read_text())
     check(
         collection3.get("assets", {}).get("thumbnail")
         == {"href": "./thumbnail.webp", "type": "image/webp", "roles": ["thumbnail"], "title": "Thumbnail"},
@@ -1010,7 +1010,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"got {collection3.get('assets', {}).get('thumbnail')}",
     )
     check(
-        not (staging / "lu" / "collection.json").read_text().count('"thumbnail"'),
+        not (staging / "be_wal_2022" / "collection.json").read_text().count('"thumbnail"'),
         "the staging copy is never given a thumbnail asset (only the catalog copy is)",
     )
 
@@ -1023,13 +1023,13 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = tmp / "catalog"
     build_catalog_root(catalog)
 
-    # "lu" has a real staged chips parquet; "si" is built (a collection.json
+    # "be_wal_2022" has a real staged chips parquet; "hr_2024" is built (a collection.json
     # exists) but its staging tree has been pruned, the state _collection_row
     # falls back to "—" for.
-    write_json(catalog / "lu" / "collection.json", {"type": "Collection", "id": "lu", "title": "Luxembourg"})
-    write_json(catalog / "si" / "collection.json", {"type": "Collection", "id": "si", "title": "Slovenia"})
-    (staging / "lu").mkdir(parents=True, exist_ok=True)
-    build_chips_parquet(staging / "lu" / "lu_chips.parquet")
+    write_json(catalog / "be_wal_2022" / "collection.json", {"type": "Collection", "id": "be_wal_2022", "title": "Luxembourg"})
+    write_json(catalog / "hr_2024" / "collection.json", {"type": "Collection", "id": "hr_2024", "title": "Slovenia"})
+    (staging / "be_wal_2022").mkdir(parents=True, exist_ok=True)
+    build_chips_parquet(staging / "be_wal_2022" / "be_wal_2022_chips.parquet")
 
     two_manifest = {"catalog": {"version": "2.0.0-test"}}
     out = io.StringIO()
@@ -1037,15 +1037,15 @@ with tempfile.TemporaryDirectory() as tmp:
         catalogize.regenerate_root(two_manifest, catalog=catalog, staging=staging, now=datetime(2026, 1, 1, tzinfo=UTC))
     printed = out.getvalue()
     check(
-        "warning" in printed and "si" in printed and str(staging / "si" / "si_chips.parquet") in printed,
-        f"a warning names the dataset (si) and the missing chips parquet path, got {printed!r}",
+        "warning" in printed and "hr_2024" in printed and str(staging / "hr_2024" / "hr_2024_chips.parquet") in printed,
+        f"a warning names the dataset (hr_2024) and the missing chips parquet path, got {printed!r}",
     )
-    check(printed.count("warning") == 1, f"exactly one warning is printed, for si only (lu's parquet exists): {printed!r}")
+    check(printed.count("warning") == 1, f"exactly one warning is printed, for hr_2024 only (be_wal_2022's parquet exists): {printed!r}")
 
     root_readme = (catalog / "README.md").read_text()
     check(
         "| — | [Slovenia](" in root_readme and "| — | — | — |" in root_readme,
-        f"si's row falls back to '—' for thumbnail, chips, splits and imagery, got {root_readme}",
+        f"hr_2024's row falls back to '—' for thumbnail, chips, splits and imagery, got {root_readme}",
     )
 
 
@@ -1058,17 +1058,17 @@ with tempfile.TemporaryDirectory() as tmp:
     staging = tmp / "staging"
     catalog = tmp / "catalog"
     build_catalog_root(catalog)
-    # A real recipe (lu) but a staging tree that never reached the stac stage:
+    # A real recipe (be_wal_2022) but a staging tree that never reached the stac stage:
     # no items.parquet, no collection.json.
-    (staging / "lu").mkdir(parents=True)
+    (staging / "be_wal_2022").mkdir(parents=True)
 
     try:
-        catalogize.catalogize("lu", manifest=MANIFEST, staging=staging, catalog=catalog)
+        catalogize.catalogize("be_wal_2022", manifest=MANIFEST, staging=staging, catalog=catalog)
         check(False, "catalogize() should exit when items.parquet is missing")
     except SystemExit as exc:
         message = str(exc)
         check(
-            "items.parquet" in message and "tools/build.py lu" in message,
+            "items.parquet" in message and "tools/build.py be_wal_2022" in message,
             f"the exit message names the missing file and the fix, got {message!r}",
         )
 
@@ -1095,12 +1095,12 @@ with tempfile.TemporaryDirectory() as tmp:
     tmp = Path(tmp)
     staging = tmp / "staging"
     catalog = tmp / "catalog"
-    si_dir = catalog / "si"
+    hr_2024_dir = catalog / "hr_2024"
     write_json(
-        si_dir / "collection.json",
+        hr_2024_dir / "collection.json",
         {
             "type": "Collection",
-            "id": "si",
+            "id": "hr_2024",
             "title": "Slovenia",
             "description": "Benchmark chips for Slovenia.",
             "license": "other",
@@ -1108,30 +1108,30 @@ with tempfile.TemporaryDirectory() as tmp:
             "providers": [],
         },
     )
-    si_manifest = {
+    hr_2024_manifest = {
         "catalog": MANIFEST["catalog"],
         "host": MANIFEST["host"],
-        "datasets": {"si": {"ftw1_name": "slovenia"}},  # no ftw1 block: README section must be skipped
+        "datasets": {"hr_2024": {"ftw1_name": "slovenia"}},  # no ftw1 block: README section must be skipped
     }
-    recipe_si = catalogize._load_recipe("si")
+    recipe_hr_2024 = catalogize._load_recipe("hr_2024")
     written = catalogize.enrich_collection(
-        "si", catalog=catalog, staging=staging, manifest=si_manifest, recipe=recipe_si, now=datetime(2026, 1, 1)
+        "hr_2024", catalog=catalog, staging=staging, manifest=hr_2024_manifest, recipe=recipe_hr_2024, now=datetime(2026, 1, 1)
     )
     check(len(written) == 1, "no README written when the manifest carries no ftw1 block for this dataset")
-    si_collection = json.loads((si_dir / "collection.json").read_text())
-    license_links = [l for l in si_collection["links"] if l["rel"] == "license"]
+    hr_2024_collection = json.loads((hr_2024_dir / "collection.json").read_text())
+    license_links = [l for l in hr_2024_collection["links"] if l["rel"] == "license"]
     check(
-        len(license_links) == 1 and license_links[0]["href"] == recipe_si["metadata"]["license_url"],
+        len(license_links) == 1 and license_links[0]["href"] == recipe_hr_2024["metadata"]["license_url"],
         "a license link is added from the recipe's license_url when license is 'other'",
     )
 
     # idempotent: running again does not duplicate the license link
     catalogize.enrich_collection(
-        "si", catalog=catalog, staging=staging, manifest=si_manifest, recipe=recipe_si, now=datetime(2026, 1, 1)
+        "hr_2024", catalog=catalog, staging=staging, manifest=hr_2024_manifest, recipe=recipe_hr_2024, now=datetime(2026, 1, 1)
     )
-    si_collection2 = json.loads((si_dir / "collection.json").read_text())
+    hr_2024_collection2 = json.loads((hr_2024_dir / "collection.json").read_text())
     check(
-        len([l for l in si_collection2["links"] if l["rel"] == "license"]) == 1,
+        len([l for l in hr_2024_collection2["links"] if l["rel"] == "license"]) == 1,
         "license link is added only once",
     )
 
@@ -1150,10 +1150,10 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = tmp / "catalog"
 
     write_json(
-        staging / "lu" / "collection.json",
+        staging / "be_wal_2022" / "collection.json",
         {
             "type": "Collection",
-            "id": "lu",
+            "id": "be_wal_2022",
             "assets": {
                 "thumbnail": {
                     "href": "./thumbnail-new.webp",
@@ -1165,10 +1165,10 @@ with tempfile.TemporaryDirectory() as tmp:
         },
     )
     write_json(
-        catalog / "lu" / "collection.json",
+        catalog / "be_wal_2022" / "collection.json",
         {
             "type": "Collection",
-            "id": "lu",
+            "id": "be_wal_2022",
             "assets": {
                 "thumbnail": {
                     "href": "./thumbnail-old.webp",
@@ -1180,8 +1180,8 @@ with tempfile.TemporaryDirectory() as tmp:
         },
     )
 
-    catalogize.copy_committed("lu", staging=staging, catalog=catalog)
-    thumb_result = json.loads((catalog / "lu" / "collection.json").read_text())
+    catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
+    thumb_result = json.loads((catalog / "be_wal_2022" / "collection.json").read_text())
     check(
         thumb_result["assets"]["thumbnail"]["href"] == "./thumbnail-new.webp",
         f"staging's own thumbnail asset wins over a stale catalog one, "
@@ -1192,8 +1192,8 @@ with tempfile.TemporaryDirectory() as tmp:
 # --- a failed mirror write leaves no temp file and keeps the original ---------
 with tempfile.TemporaryDirectory() as tmp:
     staging = Path(tmp) / "staging"
-    build_staging_lu(staging)
-    before = (staging / "lu" / "items.parquet").read_bytes()
+    build_staging_be_wal_2022(staging)
+    before = (staging / "be_wal_2022" / "items.parquet").read_bytes()
     real_write = catalogize.rustac.write_sync
 
     def _boom(*_a, **_k):
@@ -1203,53 +1203,53 @@ with tempfile.TemporaryDirectory() as tmp:
     try:
         raised = False
         try:
-            catalogize.rewrite_items_parquet("lu", staging=staging)
+            catalogize.rewrite_items_parquet("be_wal_2022", staging=staging)
         except OSError:
             raised = True
     finally:
         catalogize.rustac.write_sync = real_write
     check(raised, "a failing mirror write propagates the error")
-    check(not (staging / "lu" / "items.parquet.tmp").exists(), "no stray items.parquet.tmp after a failed write")
-    check((staging / "lu" / "items.parquet").read_bytes() == before, "the original mirror is untouched after a failed write")
+    check(not (staging / "be_wal_2022" / "items.parquet.tmp").exists(), "no stray items.parquet.tmp after a failed write")
+    check((staging / "be_wal_2022" / "items.parquet").read_bytes() == before, "the original mirror is untouched after a failed write")
 
 
 # --- rewrite_items_parquet: an empty item tree exits with a clear message -----
 with tempfile.TemporaryDirectory() as tmp:
     staging = Path(tmp) / "staging"
-    (staging / "lu" / "chips").mkdir(parents=True)
+    (staging / "be_wal_2022" / "chips").mkdir(parents=True)
     try:
-        catalogize.rewrite_items_parquet("lu", staging=staging)
+        catalogize.rewrite_items_parquet("be_wal_2022", staging=staging)
         check(False, "rewrite_items_parquet should exit when there is no item JSON to rebuild from")
     except SystemExit as exc:
         check(
-            "no item JSON" in str(exc) and "tools/build.py lu" in str(exc),
+            "no item JSON" in str(exc) and "tools/build.py be_wal_2022" in str(exc),
             f"the exit message names the empty tree and the fix, got {str(exc)!r}",
         )
 
 # --- the FTW 1.0 comparison counts the class-filtered fields when present ------
 with tempfile.TemporaryDirectory() as tmp:
-    staging = Path(tmp) / "staging"; (staging / "lu").mkdir(parents=True)
+    staging = Path(tmp) / "staging"; (staging / "be_wal_2022").mkdir(parents=True)
     con = duckdb.connect()
-    con.execute(f"COPY (SELECT range AS id FROM range(10)) TO '{staging / 'lu' / 'lu_fields.parquet'}' (FORMAT PARQUET)")
-    con.execute(f"COPY (SELECT range AS id FROM range(3)) TO '{staging / 'lu' / 'lu_fields_filtered.parquet'}' (FORMAT PARQUET)")
-    con.execute(f"COPY (SELECT 'ftw-1' AS id, 'train' AS split) TO '{staging / 'lu' / 'lu_chips.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT range AS id FROM range(10)) TO '{staging / 'be_wal_2022' / 'be_wal_2022_fields.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT range AS id FROM range(3)) TO '{staging / 'be_wal_2022' / 'be_wal_2022_fields_filtered.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT 'ftw-1' AS id, 'train' AS split) TO '{staging / 'be_wal_2022' / 'be_wal_2022_chips.parquet'}' (FORMAT PARQUET)")
     con.close()
     spec = {"ftw1_name": "luxembourg", "ftw1": {"year": 2022, "parcels": 29018, "chips": 808, "train": 643, "val": 81, "test": 84, "license": "CC0-1.0"}}
-    section = catalogize.ftw1_section("lu", spec, staging=staging, recipe={"metadata": {"description": "edition 2026"}})
+    section = catalogize.ftw1_section("be_wal_2022", spec, staging=staging, recipe={"metadata": {"description": "edition 2026"}})
     check("`3` fields" in section, "the comparison counts the class-filtered fields, not the full set")
 
 # --- sibling links in the mirror are absolute too -----------------------------
 _links = catalogize._rewrite_item_links(
-    "lu", "31UFR",
+    "be_wal_2022", "31UFR",
     [{"rel": "ftw:parent_chip", "href": "./ftw-1.json"}, {"rel": "via", "href": "https://x/y"}],
     item_dir="ftw-1",
 )
-check(_links[0]["href"] == catalogize.public_url("lu/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
+check(_links[0]["href"] == catalogize.public_url("be_wal_2022/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
 check(_links[1]["href"] == "https://x/y", "an absolute via link is untouched")
 
 # --- collection asset sizes follow the staged files ----------------------------
 with tempfile.TemporaryDirectory() as tmp:
-    sd = Path(tmp) / "staging" / "lu"; sd.mkdir(parents=True)
+    sd = Path(tmp) / "staging" / "be_wal_2022"; sd.mkdir(parents=True)
     (sd / "items.parquet").write_bytes(b"x" * 1234)
     doc = {"assets": {"items": {"href": "./items.parquet", "file:size": 1}, "remote": {"href": "https://x/y", "file:size": 7}, "missing": {"href": "./nope.parquet", "file:size": 9}}}
     n = catalogize._refresh_asset_sizes(doc, sd)
@@ -1286,26 +1286,26 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = tmp / "catalog"
 
     write_json(
-        catalog / "lu" / "collection.json",
+        catalog / "be_wal_2022" / "collection.json",
         {
             "type": "Collection",
-            "id": "lu",
+            "id": "be_wal_2022",
             "title": "Luxembourg",
             "license": "CC-BY-4.0",
             "links": [
                 {
                     "rel": "via",
-                    "href": "https://source.coop/ftw/harmonized-field-data/lu",
+                    "href": "https://source.coop/ftw/harmonized-field-data/be_wal",
                     "type": "text/html",
                 }
             ],
         },
     )
-    (catalog / "lu" / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
-    build_counted_chips_parquet(staging / "lu" / "lu_chips.parquet", train=1200, val=20, test=14)
+    (catalog / "be_wal_2022" / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
+    build_counted_chips_parquet(staging / "be_wal_2022" / "be_wal_2022_chips.parquet", train=1200, val=20, test=14)
     # Two chips, one of which has both season child items: one chip with imagery.
     build_mirror_ids(
-        staging / "lu" / "items.parquet",
+        staging / "be_wal_2022" / "items.parquet",
         [
             "ftw-32UNA7238_2023",
             "ftw-32UNA7238_2023_planting_s2",
@@ -1315,10 +1315,10 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     write_json(
-        catalog / "si" / "collection.json",
+        catalog / "hr_2024" / "collection.json",
         {
             "type": "Collection",
-            "id": "si",
+            "id": "hr_2024",
             "title": "Slovenia",
             "license": "other",
             "links": [
@@ -1327,67 +1327,67 @@ with tempfile.TemporaryDirectory() as tmp:
         },
     )
 
-    lu_row = catalogize._collection_row(
-        "lu",
-        json.loads((catalog / "lu" / "collection.json").read_text()),
+    be_wal_2022_row = catalogize._collection_row(
+        "be_wal_2022",
+        json.loads((catalog / "be_wal_2022" / "collection.json").read_text()),
         staging=staging,
         catalog=catalog,
         manifest=MANIFEST,
     )
-    si_row = catalogize._collection_row(
-        "si",
-        json.loads((catalog / "si" / "collection.json").read_text()),
+    hr_2024_row = catalogize._collection_row(
+        "hr_2024",
+        json.loads((catalog / "hr_2024" / "collection.json").read_text()),
         staging=staging,
         catalog=catalog,
         manifest=MANIFEST,
     )
 
     check(
-        lu_row["thumbnail"]
-        == f'<img src="{public_url("lu/thumbnail.webp")}" alt="Luxembourg" '
+        be_wal_2022_row["thumbnail"]
+        == f'<img src="{public_url("be_wal_2022/thumbnail.webp")}" alt="Luxembourg" '
         f'width="{catalogize.THUMBNAIL_WIDTH_PX}">',
         f"a rendered thumbnail becomes a width-constrained <img> in the row — markdown image "
-        f"syntax carries no size and renders at native resolution, got {lu_row['thumbnail']!r}",
+        f"syntax carries no size and renders at native resolution, got {be_wal_2022_row['thumbnail']!r}",
     )
     check(
-        si_row["thumbnail"] == "—",
-        f"a collection with no thumbnail.webp gets '—', got {si_row['thumbnail']!r}",
+        hr_2024_row["thumbnail"] == "—",
+        f"a collection with no thumbnail.webp gets '—', got {hr_2024_row['thumbnail']!r}",
     )
     check(
-        lu_row["collection"] == "[Luxembourg](https://source.coop/ftw/benchmark-data/lu)",
-        f"the Collection cell links the human page from the manifest, got {lu_row['collection']!r}",
+        be_wal_2022_row["collection"] == "[Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022)",
+        f"the Collection cell links the human page from the manifest, got {be_wal_2022_row['collection']!r}",
     )
-    check(lu_row["chips"] == "1,234", f"chips carry thousands separators, got {lu_row['chips']!r}")
+    check(be_wal_2022_row["chips"] == "1,234", f"chips carry thousands separators, got {be_wal_2022_row['chips']!r}")
     check(
-        lu_row["splits"] == "1,200/20/14", f"splits are measured per split, got {lu_row['splits']!r}"
-    )
-    check(
-        lu_row["imagery"] == "1",
-        f"imagery counts the chips with season scenes, not the season items, got {lu_row['imagery']!r}",
+        be_wal_2022_row["splits"] == "1,200/20/14", f"splits are measured per split, got {be_wal_2022_row['splits']!r}"
     )
     check(
-        si_row["imagery"] == "—",
-        f"a collection with no items mirror shows '—' for imagery, got {si_row['imagery']!r}",
+        be_wal_2022_row["imagery"] == "1",
+        f"imagery counts the chips with season scenes, not the season items, got {be_wal_2022_row['imagery']!r}",
     )
     check(
-        lu_row["license"] == "[CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)",
-        f"an SPDX license id links its spdx.org page, got {lu_row['license']!r}",
+        hr_2024_row["imagery"] == "—",
+        f"a collection with no items mirror shows '—' for imagery, got {hr_2024_row['imagery']!r}",
     )
     check(
-        si_row["license"] == "[Ministry terms](https://example.invalid/terms)",
-        f"an 'other' license shows its license link's title, got {si_row['license']!r}",
+        be_wal_2022_row["license"] == "[CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)",
+        f"an SPDX license id links its spdx.org page, got {be_wal_2022_row['license']!r}",
     )
     check(
-        lu_row["source"] == "[harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu)",
-        f"the Source cell links the harmonized human page from the via link, got {lu_row['source']!r}",
+        hr_2024_row["license"] == "[Ministry terms](https://example.invalid/terms)",
+        f"an 'other' license shows its license link's title, got {hr_2024_row['license']!r}",
     )
-    check(si_row["source"] == "—", f"no via link means no source cell, got {si_row['source']!r}")
     check(
-        lu_row["browse"] == f"[browse]({catalogize.browser_url('lu/collection.json')})",
-        f"the Browse cell links the data browser, got {lu_row['browse']!r}",
+        be_wal_2022_row["source"] == "[harmonized/be_wal](https://source.coop/ftw/harmonized-field-data/be_wal)",
+        f"the Source cell links the harmonized human page from the via link, got {be_wal_2022_row['source']!r}",
+    )
+    check(hr_2024_row["source"] == "—", f"no via link means no source cell, got {hr_2024_row['source']!r}")
+    check(
+        be_wal_2022_row["browse"] == f"[browse]({catalogize.browser_url('be_wal_2022/collection.json')})",
+        f"the Browse cell links the data browser, got {be_wal_2022_row['browse']!r}",
     )
 
-    table = catalogize._collections_table([lu_row, si_row])
+    table = catalogize._collections_table([be_wal_2022_row, hr_2024_row])
     header = table.splitlines()[0]
     check(
         header == "| Thumbnail | Collection | Chips | Splits (train/val/test) | Imagery | License "
@@ -1396,19 +1396,19 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check(table.count("\n") == 4, f"header, separator and one row per collection, got {table!r}")
 
-    agents_table = catalogize._collections_table([lu_row, si_row], thumbnails=False)
+    agents_table = catalogize._collections_table([be_wal_2022_row, hr_2024_row], thumbnails=False)
     check(
         agents_table.splitlines()[0].startswith("| Collection |") and "![" not in agents_table,
         f"the AGENTS.md table drops the image column and keeps the rest, got {agents_table!r}",
     )
     check(
-        all(cell in agents_table for cell in (lu_row["chips"], lu_row["imagery"], lu_row["source"])),
+        all(cell in agents_table for cell in (be_wal_2022_row["chips"], be_wal_2022_row["imagery"], be_wal_2022_row["source"])),
         "the AGENTS.md table carries the same facts as the README one",
     )
 
-    listed = catalogize._collections_list([lu_row, si_row])
+    listed = catalogize._collections_list([be_wal_2022_row, hr_2024_row])
     check(
-        f"[Luxembourg]({public_url('lu/collection.json')}): 1,234 chips" in listed,
+        f"[Luxembourg]({public_url('be_wal_2022/collection.json')}): 1,234 chips" in listed,
         f"llms.txt lists each collection by public URL with its chip count, got {listed!r}",
     )
     check("1 with imagery" in listed, f"llms.txt carries the imagery count, got {listed!r}")
@@ -1429,7 +1429,7 @@ Benchmark chips for Luxembourg cut from the harmonized field boundary collection
 ## Provenance
 
 - License: [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)
-- Derived from [Source field boundary collection](https://data.source.coop/ftw/harmonized-field-data/lu/collection.json)
+- Derived from [Source field boundary collection](https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json)
 - Masks rasterized at 10 m per pixel
 
 ## Access
@@ -1450,22 +1450,22 @@ Query `items.parquet` with DuckDB; see the [collection README](README.md).
 
 
 def build_collection_docs(catalog: Path, *, thumbnail: bool = False) -> Path:
-    lu_dir = catalog / "lu"
-    write_json(lu_dir / "collection.json", {"type": "Collection", "id": "lu", "title": "Luxembourg"})
-    (lu_dir / "README.md").write_text(FTWD_README)
-    (lu_dir / "AGENTS.md").write_text(FTWD_AGENTS)
+    be_wal_2022_dir = catalog / "be_wal_2022"
+    write_json(be_wal_2022_dir / "collection.json", {"type": "Collection", "id": "be_wal_2022", "title": "Luxembourg"})
+    (be_wal_2022_dir / "README.md").write_text(FTWD_README)
+    (be_wal_2022_dir / "AGENTS.md").write_text(FTWD_AGENTS)
     if thumbnail:
-        (lu_dir / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
-    return lu_dir
+        (be_wal_2022_dir / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
+    return be_wal_2022_dir
 
 
-recipe_lu = catalogize._load_recipe("lu")
-SOURCE_STAC = recipe_lu["source_via"]
-SOURCE_PAGE = "https://source.coop/ftw/harmonized-field-data/lu"
+recipe_be_wal_2022 = catalogize._load_recipe("be_wal_2022")
+SOURCE_STAC = recipe_be_wal_2022["source_via"]
+SOURCE_PAGE = "https://source.coop/ftw/harmonized-field-data/be_wal"
 
 with tempfile.TemporaryDirectory() as tmp:
     catalog = Path(tmp) / "catalog"
-    lu_dir = build_collection_docs(catalog)
+    be_wal_2022_dir = build_collection_docs(catalog)
 
     fetched: list[str] = []
 
@@ -1475,10 +1475,10 @@ with tempfile.TemporaryDirectory() as tmp:
         return None
 
     written = catalogize.enrich_readme(
-        "lu", catalog=catalog, manifest=MANIFEST, recipe=recipe_lu, fetch_title=offline_fetch
+        "be_wal_2022", catalog=catalog, manifest=MANIFEST, recipe=recipe_be_wal_2022, fetch_title=offline_fetch
     )
     check(
-        written == [lu_dir / "README.md", lu_dir / "AGENTS.md"],
+        written == [be_wal_2022_dir / "README.md", be_wal_2022_dir / "AGENTS.md"],
         f"enrich_readme reports both documents it rewrote, got {written}",
     )
     check(
@@ -1486,7 +1486,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the source title is read from the harmonized collection.json exactly once, got {fetched}",
     )
 
-    readme = (lu_dir / "README.md").read_text()
+    readme = (be_wal_2022_dir / "README.md").read_text()
     check("Derived from" not in readme, "ftwd's 'Derived from' line is replaced, not kept alongside")
     check(
         f"- Source data: [Harmonized field boundaries for Luxembourg]({SOURCE_PAGE}) "
@@ -1507,9 +1507,9 @@ with tempfile.TemporaryDirectory() as tmp:
         "the Browse block sits between the description paragraph and the first section",
     )
     check(
-        f"Open this collection in the [data browser]({catalogize.browser_url('lu/collection.json')}), "
-        f"read the [agent guide](https://source.coop/ftw/benchmark-data/lu/AGENTS.md), or query "
-        f"[items.parquet]({public_url('lu/items.parquet')}) directly." in readme,
+        f"Open this collection in the [data browser]({catalogize.browser_url('be_wal_2022/collection.json')}), "
+        f"read the [agent guide](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md), or query "
+        f"[items.parquet]({public_url('be_wal_2022/items.parquet')}) directly." in readme,
         f"the Browse paragraph offers the browser, the agent guide and the mirror, got {readme}",
     )
     check("![" not in readme, "no thumbnail image when no thumbnail.webp has been rendered")
@@ -1517,11 +1517,11 @@ with tempfile.TemporaryDirectory() as tmp:
     # --- every relative link is absolute: markdown to the human page, data
     # files to the bucket ---
     check(
-        "[AGENTS.md](https://source.coop/ftw/benchmark-data/lu/AGENTS.md)" in readme,
+        "[AGENTS.md](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md)" in readme,
         f"a relative markdown link becomes a source.coop page URL, got {readme}",
     )
     check(
-        f"[the styles]({public_url('lu/styles/default.json')})" in readme,
+        f"[the styles]({public_url('be_wal_2022/styles/default.json')})" in readme,
         f"a relative non-markdown link becomes a data.source.coop URL, got {readme}",
     )
     check(
@@ -1533,9 +1533,9 @@ with tempfile.TemporaryDirectory() as tmp:
         "an already-absolute link is left exactly as it was",
     )
 
-    agents = (lu_dir / "AGENTS.md").read_text()
+    agents = (be_wal_2022_dir / "AGENTS.md").read_text()
     check(
-        catalogize.browser_url("lu/collection.json") in agents,
+        catalogize.browser_url("be_wal_2022/collection.json") in agents,
         f"AGENTS.md gains a data browser pointer, got {agents}",
     )
     check(
@@ -1545,39 +1545,39 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the pointer is the first paragraph under '## Accessing the data', got {agents}",
     )
     check(
-        "[collection README](https://source.coop/ftw/benchmark-data/lu/README.md)" in agents,
+        "[collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md)" in agents,
         f"AGENTS.md's relative links are absolute too, got {agents}",
     )
 
     # --- rerunning in place changes nothing (markers, and an absolute link
     # stays absolute) ---
     catalogize.enrich_readme(
-        "lu", catalog=catalog, manifest=MANIFEST, recipe=recipe_lu, fetch_title=offline_fetch
+        "be_wal_2022", catalog=catalog, manifest=MANIFEST, recipe=recipe_be_wal_2022, fetch_title=offline_fetch
     )
-    check((lu_dir / "README.md").read_text() == readme, "enrich_readme is idempotent on the README")
-    check((lu_dir / "AGENTS.md").read_text() == agents, "enrich_readme is idempotent on AGENTS.md")
+    check((be_wal_2022_dir / "README.md").read_text() == readme, "enrich_readme is idempotent on the README")
+    check((be_wal_2022_dir / "AGENTS.md").read_text() == agents, "enrich_readme is idempotent on AGENTS.md")
 
 
 # --- enrich_readme with a reachable source and a rendered thumbnail ----------
 
 with tempfile.TemporaryDirectory() as tmp:
     catalog = Path(tmp) / "catalog"
-    lu_dir = build_collection_docs(catalog, thumbnail=True)
+    be_wal_2022_dir = build_collection_docs(catalog, thumbnail=True)
 
     catalogize.enrich_readme(
-        "lu",
+        "be_wal_2022",
         catalog=catalog,
         manifest=MANIFEST,
-        recipe=recipe_lu,
+        recipe=recipe_be_wal_2022,
         fetch_title=lambda url, **_kwargs: "Luxembourg field boundaries",
     )
-    readme = (lu_dir / "README.md").read_text()
+    readme = (be_wal_2022_dir / "README.md").read_text()
     check(
         f"- Source data: [Luxembourg field boundaries]({SOURCE_PAGE})" in readme,
         f"the source collection's own title is used when it can be read, got {readme}",
     )
     check(
-        readme.count(f"![Luxembourg thumbnail]({public_url('lu/thumbnail.webp')})") == 1,
+        readme.count(f"![Luxembourg thumbnail]({public_url('be_wal_2022/thumbnail.webp')})") == 1,
         f"the thumbnail image appears once in the Browse block, got {readme}",
     )
     check(

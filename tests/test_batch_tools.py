@@ -67,6 +67,7 @@ with tempfile.TemporaryDirectory() as tmp:
         pass
 
 check(tracking.imagery_modes({"imagery": "scenes+mosaics"}) == ("scenes", "mosaics"), "modes")
+check(tracking.imagery_modes({"imagery": "mosaics"}) == ("mosaics",), "mosaics-only modes")
 
 # --- new_dataset.py writes a recipe the manifest gate accepts --------------
 COLLECTION = {
@@ -119,17 +120,20 @@ for mask_type in ("instance", "semantic_2_class", "semantic_3_class",
     check(mask_type in recipe["stages"]["masks"]["mask_types"], f"mask type {mask_type}")
 select = recipe["stages"]["select_images"]
 check(select["imagery_mode"] == ["scenes", "mosaics"], f"both modes: {select['imagery_mode']}")
-check(
-    recipe["stages"]["download_images"]["mode"] == "preview",
-    "both modes: ftwd previews the scenes and clips the mosaics",
-)
+check(recipe["stages"]["download_images"]["mode"] == "clip", "imagery is clipped onto the mask grid")
 
 scenes_only = yaml.safe_load(
     new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes", "filter": ""},
                             COLLECTION, urls, "9.9.9")
 )
 check(scenes_only["stages"]["select_images"]["imagery_mode"] == "scenes", "single mode")
-check(scenes_only["stages"]["download_images"]["mode"] == "preview", "scenes-only previews")
+check(scenes_only["stages"]["download_images"]["mode"] == "clip", "scenes-only clips too")
+mosaics_only = yaml.safe_load(
+    new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "mosaics"}, COLLECTION, urls, "9.9.9")
+)
+check(mosaics_only["stages"]["select_images"]["imagery_mode"] == "mosaics", "mosaics only")
+check(mosaics_only["stages"]["select_images"]["nodata_max"] == 100.0, "mosaics keep their gaps")
+check(select["nodata_max"] == 0.0, "scenes reject nodata")
 check("class_filter" not in scenes_only["stages"]["masks"], "no filter, no class_filter key")
 unfiltered = yaml.safe_load(
     new_dataset.recipe_text("xx_2022", {**ROW, "filter": tracking.NO_FILTER}, COLLECTION, urls, "9.9.9")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a batch of region-year datasets from ``tracking.csv``, up to upload.
 
-    uv run python tools/run_batch.py be_wal_2022 de_sl_2026 --jobs 2
+    uv run python tools/run_batch.py be_wal_2022 hr_2024 --jobs 2
     uv run python tools/run_batch.py --next 10 --jobs 4        # next 10 unbuilt 'include' rows
     uv run python tools/run_batch.py be_wal_2022 --imagery     # second pass: imagery
     uv run python tools/run_batch.py be_wal_2022 --mark-published

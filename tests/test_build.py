@@ -6,7 +6,7 @@
 the two validation helpers through the ``SystemExit`` message they raise, the
 same way ``tests/test_upload_data.py`` checks ``data_root()``. No subprocess
 is run here at all -- the real invocation is exercised by hand with
-``uv run python tools/build.py lu --dry-run``.
+``uv run python tools/build.py be_wal_2022 --dry-run``.
 
 Run: python3 tests/test_build.py
 """
@@ -47,27 +47,27 @@ from pathlib import Path as _P
 
 _FTWD = str(_P(sys.executable).with_name("ftwd"))
 check(
-    build.command("lu") == [_FTWD, "run", "datasets/lu.yaml"],
+    build.command("be_wal_2022") == [_FTWD, "run", "datasets/be_wal_2022.yaml"],
     "the plain command runs this interpreter's own ftwd, not one from PATH",
 )
 check(
-    build.command("lu", from_="select_images")
-    == [_FTWD, "run", "datasets/lu.yaml", "--from", "select_images"],
+    build.command("be_wal_2022", from_="select_images")
+    == [_FTWD, "run", "datasets/be_wal_2022.yaml", "--from", "select_images"],
     "--from select_images passes through",
 )
 check(
-    build.command("lu", through="stac")
-    == [_FTWD, "run", "datasets/lu.yaml", "--through", "stac"],
+    build.command("be_wal_2022", through="stac")
+    == [_FTWD, "run", "datasets/be_wal_2022.yaml", "--through", "stac"],
     "--through stac passes through",
 )
 check(
-    build.command("lu", only="masks")
-    == [_FTWD, "run", "datasets/lu.yaml", "--only", "masks"],
+    build.command("be_wal_2022", only="masks")
+    == [_FTWD, "run", "datasets/be_wal_2022.yaml", "--only", "masks"],
     "--only masks passes through",
 )
 check(
-    build.command("lu", dry_run=True)
-    == [_FTWD, "run", "datasets/lu.yaml", "--dry-run"],
+    build.command("be_wal_2022", dry_run=True)
+    == [_FTWD, "run", "datasets/be_wal_2022.yaml", "--dry-run"],
     "--dry-run is appended",
 )
 
@@ -75,9 +75,9 @@ check(
 message = exit_message(lambda: build._check_recipe("no-such-dataset"))
 check("datasets.yaml" in message, f"an unknown dataset id names datasets.yaml: {message!r}")
 
-# lu is a real, published recipe whose name field is "lu".
-recipe = build._check_recipe("lu")
-check(recipe["name"] == "lu", "a real, published recipe passes the check")
+# be_wal_2022 is a real, published recipe whose name field is "be_wal_2022".
+recipe = build._check_recipe("be_wal_2022")
+check(recipe["name"] == "be_wal_2022", "a real, published recipe passes the check")
 
 # --- the pin check: match, mismatch, missing install, and the override ---
 real_ftwd_pin, real_installed_ftwd = build.ftwd_pin, build.installed_ftwd
@@ -132,7 +132,7 @@ _real_run = build.subprocess.run
 build.subprocess.run = _fake_run
 try:
     with redirect_stdout(io.StringIO()):
-        build.main(["lu", "--dry-run", "--allow-unpinned"])
+        build.main(["be_wal_2022", "--dry-run", "--allow-unpinned"])
 finally:
     build.subprocess.run = _real_run
 check(_recorded.get("kwargs", {}).get("cwd") == build.ROOT, "ftwd runs with cwd=ROOT")

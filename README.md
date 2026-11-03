@@ -164,7 +164,8 @@ background) before it's written and registered as the collection's
 Each region-year of a harmonized collection is its own dataset, `<id>_<year>`
 (`be_wal_2022`). `tracking.csv` is the queue: one row per region-year, with
 its `status` (`include`, `skip-no-imagery`, `discuss`, `exclude`), which
-imagery exists for that year (`scenes+mosaics`, `scenes`, `none`), its class
+imagery exists for that year (`scenes+mosaics`, `scenes`, `none`; `mosaics`
+builds only the mosaics of a `scenes+mosaics` year), its class
 filter, and the progress columns the batch runner fills in. Years before
 Sentinel-2 (pre-2015) are `skip-no-imagery` and are not published at all.
 

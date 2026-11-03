@@ -1350,11 +1350,12 @@ def _license_cell(doc: dict) -> str:
     return license_id
 
 
-def _source_cell(dataset_id: str, doc: dict) -> str:
+def _source_cell(doc: dict) -> str:
     """The Source column: the harmonized collection's human page, from the via link."""
     for link in doc.get("links") or []:
         if link.get("rel") == "via" and link.get("href"):
-            return f"[harmonized/{dataset_id}]({link['href']})"
+            name = link["href"].rstrip("/").rsplit("/", 1)[-1]
+            return f"[harmonized/{name}]({link['href']})"
     return "—"
 
 
@@ -1442,7 +1443,7 @@ def _collection_row(
         "imagery": _imagery_cell(imagery, _imagery_mode(dataset_dir)),
         "imagery_n": _count_cell(imagery),
         "license": _license_cell(doc),
-        "source": _source_cell(dataset_id, doc),
+        "source": _source_cell(doc),
         "browse": f"[browse]({browser_url(f'{dataset_id}/collection.json')})",
         "n_chips": counts["total"] if counts else None,
         "n_imagery": imagery,

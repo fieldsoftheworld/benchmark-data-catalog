@@ -14,7 +14,9 @@ so a diff shows only what changed.
 - ``discuss`` / ``exclude``: not built until someone decides otherwise.
 
 ``imagery`` is ``scenes+mosaics`` (2018-2025 except 2023, whose Q2 mosaic is
-missing), ``scenes`` (2015-2017, 2023, 2026) or ``none`` (before 2015).
+missing), ``scenes`` (2015-2017, 2023, 2026) or ``none`` (before 2015): the
+imagery that exists for the year. ``mosaics`` builds only the quarterly mosaics
+of a ``scenes+mosaics`` year, for releases that leave the scenes out.
 """
 from __future__ import annotations
 
@@ -29,7 +31,12 @@ from common import ROOT  # noqa: E402
 TRACKING = ROOT / "tracking.csv"
 
 STATUSES = ("include", "skip-no-imagery", "discuss", "exclude")
-IMAGERY = {"scenes+mosaics": ("scenes", "mosaics"), "scenes": ("scenes",), "none": ()}
+IMAGERY = {
+    "scenes+mosaics": ("scenes", "mosaics"),
+    "mosaics": ("mosaics",),
+    "scenes": ("scenes",),
+    "none": (),
+}
 
 
 def load(path: Path = TRACKING) -> list[dict[str, str]]:

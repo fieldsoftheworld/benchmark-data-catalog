@@ -140,21 +140,21 @@ def _providers_yaml(items: list[dict]) -> str:
 def _imagery_yaml(modes: tuple[str, ...]) -> str:
     """The select/download stage blocks for the row's imagery modes."""
     mode = modes[0] if len(modes) == 1 else f"[{', '.join(modes)}]"
-    # With both modes, ftwd's preview previews the scenes and clips the mosaics
-    # (mosaics have no ready-made true-colour image); alone, mosaics need clip.
-    download_mode = "clip" if modes == ("mosaics",) else "preview"
+    # Mosaics keep their few-pixel cloud gaps (models should cope with missing
+    # data); a scene can miss a chip entirely, so scenes stay at zero.
+    nodata_max = "0.0" if "scenes" in modes else "100.0"
     return f"""\
   select_images:
     enabled: true
     imagery_mode: {mode}
     cloud_cover_chip: 2.0
-    nodata_max: 0.0
+    nodata_max: {nodata_max}
     buffer_days: 14
     num_buffer_expansions: 3
     buffer_expansion_size: 14
   download_images:
     enabled: true
-    mode: {download_mode}
+    mode: clip
     workers: 16
     bands: [red, green, blue, nir]
     resolution: 10.0"""
