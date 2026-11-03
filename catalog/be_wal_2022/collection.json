@@ -1,0 +1,983 @@
+{
+  "type": "Collection",
+  "id": "be_wal_2022",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Belgium-Wallonia cut from the 2022 edition of the harmonized field boundary collection be_wal.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/be_wal",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UER/catalog.json",
+      "type": "application/json",
+      "title": "31UER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UES/catalog.json",
+      "type": "application/json",
+      "title": "31UES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFQ/catalog.json",
+      "type": "application/json",
+      "title": "31UFQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFR/catalog.json",
+      "type": "application/json",
+      "title": "31UFR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFS/catalog.json",
+      "type": "application/json",
+      "title": "31UFS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UGQ/catalog.json",
+      "type": "application/json",
+      "title": "31UGQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UGR/catalog.json",
+      "type": "application/json",
+      "title": "31UGR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UGS/catalog.json",
+      "type": "application/json",
+      "title": "31UGS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UKA/catalog.json",
+      "type": "application/json",
+      "title": "32UKA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UKB/catalog.json",
+      "type": "application/json",
+      "title": "32UKB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32ULA/catalog.json",
+      "type": "application/json",
+      "title": "32ULA"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "planting_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Planting season imagery"
+    },
+    "planting_visual": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "visual"
+      ],
+      "title": "Planting season scene (true colour)"
+    },
+    "harvest_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Harvest season imagery"
+    },
+    "harvest_visual": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "visual"
+      ],
+      "title": "Harvest season scene (true colour)"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-02T22:28:35Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:cloud_cover_chip_threshold": 2.0,
+  "ftw:nodata_max": 0.0,
+  "ftw:buffer_days": 14,
+  "ftw:num_buffer_expansions": 3,
+  "ftw:buffer_expansion_size": 14,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "bd5d7d9d3eb8c5d6b92d168d60c833994d593530",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-02T04:33:11.229452+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/be_wal/year=2022/be_wal-2022.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json",
+      "sha256": "5caf83d5cbce8e6522a7421aec87559e2ea3db3a40f4ecec05e7d6adb5b18d0f",
+      "size": 109545236,
+      "fetched_at": "2026-11-01T23:31:47.588464Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/be_wal/year=2022/be_wal-2022.parquet",
+      "output_dir": "staging/be_wal_2022",
+      "name": "be_wal_2022",
+      "year": 2022,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/be-wallonia_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": [
+            "scenes",
+            "mosaics"
+          ],
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 0.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "preview"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Belgium, Wallonia \u2014 2022",
+        "description": "Benchmark chips for Belgium-Wallonia cut from the 2022 edition of the harmonized field boundary collection be_wal.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Joint Research Centre, European Commission",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "be_wal",
+          "2022"
+        ],
+        "providers": [
+          {
+            "name": "Joint Research Centre, European Commission",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "36",
+          "37",
+          "42",
+          "43",
+          "45",
+          "46",
+          "53",
+          "56",
+          "58",
+          "71",
+          "72",
+          "73",
+          "77",
+          "91",
+          "99",
+          "201",
+          "202",
+          "311",
+          "312",
+          "321",
+          "322",
+          "323",
+          "331",
+          "332",
+          "341",
+          "342",
+          "351",
+          "352",
+          "361",
+          "362",
+          "381",
+          "382",
+          "391",
+          "392",
+          "393",
+          "394",
+          "511",
+          "512",
+          "521",
+          "522",
+          "541",
+          "542",
+          "742",
+          "746",
+          "748",
+          "872",
+          "881",
+          "901",
+          "902",
+          "903",
+          "904",
+          "905",
+          "921",
+          "922",
+          "931",
+          "951",
+          "953",
+          "957",
+          "959",
+          "961",
+          "966",
+          "4111",
+          "4121",
+          "4122",
+          "7431",
+          "7433",
+          "8517",
+          "8548",
+          "8561",
+          "9410",
+          "9456",
+          "9511",
+          "9512",
+          "9513",
+          "9514",
+          "9515",
+          "9516",
+          "9517",
+          "9518",
+          "9519",
+          "9523",
+          "9524",
+          "9525",
+          "9527",
+          "9533",
+          "9534",
+          "9535",
+          "9538",
+          "9540",
+          "9541",
+          "9543",
+          "9548",
+          "9552",
+          "9551",
+          "9563",
+          "9564",
+          "9724",
+          "9811",
+          "9812",
+          "9821",
+          "9822",
+          "883",
+          "962",
+          "9201",
+          "9202",
+          "9520",
+          "9560",
+          "9710",
+          "9711",
+          "9713",
+          "9716",
+          "9717",
+          "9725",
+          "9726",
+          "9730",
+          "9731",
+          "9732",
+          "9741",
+          "9742"
+        ],
+        "exclude": [
+          "6",
+          "80",
+          "85",
+          "96",
+          "812",
+          "813",
+          "817",
+          "818",
+          "819",
+          "884",
+          "885",
+          "952",
+          "954",
+          "958",
+          "991",
+          "992",
+          "993",
+          "994",
+          "8516",
+          "9521",
+          "9584",
+          "9588",
+          "9942",
+          "9943"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/be-wallonia_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "Belgium, Wallonia \u2014 2022",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          2.84220840341055,
+          49.49696846007206,
+          6.408060865519218,
+          50.81074714569882
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2022-01-01T00:00:00Z",
+          "2022-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "be_wal",
+    "2022"
+  ],
+  "providers": [
+    {
+      "name": "Joint Research Centre, European Commission",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./be_wal_2022_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 108621902,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 341968,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./be_wal_2022_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 36062330,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 122200,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./be_wal_2022_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 36065414,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 122200,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./be_wal_2022_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 368746,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 3203,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 3275263,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 3203,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 1164920
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 13765707
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1076
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2458
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2330
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Belgium, Wallonia \u2014 2022 \u2014 Field outlines"
+    }
+  }
+}

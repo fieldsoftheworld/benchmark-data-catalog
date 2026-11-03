@@ -25,21 +25,21 @@ so any collection can be rebuilt from the harmonized edition it names.
 ## Collections
 
 <!-- collections:start -->
-**3 collections · 17,120 chips · 1,553,660 field polygons**
+**3 collections · 18,559 chips · 1,138,880 field polygons**
 
 | Thumbnail | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| <img src="https://data.source.coop/ftw/benchmark-data/at/thumbnail.webp" alt="Austria" width="120"> | [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 9,018/1,153/1,071 | 1,022 linked | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at/collection.json) |
-| <img src="https://data.source.coop/ftw/benchmark-data/lu/thumbnail.webp" alt="Luxembourg" width="120"> | [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 601/79/95 | 680 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lu](https://source.coop/ftw/harmonized-field-data/lu) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lu/collection.json) |
-| <img src="https://data.source.coop/ftw/benchmark-data/si/thumbnail.webp" alt="Slovenia" width="120"> | [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 4,078/512/513 | 2,857 stored | [License](https://rkg.gov.si/vstop/) | [harmonized/si](https://source.coop/ftw/harmonized-field-data/si) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/si/collection.json) |
+| <img src="https://data.source.coop/ftw/benchmark-data/be_wal_2022/thumbnail.webp" alt="Belgium, Wallonia — 2022" width="120"> | [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | 2,559/336/308 | none | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/be_wal](https://source.coop/ftw/harmonized-field-data/be_wal) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/be_wal_2022/collection.json) |
+| <img src="https://data.source.coop/ftw/benchmark-data/ee_2024/thumbnail.webp" alt="Estonia — 2024" width="120"> | [Estonia — 2024](https://source.coop/ftw/benchmark-data/ee_2024) | 6,553 | 5,224/660/669 | 6,553 stored | [CC-BY-SA-3.0](https://spdx.org/licenses/CC-BY-SA-3.0.html) | [harmonized/ee](https://source.coop/ftw/harmonized-field-data/ee) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ee_2024/collection.json) |
+| <img src="https://data.source.coop/ftw/benchmark-data/hr_2024/thumbnail.webp" alt="Croatia — 2024" width="120"> | [Croatia — 2024](https://source.coop/ftw/benchmark-data/hr_2024) | 8,803 | 7,089/854/860 | 8,803 stored | [License](https://www.apprrr.hr/prostorni-podaci-servisi/) | [harmonized/hr](https://source.coop/ftw/harmonized-field-data/hr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/hr_2024/collection.json) |
 
 ### What each collection carries
 
 | Collection | Label masks | Sentinel-2 imagery | HCAT crop labels |
 | --- | --- | --- | --- |
-| [Austria](https://source.coop/ftw/benchmark-data/at) | 11,242 | 1,022 linked | 11,242 |
-| [Luxembourg](https://source.coop/ftw/benchmark-data/lu) | 775 | 680 stored | none |
-| [Slovenia](https://source.coop/ftw/benchmark-data/si) | 5,103 | 2,857 stored | 5,103 |
+| [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | none | 3,203 |
+| [Estonia — 2024](https://source.coop/ftw/benchmark-data/ee_2024) | 6,553 | 6,553 stored | 6,553 |
+| [Croatia — 2024](https://source.coop/ftw/benchmark-data/hr_2024) | 8,803 | 8,803 stored | 8,803 |
 
 `stored` means a four-band GeoTIFF clipped to the chip and published with it; `linked` means the chip's season item points at the whole Sentinel-2 scene on the source STAC API, for a reader to window. A chip with no scene still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
 <!-- collections:end -->

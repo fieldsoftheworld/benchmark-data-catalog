@@ -1,0 +1,70 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3301000000,
+            "Arable land",
+            3303050000,
+            "Olive grove",
+            3303010000,
+            "Orchard",
+            3303060000,
+            "Mother block of vines",
+            3303000000,
+            "Mixed perennial crops",
+            3303070000,
+            "Nursery",
+            "Other"
+          ],
+          "Arable land",
+          "#a6cee3",
+          "Olive grove",
+          "#1f78b4",
+          "Orchard",
+          "#b2df8a",
+          "Mother block of vines",
+          "#33a02c",
+          "Mixed perennial crops",
+          "#fb9a99",
+          "Nursery",
+          "#e31a1c",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

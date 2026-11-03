@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3301010101",
+            "Winter wheat",
+            "3301090400",
+            "Corn silage",
+            "3301030000",
+            "Early potatoes ",
+            "3301290700",
+            "Sugar beet",
+            "3301010401",
+            "Winter barley",
+            "3301011001",
+            "Winter spelt",
+            "3301060701",
+            "Textile linen",
+            "3301010600",
+            "Grain corn",
+            "3301310200",
+            "Chicory with inulin",
+            "3301020600",
+            "Peas harvested fresh,canning peas",
+            "3301060401",
+            "Winter rapeseed",
+            "3399000000",
+            "Other",
+            "Other"
+          ],
+          "Winter wheat",
+          "#cda737",
+          "Corn silage",
+          "#a6cee3",
+          "Early potatoes ",
+          "#1f78b4",
+          "Sugar beet",
+          "#cc324c",
+          "Winter barley",
+          "#b2df8a",
+          "Winter spelt",
+          "#33a02c",
+          "Textile linen",
+          "#fb9a99",
+          "Grain corn",
+          "#e31a1c",
+          "Chicory with inulin",
+          "#fdbf6f",
+          "Peas harvested fresh,canning peas",
+          "#ff7f00",
+          "Winter rapeseed",
+          "#6a3d9a",
+          "Other",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}
