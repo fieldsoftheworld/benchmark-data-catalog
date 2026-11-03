@@ -22,13 +22,6 @@ The collection ships these files alongside `collection.json`:
 | `ee_2024_boundary_lines.parquet` | Field boundary lines |
 | `ee_2024_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
-| `chips.pmtiles` | Chips (PMTiles) |
-| `fields.pmtiles` | Field boundaries (PMTiles) |
-| `styles/split.json` | Chips by split |
-| `styles/field-coverage.json` | Field coverage |
-| `styles/dominant-crop.json` | Dominant crop per chip |
-| `styles/crops.json` | Crops |
-| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -55,19 +48,20 @@ Columns in the chips table:
 
 FTW properties on each STAC item:
 
+- `ftw:calendar_year`: calendar year of the crop cycle the chip documents
 - `ftw:field_coverage_pct`: percent of the chip's area covered by mapped field polygons
 - `ftw:hcat_dominant_code`: EuroCrops HCAT code of the crop covering most of the chip's fields
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
 - `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
-- `ftw:imagery_year`: mosaic year used
 - `ftw:mosaic_requested_year`: mosaic year the selection asked for
-- `ftw:mosaic_tile`: quarterly mosaic tile the imagery came from
 - `ftw:mosaic_year`: mosaic year used
-- `ftw:season`: which crop-calendar window (or mosaic quarter) a child imagery item covers
-- `ftw:source`: satellite mission the imagery came from
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
+- `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
+- `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year
+- `ftw:winter_harvest_day`: WorldCereal crop calendar: winter crops' end of season, day of year
+- `ftw:winter_planting_day`: WorldCereal crop calendar: winter crops' start of season, day of year (usually in the autumn before harvest)
 
 Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
@@ -91,7 +85,6 @@ SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet'
 -- result: test | 669
 -- result: train | 5224
 -- result: val | 660
--- result: ... 1 more rows
 ```
 
 ### Chips with the highest field coverage

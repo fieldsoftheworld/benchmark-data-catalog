@@ -29,7 +29,7 @@ so any collection can be rebuilt from the harmonized edition it names.
 
 | Thumbnail | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| <img src="https://data.source.coop/ftw/benchmark-data/be_wal_2022/thumbnail.webp" alt="Belgium, Wallonia — 2022" width="120"> | [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | 2,559/336/308 | none | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/be_wal](https://source.coop/ftw/harmonized-field-data/be_wal) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/be_wal_2022/collection.json) |
+| <img src="https://data.source.coop/ftw/benchmark-data/be_wal_2022/thumbnail.webp" alt="Belgium, Wallonia — 2022" width="120"> | [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | 2,559/336/308 | 3,203 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/be_wal](https://source.coop/ftw/harmonized-field-data/be_wal) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/be_wal_2022/collection.json) |
 | <img src="https://data.source.coop/ftw/benchmark-data/ee_2024/thumbnail.webp" alt="Estonia — 2024" width="120"> | [Estonia — 2024](https://source.coop/ftw/benchmark-data/ee_2024) | 6,553 | 5,224/660/669 | 6,553 stored | [CC-BY-SA-3.0](https://spdx.org/licenses/CC-BY-SA-3.0.html) | [harmonized/ee](https://source.coop/ftw/harmonized-field-data/ee) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ee_2024/collection.json) |
 | <img src="https://data.source.coop/ftw/benchmark-data/hr_2024/thumbnail.webp" alt="Croatia — 2024" width="120"> | [Croatia — 2024](https://source.coop/ftw/benchmark-data/hr_2024) | 8,803 | 7,089/854/860 | 8,803 stored | [License](https://www.apprrr.hr/prostorni-podaci-servisi/) | [harmonized/hr](https://source.coop/ftw/harmonized-field-data/hr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/hr_2024/collection.json) |
 
@@ -37,11 +37,11 @@ so any collection can be rebuilt from the harmonized edition it names.
 
 | Collection | Label masks | Sentinel-2 imagery | HCAT crop labels |
 | --- | --- | --- | --- |
-| [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | none | 3,203 |
+| [Belgium, Wallonia — 2022](https://source.coop/ftw/benchmark-data/be_wal_2022) | 3,203 | 3,203 stored | 3,203 |
 | [Estonia — 2024](https://source.coop/ftw/benchmark-data/ee_2024) | 6,553 | 6,553 stored | 6,553 |
 | [Croatia — 2024](https://source.coop/ftw/benchmark-data/hr_2024) | 8,803 | 8,803 stored | 8,803 |
 
-`stored` means a four-band GeoTIFF clipped to the chip and published with it; `linked` means the chip's season item points at the whole Sentinel-2 scene on the source STAC API, for a reader to window. A chip with no scene still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
+`stored` means four-band GeoTIFFs (red, green, blue, NIR at 10 m) clipped to the chip's mask grid and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless mosaics of the collection's year (and planting/harvest scenes, where a collection has them). `linked` means the chip's imagery items point at whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with no imagery still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
 <!-- collections:end -->
 
 ## Quick start
@@ -62,16 +62,16 @@ SELECT id,
        "ftw:split",
        "ftw:field_coverage_pct",
        assets.semantic_2class_mask.href AS mask,
-       assets.planting_image.href       AS planting_image
-FROM read_parquet('https://data.source.coop/ftw/benchmark-data/lu/items.parquet')
+       assets.q3_image.href             AS q3_image
+FROM read_parquet('https://data.source.coop/ftw/benchmark-data/ee_2024/items.parquet')
 WHERE "ftw:split" = 'train'
 LIMIT 5;
 ```
 
-Swap `lu` for any collection id in the table above. `assets` is a struct, so
-`DESCRIBE SELECT assets.* FROM read_parquet(...)` lists what a given
+Swap `ee_2024` for any collection id in the table above. `assets` is a struct,
+so `DESCRIBE SELECT assets.* FROM read_parquet(...)` lists what a given
 collection's chips actually carry: where imagery is `linked` rather than
-`stored`, ask for `assets.planting_visual.href` and window the scene yourself.
+`stored`, its asset is the whole scene, to window yourself.
 
 To look before you query, open the [data
 browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json).
@@ -98,10 +98,11 @@ ground in every collection. Each chip carries:
   where the harmonized source carries
   [EuroCrops HCAT](https://github.com/maja601/EuroCrops) codes — the crop
   composition of the fields inside it.
-- **Sentinel-2 scenes**, in the collections that have them: one from the
-  planting window and one from the harvest window of the region's crop
-  calendar, published as child items alongside the chip. Which collections
-  carry imagery, and in what shape, is in the coverage table above.
+- **Sentinel-2 imagery**, in the collections that have it: the four quarterly
+  cloudless mosaics (Q1-Q4) of the collection's own year, each a four-band
+  GeoTIFF (red, green, blue, NIR; 10 m) clipped to the chip's mask grid and
+  published as a child item alongside the chip. Which collections carry
+  imagery, and in what shape, is in the coverage table above.
 
 ## What a collection carries
 
@@ -139,10 +140,10 @@ Worth reading before publishing a number from this benchmark.
   distribution.
 - **Respect the splits.** They are spatially blocked. Resampling chips at
   random leaks information between train and test.
-- **Cloud-free is not guaranteed.** Scenes are selected against a crop calendar
-  within a cloud threshold, so acquisition dates and residual cloud vary
-  between chips — check `ftw:planting_cloud_cover` and
-  `ftw:harvest_cloud_cover`.
+- **Imagery can have gaps.** Where every scene of a quarter was cloudy, its
+  mosaic has no data; those pixels are kept as nodata (-32768) rather than the
+  chip being dropped, so expect a few missing pixels, most often in Q2. The
+  imagery is always from the collection's own year, never a neighbouring one.
 
 ## Compared with Fields of the World 1.0
 

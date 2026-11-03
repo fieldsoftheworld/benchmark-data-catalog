@@ -226,33 +226,33 @@
       ],
       "title": "DECODE normalized distance-to-boundary map"
     },
-    "planting_image": {
+    "q1_image": {
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "roles": [
         "data"
       ],
-      "title": "Planting season imagery"
+      "title": "Q1 quarterly mosaic imagery"
     },
-    "planting_visual": {
-      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
-      "roles": [
-        "visual"
-      ],
-      "title": "Planting season scene (true colour)"
-    },
-    "harvest_image": {
+    "q2_image": {
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "roles": [
         "data"
       ],
-      "title": "Harvest season imagery"
+      "title": "Q2 quarterly mosaic imagery"
     },
-    "harvest_visual": {
+    "q3_image": {
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "roles": [
-        "visual"
+        "data"
       ],
-      "title": "Harvest season scene (true colour)"
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
     },
     "thumbnail": {
       "type": "image/webp",
@@ -307,7 +307,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-02T21:11:16Z",
+  "updated": "2026-11-03T02:23:21Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -327,16 +327,12 @@
   "ftw:mask_resolution_m": 10.0,
   "ftw:presence_only": false,
   "ftw:min_coverage_pct": 0.01,
-  "ftw:cloud_cover_chip_threshold": 2.0,
-  "ftw:nodata_max": 0.0,
-  "ftw:buffer_days": 14,
-  "ftw:num_buffer_expansions": 3,
-  "ftw:buffer_expansion_size": 14,
+  "ftw:nodata_max": 100.0,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "bd5d7d9d3eb8c5d6b92d168d60c833994d593530",
+    "ftwd_git_commit": "1df6cf5b39f7f97be9394bb21cef9984050cf923",
     "config_schema_version": 1,
-    "generated_at": "2026-11-02T04:33:11.257277+00:00",
+    "generated_at": "2026-11-03T02:18:09.303414+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/hr/year=2024/hr-2024.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/hr/collection.json",
@@ -395,12 +391,9 @@
         },
         "select_images": {
           "enabled": true,
-          "imagery_mode": [
-            "scenes",
-            "mosaics"
-          ],
+          "imagery_mode": "mosaics",
           "cloud_cover_chip": 2.0,
-          "nodata_max": 0.0,
+          "nodata_max": 100.0,
           "buffer_days": 14,
           "num_buffer_expansions": 3,
           "buffer_expansion_size": 14,
@@ -418,7 +411,7 @@
           "resolution": 10.0,
           "workers": 16,
           "resume": true,
-          "mode": "preview"
+          "mode": "clip"
         },
         "stac": {
           "checksums": false,
@@ -1031,7 +1024,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 8518861,
+      "file:size": 10169037,
       "table:columns": [
         {
           "name": "type",
@@ -1050,12 +1043,12 @@
           "type": "varchar"
         },
         {
-          "name": "renders",
-          "type": "struct"
+          "name": "ftw:mosaic_year",
+          "type": "bigint"
         },
         {
-          "name": "ftw:hcat_top",
-          "type": "struct"
+          "name": "ftw:mosaic_requested_year",
+          "type": "bigint"
         },
         {
           "name": "links",
@@ -1104,6 +1097,38 @@
         {
           "name": "ftw:hcat_dominant_pct",
           "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "portolan:render_order",
+          "type": "varchar[]"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:imagery_modes",
+          "type": "varchar[]"
         },
         {
           "name": "bbox",

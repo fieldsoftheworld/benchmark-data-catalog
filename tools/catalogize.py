@@ -1245,13 +1245,17 @@ def _child_links(collections: list[tuple[str, dict]]) -> list[dict]:
     ]
 
 
-def _imagery_count(dataset_dir: Path) -> int | None:
-    """How many chips have Sentinel-2 season scenes, or None when unknowable.
+# An imagery child item's id suffix: a season scene or a quarterly mosaic.
+_IMAGERY_CHILD = "_(planting|harvest|q[1-4])_s2$"
 
-    The imagery pass writes one child item per season alongside its chip,
-    named ``<chip>_<season>_s2``; the number of distinct chips behind those
-    ids is the number of chips with imagery, whether one season or both
-    landed. The items mirror is read first (only its ``id`` column, so this
+
+def _imagery_count(dataset_dir: Path) -> int | None:
+    """How many chips have Sentinel-2 imagery, or None when unknowable.
+
+    The imagery pass writes one child item per slot alongside its chip, named
+    ``<chip>_<slot>_s2`` (a season scene, or a quarterly mosaic ``q1``-``q4``);
+    the number of distinct chips behind those ids is the number of chips with
+    imagery, whatever slots landed. The items mirror is read first (only its ``id`` column, so this
     works on a mirror written before the season properties existed).
 
     A mirror that reports none is not trusted on its own: ftwd's ``stac``
@@ -1272,8 +1276,8 @@ def _imagery_count(dataset_dir: Path) -> int | None:
     if items_parquet.exists():
         con = duckdb.connect()
         (count,) = con.execute(
-            "SELECT count(DISTINCT regexp_replace(id, '_(planting|harvest)_s2$', '')) "
-            "FROM read_parquet(?) WHERE regexp_matches(id, '_(planting|harvest)_s2$')",
+            f"SELECT count(DISTINCT regexp_replace(id, '{_IMAGERY_CHILD}', '')) "
+            f"FROM read_parquet(?) WHERE regexp_matches(id, '{_IMAGERY_CHILD}')",
             [str(items_parquet)],
         ).fetchone()
     chips_root = dataset_dir / "chips"
@@ -1501,11 +1505,13 @@ def _collections_list(rows: list[dict]) -> str:
 _COVERAGE_COLUMNS = ("Collection", "Label masks", "Sentinel-2 imagery", "HCAT crop labels")
 
 _COVERAGE_NOTE = (
-    "`stored` means a four-band GeoTIFF clipped to the chip and published with it; "
-    "`linked` means the chip's season item points at the whole Sentinel-2 scene on the "
-    "source STAC API, for a reader to window. A chip with no scene still carries its "
-    "masks and its split — pair it with imagery of your own, on the footprint in "
-    "`items.parquet`."
+    "`stored` means four-band GeoTIFFs (red, green, blue, NIR at 10 m) clipped to the "
+    "chip's mask grid and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless "
+    "mosaics of the collection's year (and planting/harvest scenes, where a collection has "
+    "them). `linked` means the chip's imagery items point at "
+    "whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with "
+    "no imagery still carries its masks and its split — pair it with imagery of your own, "
+    "on the footprint in `items.parquet`."
 )
 
 
