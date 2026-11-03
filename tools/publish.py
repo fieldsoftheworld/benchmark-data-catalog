@@ -379,6 +379,44 @@ def upload_all(
     return failures
 
 
+def pending_data(
+    config: dict[str, str], index: dict[str, tuple[int, str]], root: Path = ROOT
+) -> dict[str, int]:
+    """Collections in the published directory with staged data not yet in the bucket.
+
+    Keyed by dataset id, valued by how many data files are missing or differ.
+    Publishing a collection whose data is not there yet would put links to
+    missing objects live (and, for a new collection, its row in the root tables),
+    so ``main`` refuses while any are pending: run ``upload_data.py`` first.
+    """
+    # Imported here: upload_data imports this module.
+    from upload_data import collect_data_uploads
+
+    ids = {p.parent.name for p in (root / config["publish_dir"]).glob("*/collection.json")}
+    if not ids:
+        return {}
+    pending: dict[str, int] = {}
+    _, prefix = split_s3_uri(config["write_prefix"])
+    for dataset_id in sorted(ids):
+        # Staging pruned after upload, or never here: the bucket must hold its mirror.
+        if not (data_root(config, root) / dataset_id).is_dir():
+            key = f"{prefix}/{dataset_id}/items.parquet" if prefix else f"{dataset_id}/items.parquet"
+            if key not in index:
+                pending[dataset_id] = 1
+    for upload in collect_data_uploads(config, root, only=ids):
+        if not is_unchanged(upload, index):
+            dataset_id = upload.local.relative_to(data_root(config, root)).parts[0]
+            pending[dataset_id] = pending.get(dataset_id, 0) + 1
+    return pending
+
+
+def data_root(config: dict[str, str], root: Path = ROOT) -> Path:
+    """The staged data directory (``data_dir``), as upload_data.py walks it."""
+    from upload_data import data_root as upload_data_root
+
+    return upload_data_root(config, root)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Sync the published directory to object storage, 1:1.",
@@ -431,6 +469,21 @@ def main() -> int:
     if not changed:
         print("nothing to upload")
         return 0
+
+    # The data check needs the listing even when --force skipped it for the diff.
+    listing = remote_index(bucket, prefix, config) if args.force else index
+    if not listing:
+        print("cannot list the bucket, so cannot confirm the data is uploaded; not publishing",
+              file=sys.stderr)
+        return 1
+    pending = pending_data(config, listing)
+    if pending:
+        print("\nnot publishing: these collections' data is not all uploaded yet:",
+              file=sys.stderr)
+        for dataset_id, count in sorted(pending.items()):
+            print(f"  {dataset_id}: {count} file(s)  (upload_data.py --only {dataset_id})",
+                  file=sys.stderr)
+        return 1
 
     # A dry run tolerates a broken session, but an upload cannot. Report the
     # reason here instead of raising a traceback out of the pool.

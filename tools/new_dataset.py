@@ -137,6 +137,24 @@ def _providers_yaml(items: list[dict]) -> str:
     return "\n".join(lines)
 
 
+# The imagery modes this release publishes. ``tracking.csv``'s ``imagery`` column
+# says what exists for a year; a recipe selects only what exists *and* is released.
+# Scenes are left out of this release (the maintainer's call, 2026-11-02): rows
+# whose year has no mosaics are ``blocked`` rather than built without imagery.
+RELEASE_IMAGERY = ("mosaics",)
+
+
+def release_modes(row: dict[str, str]) -> tuple[str, ...]:
+    """The row's imagery modes this release builds; exits when there are none."""
+    modes = tuple(m for m in tracking.imagery_modes(row) if m in RELEASE_IMAGERY)
+    if not modes:
+        sys.exit(
+            f"{row['dataset_id']}: imagery {row['imagery']!r} has none of the released "
+            f"modes {list(RELEASE_IMAGERY)}; mark the row blocked"
+        )
+    return modes
+
+
 def _imagery_yaml(modes: tuple[str, ...]) -> str:
     """The select/download stage blocks for the row's imagery modes."""
     mode = modes[0] if len(modes) == 1 else f"[{', '.join(modes)}]"
@@ -213,7 +231,7 @@ stages:
     skip_existing: true
 {filter_line}  stac:
     checksums: false
-{_imagery_yaml(tracking.imagery_modes(row))}
+{_imagery_yaml(release_modes(row))}
 """
 
 

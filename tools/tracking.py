@@ -11,6 +11,8 @@ so a diff shows only what changed.
 
 - ``include``: build and publish it.
 - ``skip-no-imagery``: no Sentinel-2 for that year; not published at all.
+- ``blocked``: wanted, but cannot be built yet; the notes say what it waits for
+  (e.g. no quarterly mosaics for that year).
 - ``discuss`` / ``exclude``: not built until someone decides otherwise.
 
 ``imagery`` is ``scenes+mosaics`` (2018-2025 except 2023, whose Q2 mosaic is
@@ -30,7 +32,7 @@ from common import ROOT  # noqa: E402
 
 TRACKING = ROOT / "tracking.csv"
 
-STATUSES = ("include", "skip-no-imagery", "discuss", "exclude")
+STATUSES = ("include", "skip-no-imagery", "blocked", "discuss", "exclude")
 IMAGERY = {
     "scenes+mosaics": ("scenes", "mosaics"),
     "mosaics": ("mosaics",),

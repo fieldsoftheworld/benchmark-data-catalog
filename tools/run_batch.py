@@ -14,18 +14,24 @@ the whole batch: ``catalogize.py --root``, thumbnails one at a time through a
 single chiitiler (started here if none is running), and the gates.
 
 The imagery pass runs ``--from select_images``, ``--only docs`` and
-``catalogize.py <id>`` per dataset.
+``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
+--root`` (after the thumbnails, so the root tables see them) and the gates.
 
 Never uploads. It prints the upload commands for the datasets that built;
 run them yourself, then ``--mark-published``.
 
-``tracking.csv`` records the outcome per row: ``built`` / ``imagery_done``
-get the date and ``ftwd_commit`` the installed ftwd on success; ``issues``
-names the failed step and its log otherwise.
+``tracking.csv`` records the outcome per row, and only once the gates pass:
+``built`` / ``imagery_done`` get the date and ``ftwd_commit`` the installed
+ftwd. ``issues`` names the failed step and its log otherwise, or says the
+batch's gates failed, so ``--next`` does not take the row as done.
+
+One run at a time: a second run exits while ``logs/run_batch.lock`` is held. Two runs would
+pick the same ``--next`` rows and stop each other's chiitiler.
 """
 from __future__ import annotations
 
 import argparse
+import fcntl
 import subprocess
 import sys
 import time
@@ -153,8 +159,8 @@ def _ftwd_commit() -> str:
     return pin.value[:8] if pin is not None else ""
 
 
-def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> list[str]:
-    """Run one pass over ``dataset_ids``; the ids that succeeded."""
+def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> dict[str, str]:
+    """Run one pass over ``dataset_ids``; the failures as {id: issue}."""
     steps = IMAGERY_STEPS if imagery else METADATA_STEPS
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         results = dict(
@@ -166,12 +172,26 @@ def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> list[str]:
         )
     failures = {d: f"{step} failed, see logs/{d}.log" for d, step in results.items() if step}
     ok = [d for d in dataset_ids if d not in failures]
-
     if ok and not imagery:
-        subprocess.run(tool_argv(["catalogize.py", "--root"], ""), cwd=ROOT, check=False)
         failures |= thumbnails(ok)
-        ok = [d for d in ok if d not in failures]
+    return failures
 
+
+def finish_batch() -> str | None:
+    """Regenerate the root catalog, then run the gates; why the batch failed, or None.
+
+    The root tables measure every collection's chips, imagery and thumbnail, so
+    they are rebuilt after both passes, once the thumbnails are rendered.
+    """
+    root = subprocess.run(tool_argv(["catalogize.py", "--root"], ""), cwd=ROOT, check=False)
+    if root.returncode != 0:
+        return "catalogize --root failed"
+    gates = subprocess.run([sys.executable, str(ROOT / "tests" / "run_all.py")], cwd=ROOT)
+    return None if gates.returncode == 0 else "the batch's gates failed (tests/run_all.py)"
+
+
+def record(dataset_ids: list[str], failures: dict[str, str], *, imagery: bool) -> None:
+    """Write each row's outcome to tracking.csv."""
     today, commit = date.today().isoformat(), _ftwd_commit()
     done_column = "imagery_done" if imagery else "built"
     for d in dataset_ids:
@@ -179,7 +199,17 @@ def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> list[str]:
             tracking.update(d, issues=failures[d])
         else:
             tracking.update(d, **{done_column: today, "ftwd_commit": commit, "issues": ""})
-    return ok
+
+
+def hold_lock():
+    """An exclusive lock on logs/run_batch.lock, held until the process exits."""
+    LOGS.mkdir(exist_ok=True)
+    handle = (LOGS / "run_batch.lock").open("w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        sys.exit("another run_batch.py is running (logs/run_batch.lock); wait for it")
+    return handle
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -200,21 +230,28 @@ def main(argv: list[str] | None = None) -> int:
     for d in ids:
         tracking.row(d, rows)
 
+    lock = hold_lock()  # noqa: F841 - held for the life of the run
     if args.mark_published:
+        if not args.dataset_ids:
+            sys.exit("--mark-published needs the dataset ids that were uploaded, not --next")
         for d in ids:
             tracking.update(d, published=date.today().isoformat())
         return 0
 
     print(f"{'imagery' if args.imagery else 'metadata'} pass: {', '.join(ids)}")
-    ok = run_pass(ids, imagery=args.imagery, jobs=args.jobs)
-    failed = [d for d in ids if d not in ok]
+    failures = run_pass(ids, imagery=args.imagery, jobs=args.jobs)
+    batch_failure = finish_batch()
+    if batch_failure:
+        failures |= {d: batch_failure for d in ids if d not in failures}
+    record(ids, failures, imagery=args.imagery)
+    ok = [d for d in ids if d not in failures]
+    failed = [d for d in ids if d in failures]
 
-    gates = subprocess.run([sys.executable, str(ROOT / "tests" / "run_all.py")], cwd=ROOT)
     print(f"\nbuilt: {', '.join(ok) or 'none'}")
     if failed:
         print(f"failed: {', '.join(failed)} (see tracking.csv issues and logs/)")
-    if gates.returncode != 0:
-        print("gates FAILED; fix before uploading")
+    if batch_failure:
+        print(f"{batch_failure}; fix before uploading")
         return 1
     if ok:
         only = " ".join(f"--only {d}" for d in ok)

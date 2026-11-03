@@ -163,7 +163,7 @@ background) before it's written and registered as the collection's
 
 Each region-year of a harmonized collection is its own dataset, `<id>_<year>`
 (`be_wal_2022`). `tracking.csv` is the queue: one row per region-year, with
-its `status` (`include`, `skip-no-imagery`, `discuss`, `exclude`), which
+its `status` (`include`, `skip-no-imagery`, `blocked`, `discuss`, `exclude`), which
 imagery exists for that year (`scenes+mosaics`, `scenes`, `none`; `mosaics`
 builds only the mosaics of a `scenes+mosaics` year), its class
 filter, and the progress columns the batch runner fills in. Years before

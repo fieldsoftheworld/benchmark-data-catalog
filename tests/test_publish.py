@@ -359,6 +359,30 @@ check(
     "upload_all passes the configured endpoint_url through to session.client",
 )
 
+# --- a collection is published only once its data is in the bucket ------------
+from publish import pending_data  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    write(root / "catalog/aa_2024/collection.json")
+    write(root / "catalog/bb_2024/collection.json")
+    a = write(root / "staging/aa_2024/items.parquet", "aaaa")
+    write(root / "staging/bb_2024/items.parquet", "bbbb")
+    write(root / "staging/bb_2024/chips/x/c_q1_image_s2.tif", "tif")
+    write(root / "staging/cc_2024/items.parquet", "not catalogued, not checked")
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
+           "data_dir": "staging"}
+    a_md5 = hashlib.md5(a.read_bytes()).hexdigest()
+    listing = {"pre/aa_2024/items.parquet": (4, a_md5)}
+    check(pending_data(cfg, listing, root) == {"bb_2024": 2}, "bb_2024's two files are pending")
+    listing["pre/bb_2024/items.parquet"] = (4, hashlib.md5(b"bbbb").hexdigest())
+    listing["pre/bb_2024/chips/x/c_q1_image_s2.tif"] = (3, hashlib.md5(b"tif").hexdigest())
+    check(pending_data(cfg, listing, root) == {}, "everything uploaded: nothing pending")
+    write(root / "catalog/dd_2024/collection.json")  # no staging: must already be in the bucket
+    check(pending_data(cfg, listing, root) == {"dd_2024": 1}, "no staging and no mirror: pending")
+    listing["pre/dd_2024/items.parquet"] = (1, "x")
+    check(pending_data(cfg, listing, root) == {}, "staging pruned after upload: fine")
+
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
     from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _retry_config, _transfer_config

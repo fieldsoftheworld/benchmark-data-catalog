@@ -47,10 +47,28 @@ for r in rows:
         tracking.source_stem(r).startswith(r["harmonized_id"]),
         f"{d}: source_stem {r['source_stem']!r} is not a sub-region of {r['harmonized_id']!r}",
     )
-    if r["imagery"] == "none":
-        check(r["status"] != "include", f"{d}: no imagery, so it cannot be 'include'")
+    if r["status"] == "include":
+        check(
+            any(m in new_dataset.RELEASE_IMAGERY for m in tracking.imagery_modes(r)),
+            f"{d}: 'include' but none of its imagery is released; mark it blocked",
+        )
+    if r["status"] == "blocked":
+        check(bool(r["notes"].strip()), f"{d}: blocked rows say what they wait for")
     if tracking.filter_file(r):
         check(r["filter"].endswith(".yaml"), f"{d}: filter {r['filter']!r} is not a yaml file")
+
+# --- every committed recipe selects only released imagery ---------------
+for recipe_path in sorted((ROOT / "datasets").glob("*.yaml")):
+    stages = (yaml.safe_load(recipe_path.read_text()) or {}).get("stages") or {}
+    select = stages.get("select_images") or {}
+    if not select.get("enabled", True):
+        continue
+    mode = select.get("imagery_mode", "scenes")
+    modes = [mode] if isinstance(mode, str) else list(mode)
+    check(
+        set(modes) <= set(new_dataset.RELEASE_IMAGERY),
+        f"{recipe_path.name}: selects {modes}; this release builds {list(new_dataset.RELEASE_IMAGERY)}",
+    )
 
 # --- update() round-trips and refuses unknown columns ---------------------
 with tempfile.TemporaryDirectory() as tmp:
@@ -119,22 +137,19 @@ for mask_type in ("instance", "semantic_2_class", "semantic_3_class",
                   "decode_boundary", "decode_distance"):
     check(mask_type in recipe["stages"]["masks"]["mask_types"], f"mask type {mask_type}")
 select = recipe["stages"]["select_images"]
-check(select["imagery_mode"] == ["scenes", "mosaics"], f"both modes: {select['imagery_mode']}")
+check(select["imagery_mode"] == "mosaics", f"scenes+mosaics builds the released mosaics: {select}")
+check(select["nodata_max"] == 100.0, "mosaics keep their gaps")
 check(recipe["stages"]["download_images"]["mode"] == "clip", "imagery is clipped onto the mask grid")
 
-scenes_only = yaml.safe_load(
-    new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes", "filter": ""},
-                            COLLECTION, urls, "9.9.9")
+try:
+    new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes"}, COLLECTION, urls, "9.9.9")
+    errors.append("a scenes-only year gets a recipe though scenes are not released")
+except SystemExit as stop:
+    check("mark the row blocked" in str(stop), f"scenes-only says to block the row: {stop}")
+unfiltered_mosaics = yaml.safe_load(
+    new_dataset.recipe_text("xx_2022", {**ROW, "filter": ""}, COLLECTION, urls, "9.9.9")
 )
-check(scenes_only["stages"]["select_images"]["imagery_mode"] == "scenes", "single mode")
-check(scenes_only["stages"]["download_images"]["mode"] == "clip", "scenes-only clips too")
-mosaics_only = yaml.safe_load(
-    new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "mosaics"}, COLLECTION, urls, "9.9.9")
-)
-check(mosaics_only["stages"]["select_images"]["imagery_mode"] == "mosaics", "mosaics only")
-check(mosaics_only["stages"]["select_images"]["nodata_max"] == 100.0, "mosaics keep their gaps")
-check(select["nodata_max"] == 0.0, "scenes reject nodata")
-check("class_filter" not in scenes_only["stages"]["masks"], "no filter, no class_filter key")
+check("class_filter" not in unfiltered_mosaics["stages"]["masks"], "no filter, no class_filter key")
 unfiltered = yaml.safe_load(
     new_dataset.recipe_text("xx_2022", {**ROW, "filter": tracking.NO_FILTER}, COLLECTION, urls, "9.9.9")
 )
@@ -159,6 +174,31 @@ spec["zoom"] = 99
 check(new_dataset.thumbnail_spec()["zoom"] == 13, "callers get their own copy of the default")
 entry = yaml.safe_load(new_dataset.manifest_entry("xx_2022", {"style": "s", "zoom": 12, "rank": 0}))
 check(entry["xx_2022"]["ftw1_name"] == "none", "new region-years have no FTW 1.0 counterpart")
+
+# --- run_batch.py marks rows done only when the batch's gates pass --------
+_saved = (run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
+          tracking.load, tracking.row)
+updates: dict[str, dict] = {}
+run_batch.run_pass = lambda ids, **_k: {"b": "build --through stac failed"}
+run_batch.hold_lock = lambda: None
+tracking.update = lambda d, path=None, **kw: updates.setdefault(d, {}).update(kw)
+tracking.load = lambda path=None: []
+tracking.row = lambda d, rows: {}
+for gate_failure, expect_built in ((None, True), ("the batch's gates failed", False)):
+    updates.clear()
+    run_batch.finish_batch = lambda failure=gate_failure: failure
+    run_batch.main(["a", "b"])
+    check(("built" in updates["a"]) == expect_built, f"a built={expect_built} when gates {gate_failure}")
+    check("built" not in updates["b"], "a failed build is never marked built")
+    if gate_failure:
+        check(updates["a"]["issues"] == gate_failure, "a gate failure is recorded as the issue")
+try:
+    run_batch.main(["--next", "3", "--mark-published"])
+    errors.append("--mark-published accepts --next")
+except SystemExit:
+    pass
+(run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
+ tracking.load, tracking.row) = _saved
 
 # --- run_batch.py picks the right queue -----------------------------------
 queue = [
