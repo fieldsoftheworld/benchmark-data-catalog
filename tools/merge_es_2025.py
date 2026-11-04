@@ -197,7 +197,8 @@ def classify_region(con: duckdb.DuckDBPyConnection, hid: str) -> dict[str, float
     )
     con.execute(
         """INSERT INTO nat_landuse
-           SELECT p.nid, arg_max(r.landuse_code, p.shared), arg_max(r.landuse_name_en, p.shared)
+           SELECT p.nid, arg_max(r.landuse_code, p.shared), arg_max(r.landuse_name_en, p.shared),
+                  max(p.shared)
            FROM pairs p JOIN reg r ON r.id = p.rid GROUP BY p.nid"""
     )
     total, gaps, gap_area, all_area = con.execute(
@@ -223,7 +224,12 @@ def write_merged(con: duckdb.DuckDBPyConnection, out: Path) -> int:
                    l.landuse_code AS "landuse:code", l.landuse_name_en AS "landuse:name_en",
                    n.admin_province_code, n.area AS "metrics:area", n.irrigation_system,
                    n.ftw_class AS "ftw:class", n.geom AS geometry
-            FROM nat n LEFT JOIN nat_landuse l ON l.nid = n.id
+            FROM nat n LEFT JOIN (
+                -- A parcel on a regional border has a row per region: keep the larger overlap.
+                SELECT nid, arg_max(landuse_code, shared) AS landuse_code,
+                       arg_max(landuse_name_en, shared) AS landuse_name_en
+                FROM nat_landuse GROUP BY nid
+            ) l ON l.nid = n.id
             UNION ALL BY NAME
             SELECT g.id, g.source AS "ftw:source", g.landuse_code AS "landuse:code",
                    g.landuse_name_en AS "landuse:name_en", g.admin_province_code,
@@ -259,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
                    landuse_name_en VARCHAR, admin_province_code VARCHAR, area FLOAT,
                    ftw_class VARCHAR, geom GEOMETRY)""")
     con.execute("""CREATE OR REPLACE TABLE nat_landuse (nid VARCHAR, landuse_code VARCHAR,
-                   landuse_name_en VARCHAR)""")
+                   landuse_name_en VARCHAR, shared DOUBLE)""")
     stats = {}
     for hid in args.regions:
         t = time.time()

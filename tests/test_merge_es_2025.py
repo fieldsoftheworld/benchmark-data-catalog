@@ -74,12 +74,14 @@ with tempfile.TemporaryDirectory() as tmp:
         national("n2", "62", "15", box(gx + 0.01, gy)),          # pasture, Atlantic
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
+        national("n5", "1", "36", box(gx + 0.03, gy)),           # on a regional border
     ])
     write(work / "es_ga-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
         regional("r2", "PS", box(gx + 0.95 * D, gy)),            # 5% over n1: gap
         regional("r3", "TA", box(gx + 0.05, gy)),                # alone: gap
         regional("r4", "PR", box(gx + 0.01 + D / 2, gy)),        # 50% over n2: covered
+        regional("r5", "VI", box(gx + 0.03, gy, D / 2)),         # a quarter of n5
     ])
     to_utm = Transformer.from_crs("EPSG:4326", "EPSG:25830", always_xy=True).transform
     write(
@@ -87,6 +89,8 @@ with tempfile.TemporaryDirectory() as tmp:
         [
             regional("p1", "PS", shapely.ops.transform(to_utm, box(px, py))),         # = n4
             regional("p2", "TA", shapely.ops.transform(to_utm, box(px + 0.05, py))),  # gap
+            # The other region's parcel over n5 covers more of it than r5 does.
+            regional("p3", "OV", shapely.ops.transform(to_utm, box(gx + 0.03, gy))),
         ],
         crs={"id": {"authority": "EPSG", "code": 25830}},
     )
@@ -104,11 +108,14 @@ with tempfile.TemporaryDirectory() as tmp:
                 FROM read_parquet('{out}')"""
         ).fetchall()
     }
-    expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es_ga:r2", "es_ga:r3", "es_pv:p2"}
+    expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_ga:r2", "es_ga:r3", "es_pv:p2"}
+    n_rows = con.execute(f"SELECT count(*) FROM read_parquet('{out}')").fetchone()[0]
+    check(n_rows == len(expected), f"no parcel appears twice, got {n_rows} rows")
     check(set(rows) == expected, f"national parcels plus the gaps, got {sorted(rows)}")
     if set(rows) == expected:
         check(rows["es:n1"][2] == "TA", f"n1 takes r1's land use, got {rows['es:n1'][2]}")
         check(rows["es:n3"][2] is None, "a national parcel no region overlaps has no land use")
+        check(rows["es:n5"][2] == "OV", f"a border parcel takes the larger overlap, got {rows['es:n5'][2]}")
         check(rows["es:n2"][3] == "es:62:atlantic", f"Galician pasture, got {rows['es:n2'][3]}")
         check(rows["es:n3"][3] == "es:62", f"pasture outside the north, got {rows['es:n3'][3]}")
         check(rows["es:n4"][3] == "es:63:atlantic", f"Basque pasture, got {rows['es:n4'][3]}")
