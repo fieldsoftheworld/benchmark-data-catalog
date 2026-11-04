@@ -26,6 +26,7 @@ TESTS = [
     "test_publish.py",
     "test_upload_data.py",
     "test_prune_bucket.py",
+    "test_merge_es_2025.py",
     "test_stac_valid.py",
     "test_conformance.py",
 ]
