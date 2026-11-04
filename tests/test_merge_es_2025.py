@@ -22,7 +22,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely
 import shapely.ops
-from pyproj import Transformer
+from pyproj import CRS, Transformer
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
@@ -69,20 +69,28 @@ with tempfile.TemporaryDirectory() as tmp:
     work = Path(tmp)
     gx, gy = -8.0, 43.0  # Galicia
     px, py = -2.5, 43.2  # País Vasco
+    # The national and Galician inputs carry real PROJJSON, so DuckDB types their geometry
+    # GEOMETRY('EPSG:4258') and GEOMETRY('EPSG:4326') as it does for the published files.
     write(work / "es-2025.parquet", [
         national("n1", "1", "15", box(gx, gy)),                  # wheat
         national("n2", "62", "15", box(gx + 0.01, gy)),          # pasture, Atlantic
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
         national("n5", "1", "36", box(gx + 0.03, gy)),           # on a regional border
-    ])
+    ], crs=CRS("EPSG:4258").to_json_dict())
     write(work / "es_ga-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
         regional("r2", "PS", box(gx + 0.95 * D, gy)),            # 5% over n1: gap
         regional("r3", "TA", box(gx + 0.05, gy)),                # alone: gap
         regional("r4", "PR", box(gx + 0.01 + D / 2, gy)),        # 50% over n2: covered
         regional("r5", "VI", box(gx + 0.03, gy, D / 2)),         # a quarter of n5
-    ])
+        # One id on two unrelated parcels, as es_pv does: one covered (by n1), one a gap.
+        regional("dup", "TA", box(gx, gy)),
+        regional("dup", "TA", box(gx + 0.07, gy)),
+        # Degenerate: no area once made valid, so dropped.
+        regional("flat", "TA", shapely.Polygon([(gx + 0.09, gy), (gx + 0.09 + D, gy),
+                                                (gx + 0.09 + 2 * D, gy), (gx + 0.09, gy)])),
+    ], crs=CRS("EPSG:4326").to_json_dict())
     to_utm = Transformer.from_crs("EPSG:4326", "EPSG:25830", always_xy=True).transform
     write(
         work / "es_pv-2025.parquet",
@@ -100,17 +108,22 @@ with tempfile.TemporaryDirectory() as tmp:
     out = work / "es_2025_merged.parquet"
     con = duckdb.connect()
     con.load_extension("spatial")
-    rows = {
-        r[0]: r[1:]
-        for r in con.execute(
-            f"""SELECT id, "ftw:source", "crop:code", "landuse:code", "ftw:class",
-                       ST_XMin(geometry), bbox.xmin
-                FROM read_parquet('{out}')"""
-        ).fetchall()
-    }
+    raw = con.execute(
+        f"""SELECT id, "ftw:source", "crop:code", "landuse:code", "ftw:class",
+                   ST_XMin(geometry), bbox.xmin, source_id
+            FROM read_parquet('{out}')"""
+    ).fetchall()
+    ids = [r[0] for r in raw]
+    check(len(ids) == len(set(ids)), f"output ids are unique, got {sorted(ids)}")
+    dups = [r for r in raw if r[7] == "dup"]
+    check(len(dups) == 1, f"of the two 'dup' parcels only the gap is added, got {len(dups)}")
+    if len(dups) == 1:
+        check(abs(dups[0][5] - (gx + 0.07)) < 1e-6, "the 'dup' parcel added is the free one")
+    check(not any(r[7] == "flat" for r in raw), "a zero-area parcel is dropped")
+    # Keyed by source and source id; the 'dup' pair is checked above.
+    rows = {f"{r[1]}:{r[7]}": r[1:7] for r in raw if r[7] != "dup"}
     expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_ga:r2", "es_ga:r3", "es_pv:p2"}
-    n_rows = con.execute(f"SELECT count(*) FROM read_parquet('{out}')").fetchone()[0]
-    check(n_rows == len(expected), f"no parcel appears twice, got {n_rows} rows")
+    check(len(raw) == len(expected) + 1, f"national parcels plus the gaps, got {len(raw)} rows")
     check(set(rows) == expected, f"national parcels plus the gaps, got {sorted(rows)}")
     if set(rows) == expected:
         check(rows["es:n1"][2] == "TA", f"n1 takes r1's land use, got {rows['es:n1'][2]}")
@@ -128,8 +141,11 @@ with tempfile.TemporaryDirectory() as tmp:
         check(abs(bx - x) < 1e-9, "the bbox column matches the geometry")
     geo = json.loads(pq.read_schema(out).metadata[b"geo"])
     check("covering" in geo["columns"]["geometry"], "the output declares its bbox covering")
+    crs = geo["columns"]["geometry"].get("crs")
+    check(crs is None, f"the output carries no CRS label (default lon/lat), got {crs}")
     stats = json.loads((work / "merge_stats.json").read_text())
-    check(stats["es_ga"]["gap_parcels"] == 2, f"two Galician gaps, got {stats['es_ga']}")
+    check(stats["es_ga"]["gap_parcels"] == 3, f"three Galician gaps, got {stats['es_ga']}")
+    check(stats["es_ga"]["zero_area_dropped"] == 1, f"one flat parcel dropped, got {stats['es_ga']}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

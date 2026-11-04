@@ -14,7 +14,9 @@ parcels are added or skipped, never cut, so no slivers appear along shared edges
 
 Columns of the output (``<work_dir>/es_2025_merged.parquet``):
 
-- ``id``: the source id, prefixed with the source (``es:...``, ``es_ga:...``).
+- ``id``: unique. ``es:<national id>``, or ``<region>:<row in the regional file>``
+  because regional ids repeat (es_pv reuses one id for up to 143 parcels).
+- ``source_id``: the id in the source file.
 - ``ftw:source``: ``es`` or the regional collection id.
 - ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
   regional parcels.
@@ -117,10 +119,15 @@ def _metric(geom: str, crs: str) -> str:
 
 
 def _lonlat(geom: str, crs: str) -> str:
-    """SQL for ``geom`` in lon/lat."""
-    if crs in ("OGC:CRS84", "EPSG:4326", "EPSG:4258"):
-        return geom
-    return f"ST_Transform({geom}, '{crs}', 'EPSG:4326', always_xy := true)"
+    """SQL for ``geom`` in lon/lat, as a plain GEOMETRY with no CRS attached.
+
+    DuckDB types a GeoParquet column by its declared CRS (``GEOMETRY('EPSG:4258')``)
+    and would write that CRS back out; the merged file mixes sources, and ftwd treats
+    an unlabelled (CRS84) file as already lon/lat, so the label is dropped.
+    """
+    if crs not in ("OGC:CRS84", "EPSG:4326", "EPSG:4258"):
+        geom = f"ST_Transform({geom}, '{crs}', 'EPSG:4326', always_xy := true)"
+    return f"ST_GeomFromWKB(ST_AsWKB({geom}))"
 
 
 def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
@@ -129,7 +136,7 @@ def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     pasture = ", ".join(f"'{c}'" for c in PASTURE)
     con.execute(
         f"""CREATE OR REPLACE TABLE nat AS
-            SELECT 'es:' || id AS id, CAST("crop:code" AS VARCHAR) AS crop_code,
+            SELECT 'es:' || id AS id, id AS source_id, CAST("crop:code" AS VARCHAR) AS crop_code,
                    "hcat:code" AS hcat_code, "hcat:name_en" AS hcat_name_en,
                    admin_province_code, "metrics:area" AS area, irrigation_system,
                    CASE WHEN CAST("crop:code" AS VARCHAR) IN ({pasture})
@@ -142,7 +149,14 @@ def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     )
 
 
-def load_region(con: duckdb.DuckDBPyConnection, hid: str, path: Path) -> None:
+def load_region(con: duckdb.DuckDBPyConnection, hid: str, path: Path) -> int:
+    """Load one region as ``reg``, keyed by file row; returns how many zero-area rows it dropped.
+
+    Regional ids are not unique (es_pv reuses one id for up to 143 unrelated parcels), so
+    rows are keyed by ``rid``, their row number in the file, and the output id is
+    ``<region>:<rid>`` with the source id kept in ``source_id``. A parcel with no area
+    after ``ST_MakeValid`` can't be a field and has no share to measure, so it is dropped.
+    """
     crs = geo_crs(con, path)
     cols = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{path}')").fetchall()}
     name = '"crop:name_en"' if "crop:name_en" in cols else "NULL"
@@ -150,14 +164,22 @@ def load_region(con: duckdb.DuckDBPyConnection, hid: str, path: Path) -> None:
     area = '"metrics:area"' if "metrics:area" in cols else "NULL"
     con.execute(
         f"""CREATE OR REPLACE TABLE reg AS
-            SELECT '{hid}:' || id AS id, CAST("crop:code" AS VARCHAR) AS landuse_code,
-                   {name} AS landuse_name_en, CAST({prov} AS VARCHAR) AS admin_province_code,
-                   CAST({area} AS FLOAT) AS area,
-                   '{hid}:' || CAST("crop:code" AS VARCHAR) AS ftw_class,
-                   {_lonlat("geometry", crs)} AS geom,
-                   {_metric("geometry", crs)} AS g
-            FROM read_parquet('{path}') WHERE geometry IS NOT NULL"""
+            SELECT * FROM (
+                SELECT file_row_number AS rid, '{hid}:' || file_row_number AS id,
+                       CAST(id AS VARCHAR) AS source_id,
+                       CAST("crop:code" AS VARCHAR) AS landuse_code,
+                       {name} AS landuse_name_en, CAST({prov} AS VARCHAR) AS admin_province_code,
+                       CAST({area} AS FLOAT) AS area,
+                       '{hid}:' || CAST("crop:code" AS VARCHAR) AS ftw_class,
+                       {_lonlat("geometry", crs)} AS geom,
+                       {_metric("geometry", crs)} AS g
+                FROM read_parquet('{path}', file_row_number = true) WHERE geometry IS NOT NULL
+            ) WHERE ST_Area(g) > 0"""
     )
+    con.execute("ALTER TABLE reg ADD COLUMN g_area DOUBLE")
+    con.execute("UPDATE reg SET g_area = ST_Area(g)")
+    total = con.execute(f"SELECT count(*) FROM read_parquet('{path}')").fetchone()[0]
+    return total - con.execute("SELECT count(*) FROM reg").fetchone()[0]
 
 
 def overlap_region(con: duckdb.DuckDBPyConnection) -> None:
@@ -174,10 +196,10 @@ def overlap_region(con: duckdb.DuckDBPyConnection) -> None:
             WITH n AS (SELECT id, g FROM nat
                        WHERE ST_XMax(g) >= {xmin} AND ST_XMin(g) <= {xmax}
                          AND ST_YMax(g) >= {ymin} AND ST_YMin(g) <= {ymax})
-            SELECT r.id AS rid, n.id AS nid,
+            SELECT r.rid, n.id AS nid,
                    -- A GEOS failure counts as full overlap, so it can never add a duplicate.
                    coalesce(TRY(ST_Area(ST_Intersection(r.g, n.g))),
-                            least(ST_Area(r.g), ST_Area(n.g))) AS shared
+                            least(r.g_area, ST_Area(n.g))) AS shared
             FROM reg r JOIN n ON ST_Intersects(r.g, n.g)"""
     )
 
@@ -185,27 +207,27 @@ def overlap_region(con: duckdb.DuckDBPyConnection) -> None:
 def classify_region(con: duckdb.DuckDBPyConnection, hid: str) -> dict[str, float]:
     """Mark the region's gap parcels and give national parcels their land use."""
     con.execute(
-        f"""CREATE OR REPLACE TABLE cover AS
-            SELECT r.id, coalesce(sum(p.shared), 0) / nullif(ST_Area(r.g), 0) AS covered
-            FROM reg r LEFT JOIN pairs p ON p.rid = r.id GROUP BY r.id, r.g"""
+        """CREATE OR REPLACE TABLE cover AS
+           SELECT r.rid, coalesce(s.shared, 0) / r.g_area AS covered
+           FROM reg r LEFT JOIN (SELECT rid, sum(shared) AS shared FROM pairs GROUP BY rid) s
+                USING (rid)"""
     )
     con.execute(
         f"""INSERT INTO gaps
-            SELECT r.id, '{hid}' AS source, r.landuse_code, r.landuse_name_en,
+            SELECT r.id, r.source_id, '{hid}' AS source, r.landuse_code, r.landuse_name_en,
                    r.admin_province_code, r.area, r.ftw_class, r.geom
-            FROM reg r JOIN cover c USING (id) WHERE coalesce(c.covered, 0) < {OVERLAP_MAX}"""
+            FROM reg r JOIN cover c USING (rid) WHERE c.covered < {OVERLAP_MAX}"""
     )
     con.execute(
         """INSERT INTO nat_landuse
-           SELECT p.nid, arg_max(r.landuse_code, p.shared), arg_max(r.landuse_name_en, p.shared),
+           SELECT p.nid, arg_max({'code': r.landuse_code, 'name': r.landuse_name_en}, p.shared),
                   max(p.shared)
-           FROM pairs p JOIN reg r ON r.id = p.rid GROUP BY p.nid"""
+           FROM pairs p JOIN reg r USING (rid) GROUP BY p.nid"""
     )
     total, gaps, gap_area, all_area = con.execute(
-        f"""SELECT count(*), count(*) FILTER (WHERE coalesce(covered, 0) < {OVERLAP_MAX}),
-                   sum(ST_Area(r.g)) FILTER (WHERE coalesce(covered, 0) < {OVERLAP_MAX}),
-                   sum(ST_Area(r.g))
-            FROM reg r JOIN cover USING (id)"""
+        f"""SELECT count(*), count(*) FILTER (WHERE covered < {OVERLAP_MAX}),
+                   sum(r.g_area) FILTER (WHERE covered < {OVERLAP_MAX}), sum(r.g_area)
+            FROM reg r JOIN cover USING (rid)"""
     ).fetchone()
     return {
         "regional_parcels": total,
@@ -219,19 +241,17 @@ def write_merged(con: duckdb.DuckDBPyConnection, out: Path) -> int:
     tmp = out.with_suffix(".tmp.parquet")
     con.execute(
         f"""COPY (
-            SELECT n.id, 'es' AS "ftw:source", n.crop_code AS "crop:code",
+            SELECT n.id, n.source_id, 'es' AS "ftw:source", n.crop_code AS "crop:code",
                    n.hcat_code AS "hcat:code", n.hcat_name_en AS "hcat:name_en",
-                   l.landuse_code AS "landuse:code", l.landuse_name_en AS "landuse:name_en",
+                   l.landuse.code AS "landuse:code", l.landuse.name AS "landuse:name_en",
                    n.admin_province_code, n.area AS "metrics:area", n.irrigation_system,
                    n.ftw_class AS "ftw:class", n.geom AS geometry
             FROM nat n LEFT JOIN (
                 -- A parcel on a regional border has a row per region: keep the larger overlap.
-                SELECT nid, arg_max(landuse_code, shared) AS landuse_code,
-                       arg_max(landuse_name_en, shared) AS landuse_name_en
-                FROM nat_landuse GROUP BY nid
+                SELECT nid, arg_max(landuse, shared) AS landuse FROM nat_landuse GROUP BY nid
             ) l ON l.nid = n.id
             UNION ALL BY NAME
-            SELECT g.id, g.source AS "ftw:source", g.landuse_code AS "landuse:code",
+            SELECT g.id, g.source_id, g.source AS "ftw:source", g.landuse_code AS "landuse:code",
                    g.landuse_name_en AS "landuse:name_en", g.admin_province_code,
                    g.area AS "metrics:area", g.ftw_class AS "ftw:class", g.geom AS geometry
             FROM gaps g
@@ -261,17 +281,18 @@ def main(argv: list[str] | None = None) -> int:
     load_national(con, paths[NATIONAL])
     print(f"national loaded: {con.execute('SELECT count(*) FROM nat').fetchone()[0]:,} parcels "
           f"({time.time() - t0:.0f}s)", flush=True)
-    con.execute("""CREATE OR REPLACE TABLE gaps (id VARCHAR, source VARCHAR, landuse_code VARCHAR,
+    con.execute("""CREATE OR REPLACE TABLE gaps (id VARCHAR, source_id VARCHAR, source VARCHAR,
+                   landuse_code VARCHAR,
                    landuse_name_en VARCHAR, admin_province_code VARCHAR, area FLOAT,
                    ftw_class VARCHAR, geom GEOMETRY)""")
-    con.execute("""CREATE OR REPLACE TABLE nat_landuse (nid VARCHAR, landuse_code VARCHAR,
-                   landuse_name_en VARCHAR, shared DOUBLE)""")
+    con.execute("""CREATE OR REPLACE TABLE nat_landuse (nid VARCHAR,
+                   landuse STRUCT(code VARCHAR, name VARCHAR), shared DOUBLE)""")
     stats = {}
     for hid in args.regions:
         t = time.time()
-        load_region(con, hid, paths[hid])
+        dropped = load_region(con, hid, paths[hid])
         overlap_region(con)
-        stats[hid] = classify_region(con, hid)
+        stats[hid] = {**classify_region(con, hid), "zero_area_dropped": dropped}
         print(f"{hid}: {stats[hid]} ({time.time() - t:.0f}s)", flush=True)
     (args.work_dir / "merge_stats.json").write_text(json.dumps(stats, indent=1))
     if args.stats:
