@@ -42,7 +42,9 @@ for r in rows:
     d = r["dataset_id"]
     check(r["status"] in tracking.STATUSES, f"{d}: unknown status {r['status']!r}")
     check(r["imagery"] in tracking.IMAGERY, f"{d}: unknown imagery {r['imagery']!r}")
-    check(d == f"{tracking.source_stem(r)}_{r['year']}", f"{d}: id is not <source stem>_<year>")
+    # Derived datasets (new_dataset.DERIVED) are named for what they hold, not one source.
+    check(d in new_dataset.DERIVED or d == f"{tracking.source_stem(r)}_{r['year']}",
+          f"{d}: id is not <source stem>_<year>")
     check(
         tracking.source_stem(r).startswith(r["harmonized_id"]),
         f"{d}: source_stem {r['source_stem']!r} is not a sub-region of {r['harmonized_id']!r}",
