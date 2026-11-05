@@ -8,18 +8,19 @@
 ``datasets/es_2025.yaml`` and ``datasets/es_po_2025.yaml`` read their inputs.
 Spain 2025 is split in two by province:
 
-- ``es_2025.parquet`` (dataset ``es_2025``, wall-to-wall): national parcels outside
-  Andalucía, Castilla y León and Galicia, plus regional gap parcels in Cantabria and
-  País Vasco.
+- ``es_2025.parquet`` (dataset ``es_2025``, wall-to-wall, CC-BY-4.0): national parcels
+  outside Andalucía, Castilla y León, Galicia and Cantabria, plus regional gap parcels
+  in País Vasco.
 - ``es_po_2025.parquet`` (dataset ``es_po_2025``, presence-only masks): national
-  parcels in Andalucía, Castilla y León and Galicia (``PRESENCE_ONLY_PROVINCES``), and
-  nothing else. Undeclared land there is not labelled, so it is unknown, not background.
+  parcels in Andalucía, Castilla y León, Galicia and Cantabria
+  (``PRESENCE_ONLY_PROVINCES``), and nothing else. Undeclared land there is not
+  labelled, so it is unknown, not background.
 
 The national edition (``es``, farmers' declarations, 385 crop codes) covers all of
-Spain but only declared land. Two regional editions (``es_cb``, ``es_pv``: SIGPAC
-land use, ~20 classes) cover every parcel in Cantabria and País Vasco, where the
-national edition alone leaves about a quarter of the farmland unlabelled. The union
-keeps every national parcel and adds a regional parcel only where
+Spain but only declared land. The País Vasco regional edition (``es_pv``: SIGPAC land
+use, ~20 classes) covers every parcel there, where the national edition alone leaves
+about a quarter of the farmland unlabelled. The union keeps every national parcel and
+adds a regional parcel only where
 the national edition has nothing: less than ``OVERLAP_MAX`` of the regional parcel's
 area overlaps any national parcel, whatever its class, and the parcel is at least
 ``MIN_GAP_M2`` (smaller gap parcels are garden plots and edge slivers, not visible
@@ -27,9 +28,10 @@ fields at 10 m). Whole parcels are added or skipped, never cut.
 
 Andalucía, Castilla y León and Galicia get no gap parcels (2026-11 visual review):
 there they include strips along roads, canals and railways, patches in scrub, and in
-Galicia mostly micro-plots and overgrown plots under tree cover. Their national parcels
-alone leave too many visible fields unlabelled for wall-to-wall masks, so they go to
-the presence-only dataset.
+Galicia mostly micro-plots and overgrown plots under tree cover. Cantabria's gap parcels
+looked right, but its SIGPAC data is not CC-BY, so they are left out to keep es_2025
+openly licensed. The national parcels of all four regions alone leave too many visible
+fields unlabelled for wall-to-wall masks, so they go to the presence-only dataset.
 
 Columns of both outputs:
 
@@ -40,7 +42,7 @@ Columns of both outputs:
 - ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
   regional parcels.
 - ``landuse:code``, ``landuse:name_en``: SIGPAC land use. On regional parcels, their
-  own; on national parcels that overlap a Cantabria or País Vasco parcel, the land use
+  own; on national parcels that overlap a País Vasco parcel, the land use
   of the regional parcel they overlap most (a few of these lie just across the border,
   in es_po_2025); NULL elsewhere. National parcels on both sides of the split take part
   in the overlap test, so a regional parcel over one is never added as a gap.
@@ -72,7 +74,6 @@ YEAR = 2025
 NATIONAL = "es"
 # Regional collection -> the ftwd class filter its land-use codes follow.
 REGIONS = {
-    "es_cb": "es_uso_north_filter.yaml",
     "es_pv": "es_uso_north_filter.yaml",
 }
 # Galicia, Asturias, Cantabria, País Vasco: pasture parcels are hedge-bounded meadows.
@@ -81,11 +82,12 @@ PASTURE = ("62", "63")
 OVERLAP_MAX = 0.10
 # Smallest regional parcel added as a gap: 0.1 ha, about ten Sentinel-2 pixels.
 MIN_GAP_M2 = 1000.0
-# Andalucía, Castilla y León, Galicia: national parcels only, presence-only masks.
+# Andalucía, Castilla y León, Galicia, Cantabria: national parcels only, presence-only masks.
 PRESENCE_ONLY_PROVINCES = (
     "04", "11", "14", "18", "21", "23", "29", "41",
     "05", "09", "24", "34", "37", "40", "42", "47", "49",
     "15", "27", "32", "36",
+    "39",
 )
 OUTPUTS = {"es_2025": "es_2025.parquet", "es_po_2025": "es_po_2025.parquet"}
 # Metric CRS for areas (UTM 30N covers mainland Spain; ratios only).

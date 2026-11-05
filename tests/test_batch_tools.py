@@ -153,6 +153,8 @@ derived = yaml.safe_load(new_dataset.recipe_text("es_po_2025", es_row, COLLECTIO
 check(derived["fields_file"] == "work/es_po_2025.parquet", f"derived input: {derived['fields_file']}")
 check(derived["source_via"] == es_urls["collection"], "a derived dataset still names its collection")
 check(derived["stages"]["masks"]["presence_only"] is True, "Presence-only row: presence_only true")
+check(derived["stages"]["masks"]["mask_types"] == ["semantic_2_class", "semantic_3_class"],
+      f"presence-only builds the semantic masks only: {derived['stages']['masks']['mask_types']}")
 
 # Credits for a dataset drawn from several collections.
 cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [

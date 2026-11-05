@@ -31,7 +31,9 @@ Two exceptions, both explicit:
   ``license_url: TODO(attest)``, which the manifest gate refuses until someone
   attests the combined terms.
 - A row whose ``wall_to_wall`` is ``Presence-only`` gets ``presence_only: true``:
-  semantic masks mark unlabelled pixels unknown (3) instead of background.
+  semantic masks mark unlabelled pixels unknown (3) instead of background, and only
+  the semantic masks are built: instance and DECODE masks have no unknown value, so
+  they would label unlabelled fields as not-field.
 """
 from __future__ import annotations
 
@@ -59,11 +61,19 @@ DEFAULT_THUMBNAIL = {"style": "outline", "zoom": 13, "rank": 0}
 # Datasets whose input is built by a script from harmonized sources, not read as is.
 DERIVED = {
     "es_2025": {"script": "tools/merge_es_2025.py", "filter": "es_merged_filter.yaml",
-                "sources": ("es", "es_cb", "es_pv")},
+                "sources": ("es", "es_pv")},
     "es_po_2025": {"script": "tools/merge_es_2025.py", "filter": "es_merged_filter.yaml",
                    "sources": ("es",)},
 }
 PRESENCE_ONLY = "Presence-only"
+MASK_TYPES = ["instance", "semantic_2_class", "semantic_3_class", "decode_boundary", "decode_distance"]
+# Only these can mark a pixel unknown; the others would call unlabelled fields not-field.
+PRESENCE_ONLY_MASK_TYPES = ["semantic_2_class", "semantic_3_class"]
+
+
+def mask_types(presence_only: bool) -> str:
+    """The recipe's ``mask_types`` list, as YAML flow text."""
+    return "[" + ", ".join(PRESENCE_ONLY_MASK_TYPES if presence_only else MASK_TYPES) + "]"
 
 
 def fields_file(dataset_id: str, urls: dict[str, str]) -> str:
@@ -283,7 +293,7 @@ stages:
     split_percents: [80, 10, 10]
     random_seed: 42
   masks:
-    mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
+    mask_types: {mask_types(presence_only)}
     resolution: 10.0
     workers: null
     presence_only: {"true" if presence_only else "false"}

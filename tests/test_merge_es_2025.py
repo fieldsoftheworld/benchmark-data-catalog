@@ -68,19 +68,23 @@ def regional(id_, code, geom):
 
 with tempfile.TemporaryDirectory() as tmp:
     work = Path(tmp)
-    gx, gy = -4.0, 43.2  # Cantabria
+    # The merge's regions are arguments; this test merges two (es_cb as a stand-in second
+    # region beside es_pv) to cover border parcels. Their national parcels are in Asturias
+    # (33): Atlantic, and not a presence-only province.
+    gx, gy = -4.0, 43.2
     px, py = -2.5, 43.2  # País Vasco
-    # The national and Cantabrian inputs carry real PROJJSON, so DuckDB types their geometry
+    # The national and es_cb inputs carry real PROJJSON, so DuckDB types their geometry
     # GEOMETRY('EPSG:4258') and GEOMETRY('EPSG:4326') as it does for the published files.
     write(work / "es-2025.parquet", [
-        national("n1", "1", "39", box(gx, gy)),                  # wheat
-        national("n2", "62", "39", box(gx + 0.01, gy)),          # pasture, Atlantic
+        national("n1", "1", "33", box(gx, gy)),                  # wheat
+        national("n2", "62", "33", box(gx + 0.01, gy)),          # pasture, Atlantic
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
-        national("n5", "1", "39", box(gx + 0.03, gy)),           # on a regional border
+        national("n5", "1", "33", box(gx + 0.03, gy)),           # on a regional border
         national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: presence-only
         national("n7", "62", "27", box(-7.5, 43.0)),             # Galician pasture: same
         national("n8", "1", "41", box(-5.9, 37.4)),              # Sevilla: presence-only
+        national("n9", "1", "39", box(-4.0, 43.4)),              # Cantabria: presence-only
     ], crs=CRS("EPSG:4258").to_json_dict())
     write(work / "es_cb-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
@@ -126,8 +130,8 @@ with tempfile.TemporaryDirectory() as tmp:
         check(abs(dups[0][5] - (gx + 0.07)) < 1e-6, "the 'dup' parcel added is the free one")
     check(not any(r[7] == "flat" for r in raw), "a zero-area parcel is dropped")
     check(not any(r[7] == "tiny" for r in raw), "a gap parcel under 0.1 ha is dropped")
-    check(not any(r[7] in ("n6", "n7", "n8") for r in raw),
-          "national parcels in Galicia and Andalucía stay out of es_2025")
+    check(not any(r[7] in ("n6", "n7", "n8", "n9") for r in raw),
+          "national parcels in Galicia, Andalucía and Cantabria stay out of es_2025")
     # Keyed by source and source id; the 'dup' pair is checked above.
     rows = {f"{r[1]}:{r[7]}": r[1:7] for r in raw if r[7] != "dup"}
     expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_cb:r2", "es_cb:r3", "es_pv:p2"}
@@ -137,7 +141,7 @@ with tempfile.TemporaryDirectory() as tmp:
         check(rows["es:n1"][2] == "TA", f"n1 takes r1's land use, got {rows['es:n1'][2]}")
         check(rows["es:n3"][2] is None, "a national parcel no region overlaps has no land use")
         check(rows["es:n5"][2] == "OV", f"a border parcel takes the larger overlap, got {rows['es:n5'][2]}")
-        check(rows["es:n2"][3] == "es:62:atlantic", f"Cantabrian pasture, got {rows['es:n2'][3]}")
+        check(rows["es:n2"][3] == "es:62:atlantic", f"Asturian pasture, got {rows['es:n2'][3]}")
         check(rows["es:n3"][3] == "es:62", f"pasture outside the north, got {rows['es:n3'][3]}")
         check(rows["es:n4"][3] == "es:63:atlantic", f"Basque pasture, got {rows['es:n4'][3]}")
         check(rows["es:n1"][3] == "es:1", f"national class, got {rows['es:n1'][3]}")
@@ -155,18 +159,20 @@ with tempfile.TemporaryDirectory() as tmp:
     po_rows = {r[0]: r[1:] for r in con.execute(
         f"""SELECT source_id, "ftw:source", "ftw:class", "landuse:code" FROM read_parquet('{po}')"""
     ).fetchall()}
-    check(set(po_rows) == {"n6", "n7", "n8"},
+    check(set(po_rows) == {"n6", "n7", "n8", "n9"},
           f"es_po_2025 holds the presence-only provinces' national parcels only, got {sorted(po_rows)}")
-    if set(po_rows) == {"n6", "n7", "n8"}:
+    if set(po_rows) == {"n6", "n7", "n8", "n9"}:
         check(po_rows["n7"][1] == "es:62:atlantic", f"Galician pasture, got {po_rows['n7'][1]}")
         check(po_rows["n8"][1] == "es:1", f"national class, got {po_rows['n8'][1]}")
         check(all(r[0] == "es" and r[2] is None for r in po_rows.values()),
               "presence-only parcels are national, with no land use")
     po_geo = json.loads(pq.read_schema(po).metadata[b"geo"])
     check("covering" in po_geo["columns"]["geometry"], "es_po_2025 declares its bbox covering")
+    check(list(merge_es_2025.REGIONS) == ["es_pv"],
+          f"by default only País Vasco fills gaps (es_cb is not CC-BY), got {list(merge_es_2025.REGIONS)}")
     stats = json.loads((work / "merge_stats.json").read_text())
     cb = stats["es_cb"]
-    check(cb["gap_parcels"] == 3, f"three Cantabrian gaps, got {cb}")
+    check(cb["gap_parcels"] == 3, f"three es_cb gaps, got {cb}")
     check(cb["small_gaps_dropped"] == 1, f"one small gap dropped, got {cb}")
     check(cb["zero_area_dropped"] == 1, f"one flat parcel dropped, got {cb}")
 

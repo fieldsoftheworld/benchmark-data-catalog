@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
-from new_dataset import DERIVED  # noqa: E402
+from new_dataset import DERIVED, PRESENCE_ONLY_MASK_TYPES  # noqa: E402
 
 MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
@@ -153,8 +153,17 @@ for dataset_id in sorted(declared & recipes):
     # Every official collection publishes the same label set, so a model
     # trained on one country finds the same assets on the next. The DECODE
     # pair is part of it: their rasters become item assets like the rest.
-    mask_types = ((recipe.get("stages") or {}).get("masks") or {}).get("mask_types") or []
-    for required in REQUIRED_MASK_TYPES:
+    # Presence-only collections are the exception: only the semantic masks can
+    # mark a pixel unknown, so they publish those and nothing else.
+    masks = (recipe.get("stages") or {}).get("masks") or {}
+    mask_types = masks.get("mask_types") or []
+    required_types = REQUIRED_MASK_TYPES
+    if masks.get("presence_only"):
+        required_types = tuple(PRESENCE_ONLY_MASK_TYPES)
+        extra = sorted(set(mask_types) - set(required_types))
+        if extra:
+            err(f"datasets/{dataset_id}.yaml: presence-only, so no {extra} masks (they have no unknown value)")
+    for required in required_types:
         if required not in mask_types:
             err(
                 f"datasets/{dataset_id}.yaml: stages.masks.mask_types is missing {required!r} "
