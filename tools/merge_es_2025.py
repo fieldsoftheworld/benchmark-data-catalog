@@ -5,9 +5,10 @@
     uv run python tools/merge_es_2025.py <work_dir> --stats    # print the overlap numbers only
 
 The national edition (``es``, farmers' declarations, 385 crop codes) covers all of
-Spain but only declared land. Four regional editions (``es_an``, ``es_cb``,
-``es_cl``, ``es_pv``: SIGPAC land use, ~20 classes) cover every parcel in their
-regions. The union keeps every national parcel and adds a regional parcel only where
+Spain but only declared land. Two regional editions (``es_cb``, ``es_pv``: SIGPAC
+land use, ~20 classes) cover every parcel in Cantabria and País Vasco, where the
+national edition alone leaves about a quarter of the farmland unlabelled. The union
+keeps every national parcel and adds a regional parcel only where
 the national edition has nothing: less than ``OVERLAP_MAX`` of the regional parcel's
 area overlaps any national parcel, whatever its class, and the parcel is at least
 ``MIN_GAP_M2`` (smaller gap parcels are garden plots and edge slivers, not visible
@@ -18,6 +19,11 @@ its SIGPAC parcels are mostly micro-plots and overgrown plots under tree cover, 
 the national edition alone leaves about half its farmland unlabelled. The regional
 ``es_ga`` edition is excluded for the same reason.
 
+Andalucía (``es_an``) and Castilla y León (``es_cl``) keep their national parcels but
+get no gap parcels: the national edition already covers 86% and 94% of their farmland,
+and their gap parcels include strips along roads, canals and railways and patches in
+scrub (2026-11 visual review).
+
 Columns of the output (``<work_dir>/es_2025_merged.parquet``):
 
 - ``id``: unique. ``es:<national id>``, or ``<region>:<row in the regional file>``
@@ -27,7 +33,7 @@ Columns of the output (``<work_dir>/es_2025_merged.parquet``):
 - ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
   regional parcels.
 - ``landuse:code``, ``landuse:name_en``: SIGPAC land use. On regional parcels, their
-  own; on national parcels inside the four regions, the land use of the regional
+  own; on national parcels inside the two regions, the land use of the regional
   parcel they overlap most; NULL elsewhere.
 - ``admin_province_code``, ``metrics:area``, ``irrigation_system`` where the source has
   them.
@@ -57,9 +63,7 @@ YEAR = 2025
 NATIONAL = "es"
 # Regional collection -> the ftwd class filter its land-use codes follow.
 REGIONS = {
-    "es_an": "es_uso_filter.yaml",
     "es_cb": "es_uso_north_filter.yaml",
-    "es_cl": "es_uso_filter.yaml",
     "es_pv": "es_uso_north_filter.yaml",
 }
 # Galicia, Asturias, Cantabria, País Vasco: pasture parcels are hedge-bounded meadows.
