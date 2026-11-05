@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
-"""Merge Spain's national 2025 declarations with the regional SIGPAC 2025 parcels.
+"""Build the two Spain 2025 inputs from the national and regional SIGPAC 2025 parcels.
 
-    uv run python tools/merge_es_2025.py <work_dir>            # download, merge, write
-    uv run python tools/merge_es_2025.py <work_dir> --stats    # print the overlap numbers only
+    uv run python tools/merge_es_2025.py [work_dir]            # download, merge, write
+    uv run python tools/merge_es_2025.py [work_dir] --stats    # print the overlap numbers only
+
+``work_dir`` defaults to ``work/`` in the repository, where the recipes
+``datasets/es_2025.yaml`` and ``datasets/es_po_2025.yaml`` read their inputs.
+Spain 2025 is split in two by province:
+
+- ``es_2025.parquet`` (dataset ``es_2025``, wall-to-wall): national parcels outside
+  Andalucía, Castilla y León and Galicia, plus regional gap parcels in Cantabria and
+  País Vasco.
+- ``es_po_2025.parquet`` (dataset ``es_po_2025``, presence-only masks): national
+  parcels in Andalucía, Castilla y León and Galicia (``PRESENCE_ONLY_PROVINCES``), and
+  nothing else. Undeclared land there is not labelled, so it is unknown, not background.
 
 The national edition (``es``, farmers' declarations, 385 crop codes) covers all of
 Spain but only declared land. Two regional editions (``es_cb``, ``es_pv``: SIGPAC
@@ -14,17 +25,13 @@ area overlaps any national parcel, whatever its class, and the parcel is at leas
 ``MIN_GAP_M2`` (smaller gap parcels are garden plots and edge slivers, not visible
 fields at 10 m). Whole parcels are added or skipped, never cut.
 
-Galicia is left out entirely, national parcels included (``EXCLUDED_PROVINCES``):
-its SIGPAC parcels are mostly micro-plots and overgrown plots under tree cover, and
-the national edition alone leaves about half its farmland unlabelled. The regional
-``es_ga`` edition is excluded for the same reason.
+Andalucía, Castilla y León and Galicia get no gap parcels (2026-11 visual review):
+there they include strips along roads, canals and railways, patches in scrub, and in
+Galicia mostly micro-plots and overgrown plots under tree cover. Their national parcels
+alone leave too many visible fields unlabelled for wall-to-wall masks, so they go to
+the presence-only dataset.
 
-Andalucía (``es_an``) and Castilla y León (``es_cl``) keep their national parcels but
-get no gap parcels: the national edition already covers 86% and 94% of their farmland,
-and their gap parcels include strips along roads, canals and railways and patches in
-scrub (2026-11 visual review).
-
-Columns of the output (``<work_dir>/es_2025_merged.parquet``):
+Columns of both outputs:
 
 - ``id``: unique. ``es:<national id>``, or ``<region>:<row in the regional file>``
   because regional ids repeat (es_pv reuses one id for up to 143 parcels).
@@ -72,8 +79,13 @@ PASTURE = ("62", "63")
 OVERLAP_MAX = 0.10
 # Smallest regional parcel added as a gap: 0.1 ha, about ten Sentinel-2 pixels.
 MIN_GAP_M2 = 1000.0
-# Galicia (A Coruña, Lugo, Ourense, Pontevedra): dropped from the union.
-EXCLUDED_PROVINCES = ("15", "27", "32", "36")
+# Andalucía, Castilla y León, Galicia: national parcels only, presence-only masks.
+PRESENCE_ONLY_PROVINCES = (
+    "04", "11", "14", "18", "21", "23", "29", "41",
+    "05", "09", "24", "34", "37", "40", "42", "47", "49",
+    "15", "27", "32", "36",
+)
+OUTPUTS = {"es_2025": "es_2025.parquet", "es_po_2025": "es_po_2025.parquet"}
 # Metric CRS for areas (UTM 30N covers mainland Spain; ratios only).
 METRIC = "EPSG:25830"
 
@@ -145,7 +157,6 @@ def _lonlat(geom: str, crs: str) -> str:
 
 def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     crs = geo_crs(con, path)
-    excluded = ", ".join(f"'{p}'" for p in EXCLUDED_PROVINCES)
     atlantic = ", ".join(f"'{p}'" for p in ATLANTIC)
     pasture = ", ".join(f"'{c}'" for c in PASTURE)
     con.execute(
@@ -159,9 +170,7 @@ def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
                         ELSE 'es:' || CAST("crop:code" AS VARCHAR) END AS ftw_class,
                    {_lonlat("geometry", crs)} AS geom,
                    {_metric("geometry", crs)} AS g
-            FROM read_parquet('{path}')
-            WHERE geometry IS NOT NULL
-              AND coalesce(admin_province_code, '') NOT IN ({excluded})"""
+            FROM read_parquet('{path}') WHERE geometry IS NOT NULL"""
     )
 
 
@@ -256,27 +265,32 @@ def classify_region(con: duckdb.DuckDBPyConnection, hid: str) -> dict[str, float
     }
 
 
-def write_merged(con: duckdb.DuckDBPyConnection, out: Path) -> int:
-    """National parcels (with land use where known) plus the gap parcels, in lon/lat."""
+def _national_sql(where: str) -> str:
+    """National parcels matching ``where`` (on ``n``), with land use where known."""
+    return f"""
+        SELECT n.id, n.source_id, 'es' AS "ftw:source", n.crop_code AS "crop:code",
+               n.hcat_code AS "hcat:code", n.hcat_name_en AS "hcat:name_en",
+               l.landuse.code AS "landuse:code", l.landuse.name AS "landuse:name_en",
+               n.admin_province_code, n.area AS "metrics:area", n.irrigation_system,
+               n.ftw_class AS "ftw:class", n.geom AS geometry
+        FROM nat n LEFT JOIN (
+            -- A parcel on a regional border has a row per region: keep the larger overlap.
+            SELECT nid, arg_max(landuse, shared) AS landuse FROM nat_landuse GROUP BY nid
+        ) l ON l.nid = n.id
+        WHERE {where}"""
+
+
+GAPS_SQL = """
+        SELECT g.id, g.source_id, g.source AS "ftw:source", g.landuse_code AS "landuse:code",
+               g.landuse_name_en AS "landuse:name_en", g.admin_province_code,
+               g.area AS "metrics:area", g.ftw_class AS "ftw:class", g.geom AS geometry
+        FROM gaps g"""
+
+
+def _write(con: duckdb.DuckDBPyConnection, query: str, out: Path) -> int:
+    """Write ``query`` as lon/lat GeoParquet with a bbox covering column."""
     tmp = out.with_suffix(".tmp.parquet")
-    con.execute(
-        f"""COPY (
-            SELECT n.id, n.source_id, 'es' AS "ftw:source", n.crop_code AS "crop:code",
-                   n.hcat_code AS "hcat:code", n.hcat_name_en AS "hcat:name_en",
-                   l.landuse.code AS "landuse:code", l.landuse.name AS "landuse:name_en",
-                   n.admin_province_code, n.area AS "metrics:area", n.irrigation_system,
-                   n.ftw_class AS "ftw:class", n.geom AS geometry
-            FROM nat n LEFT JOIN (
-                -- A parcel on a regional border has a row per region: keep the larger overlap.
-                SELECT nid, arg_max(landuse, shared) AS landuse FROM nat_landuse GROUP BY nid
-            ) l ON l.nid = n.id
-            UNION ALL BY NAME
-            SELECT g.id, g.source_id, g.source AS "ftw:source", g.landuse_code AS "landuse:code",
-                   g.landuse_name_en AS "landuse:name_en", g.admin_province_code,
-                   g.area AS "metrics:area", g.ftw_class AS "ftw:class", g.geom AS geometry
-            FROM gaps g
-        ) TO '{tmp}' (FORMAT parquet, COMPRESSION zstd)"""
-    )
+    con.execute(f"COPY ({query}) TO '{tmp}' (FORMAT parquet, COMPRESSION zstd)")
     import geoparquet_io as gpio
 
     gpio.read(str(tmp)).add_bbox().write(str(out))
@@ -284,9 +298,20 @@ def write_merged(con: duckdb.DuckDBPyConnection, out: Path) -> int:
     return con.execute(f"SELECT count(*) FROM read_parquet('{out}')").fetchone()[0]
 
 
+def write_outputs(con: duckdb.DuckDBPyConnection, work_dir: Path) -> dict[str, int]:
+    """Write both datasets' inputs; returns parcels written per dataset."""
+    po = ", ".join(f"'{p}'" for p in PRESENCE_ONLY_PROVINCES)
+    in_po = f"coalesce(n.admin_province_code, '') IN ({po})"
+    queries = {
+        "es_2025": _national_sql(f"NOT {in_po}") + "\n        UNION ALL BY NAME" + GAPS_SQL,
+        "es_po_2025": _national_sql(in_po),
+    }
+    return {name: _write(con, queries[name], work_dir / OUTPUTS[name]) for name in OUTPUTS}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("work_dir", type=Path)
+    parser.add_argument("work_dir", type=Path, nargs="?", default=Path(__file__).resolve().parent.parent / "work")
     parser.add_argument("--stats", action="store_true", help="print overlap numbers only")
     parser.add_argument("--threads", type=int, default=None)
     parser.add_argument("--regions", nargs="*", default=list(REGIONS))
@@ -317,8 +342,8 @@ def main(argv: list[str] | None = None) -> int:
     (args.work_dir / "merge_stats.json").write_text(json.dumps(stats, indent=1))
     if args.stats:
         return 0
-    n = write_merged(con, args.work_dir / "es_2025_merged.parquet")
-    print(f"wrote es_2025_merged.parquet: {n:,} parcels ({time.time() - t0:.0f}s)")
+    for name, n in write_outputs(con, args.work_dir).items():
+        print(f"wrote {OUTPUTS[name]}: {n:,} parcels ({time.time() - t0:.0f}s)")
     return 0
 
 

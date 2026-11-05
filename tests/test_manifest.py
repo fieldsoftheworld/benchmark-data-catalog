@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
+from new_dataset import DERIVED  # noqa: E402
 
 MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
@@ -120,7 +121,12 @@ for dataset_id in sorted(declared & recipes):
     if recipe.get("name") != dataset_id:
         err(f"datasets/{dataset_id}.yaml: name must be '{dataset_id}', got {recipe.get('name')!r}")
     fields_file = str(recipe.get("fields_file") or "")
-    if not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
+    if dataset_id in DERIVED:
+        # Built by a script in tools/ from harmonized sources (see tools/new_dataset.py).
+        if fields_file != f"work/{dataset_id}.parquet" or not (ROOT / DERIVED[dataset_id]).exists():
+            err(f"datasets/{dataset_id}.yaml: a derived input must be work/{dataset_id}.parquet "
+                f"built by {DERIVED[dataset_id]}")
+    elif not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
         err(f"datasets/{dataset_id}.yaml: fields_file must be a harmonized-field-data URL")
     expected_out = f"{STAGING.relative_to(ROOT)}/{dataset_id}"
     out = str(recipe.get("output_dir") or "")

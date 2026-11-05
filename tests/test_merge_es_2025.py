@@ -4,9 +4,9 @@
 tools/merge_es_2025.py keeps every national parcel and adds a regional parcel only
 when less than 10% of its area overlaps a national one. This gate runs the real
 script on small synthetic inputs (one region in lon/lat, one in UTM metres) and
-checks which parcels end up in the output, their classes, their land use, that Galicia
-and gap parcels under 0.1 ha are left out, and that the output is lon/lat GeoParquet
-with a bbox column.
+checks which parcels end up in each of the two outputs (es_2025 and the presence-only
+es_po_2025), their classes and land use, that gap parcels under 0.1 ha are left out, and
+that the outputs are lon/lat GeoParquet with a bbox column.
 
 No network: the inputs sit where the script would download them.
 
@@ -78,7 +78,9 @@ with tempfile.TemporaryDirectory() as tmp:
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
         national("n5", "1", "39", box(gx + 0.03, gy)),           # on a regional border
-        national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: dropped
+        national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: presence-only
+        national("n7", "62", "27", box(-7.5, 43.0)),             # Galician pasture: same
+        national("n8", "1", "41", box(-5.9, 37.4)),              # Sevilla: presence-only
     ], crs=CRS("EPSG:4258").to_json_dict())
     write(work / "es_cb-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
@@ -108,7 +110,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     status = merge_es_2025.main([str(work), "--regions", "es_cb", "es_pv", "--threads", "2"])
     check(status == 0, f"merge exits 0, got {status}")
-    out = work / "es_2025_merged.parquet"
+    out = work / "es_2025.parquet"
     con = duckdb.connect()
     con.load_extension("spatial")
     raw = con.execute(
@@ -124,7 +126,8 @@ with tempfile.TemporaryDirectory() as tmp:
         check(abs(dups[0][5] - (gx + 0.07)) < 1e-6, "the 'dup' parcel added is the free one")
     check(not any(r[7] == "flat" for r in raw), "a zero-area parcel is dropped")
     check(not any(r[7] == "tiny" for r in raw), "a gap parcel under 0.1 ha is dropped")
-    check(not any(r[7] == "n6" for r in raw), "a Galician national parcel is dropped")
+    check(not any(r[7] in ("n6", "n7", "n8") for r in raw),
+          "national parcels in Galicia and Andalucía stay out of es_2025")
     # Keyed by source and source id; the 'dup' pair is checked above.
     rows = {f"{r[1]}:{r[7]}": r[1:7] for r in raw if r[7] != "dup"}
     expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_cb:r2", "es_cb:r3", "es_pv:p2"}
@@ -148,6 +151,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check("covering" in geo["columns"]["geometry"], "the output declares its bbox covering")
     crs = geo["columns"]["geometry"].get("crs")
     check(crs is None, f"the output carries no CRS label (default lon/lat), got {crs}")
+    po = work / "es_po_2025.parquet"
+    po_rows = {r[0]: r[1:] for r in con.execute(
+        f"""SELECT source_id, "ftw:source", "ftw:class", "landuse:code" FROM read_parquet('{po}')"""
+    ).fetchall()}
+    check(set(po_rows) == {"n6", "n7", "n8"},
+          f"es_po_2025 holds the presence-only provinces' national parcels only, got {sorted(po_rows)}")
+    if set(po_rows) == {"n6", "n7", "n8"}:
+        check(po_rows["n7"][1] == "es:62:atlantic", f"Galician pasture, got {po_rows['n7'][1]}")
+        check(po_rows["n8"][1] == "es:1", f"national class, got {po_rows['n8'][1]}")
+        check(all(r[0] == "es" and r[2] is None for r in po_rows.values()),
+              "presence-only parcels are national, with no land use")
+    po_geo = json.loads(pq.read_schema(po).metadata[b"geo"])
+    check("covering" in po_geo["columns"]["geometry"], "es_po_2025 declares its bbox covering")
     stats = json.loads((work / "merge_stats.json").read_text())
     cb = stats["es_cb"]
     check(cb["gap_parcels"] == 3, f"three Cantabrian gaps, got {cb}")
@@ -157,4 +173,4 @@ with tempfile.TemporaryDirectory() as tmp:
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
-print("OK: the Spain union keeps national parcels and fills only the gaps")
+print("OK: Spain 2025 splits into es_2025 (with gaps) and presence-only es_po_2025")

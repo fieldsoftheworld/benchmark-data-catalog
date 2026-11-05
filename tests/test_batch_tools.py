@@ -140,6 +140,17 @@ select = recipe["stages"]["select_images"]
 check(select["imagery_mode"] == "mosaics", f"scenes+mosaics builds the released mosaics: {select}")
 check(select["nodata_max"] == 100.0, "mosaics keep their gaps")
 check(recipe["stages"]["download_images"]["mode"] == "clip", "imagery is clipped onto the mask grid")
+check(recipe["fields_file"] == urls["parquet"], "an ordinary dataset reads the harmonized parquet")
+check(recipe["stages"]["masks"]["presence_only"] is False, "wall-to-wall by default")
+
+# A derived dataset reads the script's output; a Presence-only row gets presence-only masks.
+es_row = {**ROW, "dataset_id": "es_po_2025", "harmonized_id": "es", "year": "2025",
+          "wall_to_wall": new_dataset.PRESENCE_ONLY}
+es_urls = new_dataset.source_urls(es_row)
+derived = yaml.safe_load(new_dataset.recipe_text("es_po_2025", es_row, COLLECTION, es_urls, "9.9.9"))
+check(derived["fields_file"] == "work/es_po_2025.parquet", f"derived input: {derived['fields_file']}")
+check(derived["source_via"] == es_urls["collection"], "a derived dataset still names its collection")
+check(derived["stages"]["masks"]["presence_only"] is True, "Presence-only row: presence_only true")
 
 try:
     new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes"}, COLLECTION, urls, "9.9.9")
