@@ -15,8 +15,8 @@ so a diff shows only what changed.
   (e.g. no quarterly mosaics for that year).
 - ``discuss`` / ``exclude``: not built until someone decides otherwise.
 
-``imagery`` is ``scenes+mosaics`` (2018-2025 except 2023, whose Q2 mosaic is
-missing), ``scenes`` (2015-2017, 2023, 2026) or ``none`` (before 2015): the
+``imagery`` is ``scenes+mosaics`` (2017-2025), ``scenes`` (2015, 2016 and 2026,
+which have no quarterly mosaic indexes) or ``none`` (before 2015): the
 imagery that exists for the year. ``mosaics`` builds only the quarterly mosaics
 of a ``scenes+mosaics`` year, for releases that leave the scenes out.
 """
