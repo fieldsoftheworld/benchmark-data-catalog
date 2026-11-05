@@ -383,25 +383,18 @@ def pending_data(
     config: dict[str, str],
     index: dict[str, tuple[int, str]],
     root: Path = ROOT,
-    only: set[str] | None = None,
 ) -> dict[str, int]:
     """Collections in the published directory with staged data not yet in the bucket.
 
     Keyed by dataset id, valued by how many data files are missing or differ.
     Publishing a collection whose data is not there yet would put links to
-    missing objects live (and, for a new collection, its row in the root tables),
-    so ``main`` refuses while any are pending: run ``upload_data.py`` first.
-
-    ``only`` limits the check to those collections: ``main`` passes the ones this
-    publish changes. A collection whose published files are all unchanged puts
-    nothing new live, so a rebuild staging beside it does not hold up the others.
+    missing objects live (and, for a new collection, its row in the root tables).
+    ``split_pending`` decides which of these block a publish.
     """
     # Imported here: upload_data imports this module.
     from upload_data import collect_data_uploads
 
     ids = {p.parent.name for p in (root / config["publish_dir"]).glob("*/collection.json")}
-    if only is not None:
-        ids &= only
     if not ids:
         return {}
     pending: dict[str, int] = {}
@@ -419,13 +412,41 @@ def pending_data(
     return pending
 
 
-def changed_collections(
-    changed: list[Upload], config: dict[str, str], root: Path = ROOT
-) -> set[str]:
-    """The collections (top-level directories of publish_dir) that ``changed`` touches."""
+def collections_to_check(
+    uploads: list[Upload],
+    listing: dict[str, tuple[int, str]],
+    config: dict[str, str],
+    root: Path = ROOT,
+) -> set[str] | None:
+    """The collections whose data must be in the bucket before this publish; None for all.
+
+    A collection whose published files all match the bucket puts nothing new live,
+    so a rebuild staging beside it does not hold up the others. The root files are
+    the exception: catalogize measures every collection's row in the root tables
+    from its staging, so when any root file changes, every collection is checked.
+    Compared against the bucket listing, not the upload list, so --force (which
+    re-uploads everything) checks the same collections as a normal publish.
+    """
     base = root / config["publish_dir"]
-    parts = (u.local.relative_to(base).parts for u in changed)
-    return {p[0] for p in parts if len(p) > 1}
+    parts = [u.local.relative_to(base).parts for u in uploads if not is_unchanged(u, listing)]
+    if any(len(p) == 1 for p in parts):
+        return None
+    return {p[0] for p in parts}
+
+
+def split_pending(
+    uploads: list[Upload],
+    listing: dict[str, tuple[int, str]],
+    config: dict[str, str],
+    root: Path = ROOT,
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Pending data as (blocking this publish, in collections this publish leaves alone)."""
+    pending = pending_data(config, listing, root)
+    only = collections_to_check(uploads, listing, config, root)
+    if only is None:
+        return pending, {}
+    blocking = {k: v for k, v in pending.items() if k in only}
+    return blocking, {k: v for k, v in pending.items() if k not in only}
 
 
 def data_root(config: dict[str, str], root: Path = ROOT) -> Path:
@@ -494,7 +515,15 @@ def main() -> int:
         print("cannot list the bucket, so cannot confirm the data is uploaded; not publishing",
               file=sys.stderr)
         return 1
-    pending = pending_data(config, listing, only=changed_collections(changed, config))
+    pending, unchanged_pending = split_pending(uploads, listing, config)
+    if pending and collections_to_check(uploads, listing, config) is None:
+        print("\na root file changed, and the root tables are measured from staging, so every "
+              "collection's data is checked", file=sys.stderr)
+    if unchanged_pending:
+        print("\nnot checked (this publish leaves their catalog as it is), data not all in the "
+              "bucket:", file=sys.stderr)
+        for dataset_id, count in sorted(unchanged_pending.items()):
+            print(f"  {dataset_id}: {count} file(s)", file=sys.stderr)
     if pending:
         print("\nnot publishing: these collections' data is not all uploaded yet:",
               file=sys.stderr)

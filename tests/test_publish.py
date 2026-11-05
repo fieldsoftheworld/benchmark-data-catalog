@@ -382,30 +382,67 @@ with tempfile.TemporaryDirectory() as tmp:
     check(pending_data(cfg, listing, root) == {"dd_2024": 1}, "no staging and no mirror: pending")
     listing["pre/dd_2024/items.parquet"] = (1, "x")
     check(pending_data(cfg, listing, root) == {}, "staging pruned after upload: fine")
-    # A collection this publish leaves unchanged is not checked: its rebuild may be
-    # staging new data while the published copy (already live) stays as it is.
-    write(root / "staging/aa_2024/chips/y/rebuilt_q1_image_s2.tif", "new")
-    check(pending_data(cfg, listing, root) == {"aa_2024": 1}, "aa_2024's rebuild is pending")
-    check(pending_data(cfg, listing, root, only={"bb_2024", "dd_2024"}) == {},
-          "aa_2024 unchanged in this publish: its staging is not checked")
-    check(pending_data(cfg, listing, root, only={"aa_2024"}) == {"aa_2024": 1},
-          "aa_2024 changed in this publish: its staging is checked")
 
-from publish import changed_collections  # noqa: E402
+from publish import collections_to_check, split_pending  # noqa: E402
+
+
+def uploaded(listing: dict, upload: Upload) -> None:
+    """Put ``upload`` in the bucket listing, byte for byte."""
+    data = upload.local.read_bytes()
+    listing[upload.key] = (len(data), hashlib.md5(data).hexdigest())
+
 
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
-    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog"}
-    touched = [
-        Upload(root / "catalog/catalog.json", "pre/catalog.json", "application/json"),
-        Upload(root / "catalog/aa_2024/collection.json", "pre/aa_2024/collection.json",
-               "application/json"),
-        Upload(root / "catalog/bb_2024/chips/x/c.json", "pre/bb_2024/chips/x/c.json",
-               "application/json"),
-    ]
-    check(changed_collections(touched, cfg, root) == {"aa_2024", "bb_2024"},
-          "changed collections are the top-level directories touched; root files are not one")
-    check(changed_collections([], cfg, root) == set(), "nothing changed: no collections")
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
+           "data_dir": "staging"}
+
+    def up(rel: str, body: str = "{}") -> Upload:
+        return Upload(write(root / "catalog" / rel, body), f"pre/{rel}", "application/json")
+
+    root_json = up("catalog.json")
+    aa = up("aa_2024/collection.json")
+    bb_chip = up("bb_2024/chips/x/c.json")
+    asset = up("_assets/logo.json")
+    uploads = [root_json, aa, bb_chip, asset]
+    listing: dict = {}
+    for u in uploads:
+        uploaded(listing, u)
+    check(collections_to_check(uploads, listing, cfg, root) == set(),
+          "nothing differs from the bucket: no collections to check")
+    write(root / "catalog/bb_2024/chips/x/c.json", '{"new": 1}')
+    write(root / "catalog/_assets/logo.json", '{"new": 1}')
+    check(collections_to_check(uploads, listing, cfg, root) == {"bb_2024", "_assets"},
+          "the top-level directories that differ are checked")
+    write(root / "catalog/catalog.json", '{"new": 1}')
+    check(collections_to_check(uploads, listing, cfg, root) is None,
+          "a changed root file checks every collection: root tables come from staging")
+    write(root / "catalog/catalog.json", "{}")
+    readme = up("README.md", "# old")
+    uploaded(listing, readme)
+    write(root / "catalog/README.md", "# new row")
+    check(collections_to_check([*uploads, readme], listing, cfg, root) is None,
+          "a changed root README checks every collection too")
+
+    # split_pending, the check main() runs: aa_2024 is rebuilding in staging while
+    # bb_2024 (fully uploaded) is what this publish changes.
+    write(root / "catalog/bb_2024/collection.json")
+    write(root / "catalog/catalog.json", "{}")
+    write(root / "catalog/_assets/logo.json", "{}")
+    bb_data = write(root / "staging/bb_2024/items.parquet", "bbbb")
+    listing["pre/bb_2024/items.parquet"] = (4, hashlib.md5(bb_data.read_bytes()).hexdigest())
+    write(root / "staging/aa_2024/items.parquet", "rebuilt")
+    blocking, other = split_pending(uploads, listing, cfg, root)
+    check(blocking == {} and other == {"aa_2024": 1},
+          f"aa_2024's rebuild does not block bb_2024's publish but is reported, got {blocking}, {other}")
+    write(root / "catalog/catalog.json", '{"new": 2}')
+    blocking, other = split_pending(uploads, listing, cfg, root)
+    check(blocking == {"aa_2024": 1} and other == {},
+          f"a root change publishes aa_2024's staged row, so it blocks, got {blocking}, {other}")
+    write(root / "catalog/catalog.json", "{}")
+    write(root / "catalog/aa_2024/collection.json", '{"rebuilt": 1}')
+    blocking, other = split_pending(uploads, listing, cfg, root)
+    check(blocking == {"aa_2024": 1}, f"aa_2024's own catalog changes: it blocks, got {blocking}")
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
