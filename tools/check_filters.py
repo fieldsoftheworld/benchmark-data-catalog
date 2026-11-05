@@ -11,7 +11,8 @@ ones ``ftwd run`` would fail on hours into a build. Writes the outcome into
 ``tracking.csv``'s ``issues`` column (cleared when the row passes), which
 ``run_batch.py --next`` skips:
 
-- ``no source``: the year's parquet is not published.
+- ``no source``: the year's parquet is not published (for a ``DERIVED`` dataset:
+  its ``work/<id>.parquet`` has not been built yet).
 - ``no filter``: the row names no class filter (``none`` means none is needed).
 - ``filter column missing``: none of the filter's columns are in the data.
 - ``filter gap: <codes>``: classes in the data the filter neither includes
@@ -30,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import tracking  # noqa: E402
 from common import ROOT  # noqa: E402
-from new_dataset import source_urls  # noqa: E402
+from new_dataset import fields_file, source_urls  # noqa: E402
 
 PREFLIGHT_PREFIXES = ("no source", "no filter", "filter column missing", "filter gap")
 
@@ -39,7 +40,10 @@ def check_row(con, row: dict[str, str], filters: list[Path]) -> str:
     """The row's issue, or "" when it is ready to build."""
     from ftw_dataset_tools.api.config import ClassFilter, ClassFilterError
 
-    url = source_urls(row)["parquet"]
+    # The recipe's own input: a derived dataset's local work/<id>.parquet, else the year parquet.
+    url = fields_file(row["dataset_id"], source_urls(row))
+    if not url.startswith("https://"):
+        url = str(ROOT / url)
     try:
         cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()]
     except Exception:  # noqa: BLE001 - duckdb raises a family of IO errors here

@@ -152,6 +152,23 @@ check(derived["fields_file"] == "work/es_po_2025.parquet", f"derived input: {der
 check(derived["source_via"] == es_urls["collection"], "a derived dataset still names its collection")
 check(derived["stages"]["masks"]["presence_only"] is True, "Presence-only row: presence_only true")
 
+# Credits for a dataset drawn from several collections.
+cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [
+    {"name": "Nat", "roles": ["producer"]}, {"name": "Fields of the World", "roles": ["host"]}]}
+cc_region = {"license": "CC-BY-4.0", "attribution": "Reg", "providers": [
+    {"name": "Reg", "roles": ["producer"]}, {"name": "Fields of the World", "roles": ["host"]}]}
+own_terms = {"license": "other", "attribution": "Own", "providers": [{"name": "Own", "roles": ["producer"]}],
+             "links": [{"rel": "license", "href": "https://own.example/terms"}]}
+same = new_dataset.combined_collection([{**cc_open, "links": COLLECTION["links"]}, cc_region])
+check(same["license"] == "CC-BY-4.0", f"one shared license is kept: {same['license']}")
+check(same["attribution"] == "Nat; Reg", f"attributions are joined: {same['attribution']}")
+check([p["name"] for p in same["providers"]] == ["Nat", "Fields of the World", "Reg"],
+      f"providers listed once each: {same['providers']}")
+check(same["links"] == COLLECTION["links"], "the first collection's item links are kept")
+mixed = new_dataset.combined_collection([cc_open, own_terms])
+check(mixed["license"] == "other" and "TODO(attest)" in new_dataset.license_lines(mixed),
+      f"differing licenses need attesting: {new_dataset.license_lines(mixed)!r}")
+
 try:
     new_dataset.recipe_text("xx_2022", {**ROW, "imagery": "scenes"}, COLLECTION, urls, "9.9.9")
     errors.append("a scenes-only year gets a recipe though scenes are not released")

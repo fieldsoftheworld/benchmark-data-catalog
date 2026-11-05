@@ -25,7 +25,11 @@ Two exceptions, both explicit:
 
 - A dataset in ``DERIVED`` reads ``work/<id>.parquet``, which the named script
   builds from harmonized sources (run it before building). ``source_via`` still
-  names the harmonized collection of the row.
+  names the harmonized collection of the row. Its row must name the entry's
+  filter, and the providers and attribution of every collection it draws on are
+  credited. When their licenses differ the recipe says ``other`` with
+  ``license_url: TODO(attest)``, which the manifest gate refuses until someone
+  attests the combined terms.
 - A row whose ``wall_to_wall`` is ``Presence-only`` gets ``presence_only: true``:
   semantic masks mark unlabelled pixels unknown (3) instead of background.
 """
@@ -54,8 +58,10 @@ FTW_PROVIDER = {
 DEFAULT_THUMBNAIL = {"style": "outline", "zoom": 13, "rank": 0}
 # Datasets whose input is built by a script from harmonized sources, not read as is.
 DERIVED = {
-    "es_2025": "tools/merge_es_2025.py",
-    "es_po_2025": "tools/merge_es_2025.py",
+    "es_2025": {"script": "tools/merge_es_2025.py", "filter": "es_merged_filter.yaml",
+                "sources": ("es", "es_cb", "es_pv")},
+    "es_po_2025": {"script": "tools/merge_es_2025.py", "filter": "es_merged_filter.yaml",
+                   "sources": ("es",)},
 }
 PRESENCE_ONLY = "Presence-only"
 
@@ -63,6 +69,35 @@ PRESENCE_ONLY = "Presence-only"
 def fields_file(dataset_id: str, urls: dict[str, str]) -> str:
     """The recipe's input: the derived file for ``DERIVED`` datasets, else the year parquet."""
     return f"work/{dataset_id}.parquet" if dataset_id in DERIVED else urls["parquet"]
+
+
+def combined_collection(collections: list[dict]) -> dict:
+    """One collection's worth of credits for a dataset drawn from several.
+
+    Providers are listed once each in source order; attributions are joined. The
+    first collection's links (item titles) are kept; its license link only when
+    every source shares the license, else the license is ``other`` and unattested.
+    """
+    first = collections[0]
+    seen, provs = set(), []
+    for c in collections:
+        for p in c.get("providers", []):
+            if p.get("name") not in seen:
+                seen.add(p.get("name"))
+                provs.append(p)
+    licenses = {c.get("license") for c in collections}
+    links = [link for link in first.get("links", []) if link.get("rel") != "license"]
+    same = len(licenses) == 1
+    if same:
+        links += [link for link in first.get("links", []) if link.get("rel") == "license"]
+    attributions = [attribution(c) for c in collections]
+    return {
+        **first,
+        "license": first.get("license") if same else "other",
+        "providers": provs,
+        "attribution": "; ".join(dict.fromkeys(attributions)),
+        "links": links,
+    }
 
 
 def _open(url: str):
@@ -212,7 +247,7 @@ def recipe_text(
     keywords = ["field-boundaries", "benchmark", tracking.source_stem(row), str(year)]
     presence_only = row.get("wall_to_wall") == PRESENCE_ONLY
     if dataset_id in DERIVED:
-        source = (f"Input is derived from harmonized collections by {DERIVED[dataset_id]};\n"
+        source = (f"Input is derived from harmonized collections by {DERIVED[dataset_id]['script']};\n"
                   f"# run it before building.")
     else:
         source = "Input is one year of the harmonized (fiboa) collection."
@@ -291,6 +326,13 @@ def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = Fal
     urls = source_urls(row)
     collection = fetch_json(urls["collection"])
     fetch_json(urls["item"])  # fails loudly when the year was never published
+    if derived := DERIVED.get(dataset_id):
+        if tracking.filter_file(row) != derived["filter"]:
+            sys.exit(f"{dataset_id}: tracking.csv filter must be {derived['filter']}, "
+                     f"got {tracking.filter_file(row)!r}")
+        extra = [fetch_json(f"{HARMONIZED}/{hid}/collection.json")
+                 for hid in derived["sources"] if hid != row["harmonized_id"]]
+        collection = combined_collection([collection, *extra])
     manifest = load_manifest()
     version = manifest["catalog"]["version"]
 

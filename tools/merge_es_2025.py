@@ -40,8 +40,10 @@ Columns of both outputs:
 - ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
   regional parcels.
 - ``landuse:code``, ``landuse:name_en``: SIGPAC land use. On regional parcels, their
-  own; on national parcels inside the two regions, the land use of the regional
-  parcel they overlap most; NULL elsewhere.
+  own; on national parcels that overlap a Cantabria or País Vasco parcel, the land use
+  of the regional parcel they overlap most (a few of these lie just across the border,
+  in es_po_2025); NULL elsewhere. National parcels on both sides of the split take part
+  in the overlap test, so a regional parcel over one is never added as a gap.
 - ``admin_province_code``, ``metrics:area``, ``irrigation_system`` where the source has
   them.
 - ``ftw:class``: the value the class filter reads (``es_merged_filter.yaml`` in ftwd).

@@ -123,9 +123,13 @@ for dataset_id in sorted(declared & recipes):
     fields_file = str(recipe.get("fields_file") or "")
     if dataset_id in DERIVED:
         # Built by a script in tools/ from harmonized sources (see tools/new_dataset.py).
-        if fields_file != f"work/{dataset_id}.parquet" or not (ROOT / DERIVED[dataset_id]).exists():
+        derived = DERIVED[dataset_id]
+        if fields_file != f"work/{dataset_id}.parquet" or not (ROOT / derived["script"]).exists():
             err(f"datasets/{dataset_id}.yaml: a derived input must be work/{dataset_id}.parquet "
-                f"built by {DERIVED[dataset_id]}")
+                f"built by {derived['script']}")
+        class_filter = ((recipe.get("stages") or {}).get("masks") or {}).get("class_filter")
+        if class_filter != f"filters/{derived['filter']}":
+            err(f"datasets/{dataset_id}.yaml: class_filter must be filters/{derived['filter']}")
     elif not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
         err(f"datasets/{dataset_id}.yaml: fields_file must be a harmonized-field-data URL")
     expected_out = f"{STAGING.relative_to(ROOT)}/{dataset_id}"
