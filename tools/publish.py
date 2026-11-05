@@ -380,7 +380,10 @@ def upload_all(
 
 
 def pending_data(
-    config: dict[str, str], index: dict[str, tuple[int, str]], root: Path = ROOT
+    config: dict[str, str],
+    index: dict[str, tuple[int, str]],
+    root: Path = ROOT,
+    only: set[str] | None = None,
 ) -> dict[str, int]:
     """Collections in the published directory with staged data not yet in the bucket.
 
@@ -388,11 +391,17 @@ def pending_data(
     Publishing a collection whose data is not there yet would put links to
     missing objects live (and, for a new collection, its row in the root tables),
     so ``main`` refuses while any are pending: run ``upload_data.py`` first.
+
+    ``only`` limits the check to those collections: ``main`` passes the ones this
+    publish changes. A collection whose published files are all unchanged puts
+    nothing new live, so a rebuild staging beside it does not hold up the others.
     """
     # Imported here: upload_data imports this module.
     from upload_data import collect_data_uploads
 
     ids = {p.parent.name for p in (root / config["publish_dir"]).glob("*/collection.json")}
+    if only is not None:
+        ids &= only
     if not ids:
         return {}
     pending: dict[str, int] = {}
@@ -408,6 +417,15 @@ def pending_data(
             dataset_id = upload.local.relative_to(data_root(config, root)).parts[0]
             pending[dataset_id] = pending.get(dataset_id, 0) + 1
     return pending
+
+
+def changed_collections(
+    changed: list[Upload], config: dict[str, str], root: Path = ROOT
+) -> set[str]:
+    """The collections (top-level directories of publish_dir) that ``changed`` touches."""
+    base = root / config["publish_dir"]
+    parts = (u.local.relative_to(base).parts for u in changed)
+    return {p[0] for p in parts if len(p) > 1}
 
 
 def data_root(config: dict[str, str], root: Path = ROOT) -> Path:
@@ -476,7 +494,7 @@ def main() -> int:
         print("cannot list the bucket, so cannot confirm the data is uploaded; not publishing",
               file=sys.stderr)
         return 1
-    pending = pending_data(config, listing)
+    pending = pending_data(config, listing, only=changed_collections(changed, config))
     if pending:
         print("\nnot publishing: these collections' data is not all uploaded yet:",
               file=sys.stderr)

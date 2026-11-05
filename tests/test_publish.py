@@ -382,6 +382,30 @@ with tempfile.TemporaryDirectory() as tmp:
     check(pending_data(cfg, listing, root) == {"dd_2024": 1}, "no staging and no mirror: pending")
     listing["pre/dd_2024/items.parquet"] = (1, "x")
     check(pending_data(cfg, listing, root) == {}, "staging pruned after upload: fine")
+    # A collection this publish leaves unchanged is not checked: its rebuild may be
+    # staging new data while the published copy (already live) stays as it is.
+    write(root / "staging/aa_2024/chips/y/rebuilt_q1_image_s2.tif", "new")
+    check(pending_data(cfg, listing, root) == {"aa_2024": 1}, "aa_2024's rebuild is pending")
+    check(pending_data(cfg, listing, root, only={"bb_2024", "dd_2024"}) == {},
+          "aa_2024 unchanged in this publish: its staging is not checked")
+    check(pending_data(cfg, listing, root, only={"aa_2024"}) == {"aa_2024": 1},
+          "aa_2024 changed in this publish: its staging is checked")
+
+from publish import changed_collections  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog"}
+    touched = [
+        Upload(root / "catalog/catalog.json", "pre/catalog.json", "application/json"),
+        Upload(root / "catalog/aa_2024/collection.json", "pre/aa_2024/collection.json",
+               "application/json"),
+        Upload(root / "catalog/bb_2024/chips/x/c.json", "pre/bb_2024/chips/x/c.json",
+               "application/json"),
+    ]
+    check(changed_collections(touched, cfg, root) == {"aa_2024", "bb_2024"},
+          "changed collections are the top-level directories touched; root files are not one")
+    check(changed_collections([], cfg, root) == set(), "nothing changed: no collections")
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
