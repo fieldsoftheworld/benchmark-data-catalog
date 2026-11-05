@@ -4,8 +4,9 @@
 tools/merge_es_2025.py keeps every national parcel and adds a regional parcel only
 when less than 10% of its area overlaps a national one. This gate runs the real
 script on small synthetic inputs (one region in lon/lat, one in UTM metres) and
-checks which parcels end up in the output, their classes, their land use and that
-the output is lon/lat GeoParquet with a bbox column.
+checks which parcels end up in the output, their classes, their land use, that Galicia
+and gap parcels under 0.1 ha are left out, and that the output is lon/lat GeoParquet
+with a bbox column.
 
 No network: the inputs sit where the script would download them.
 
@@ -67,18 +68,19 @@ def regional(id_, code, geom):
 
 with tempfile.TemporaryDirectory() as tmp:
     work = Path(tmp)
-    gx, gy = -8.0, 43.0  # Galicia
+    gx, gy = -4.0, 43.2  # Cantabria
     px, py = -2.5, 43.2  # País Vasco
-    # The national and Galician inputs carry real PROJJSON, so DuckDB types their geometry
+    # The national and Cantabrian inputs carry real PROJJSON, so DuckDB types their geometry
     # GEOMETRY('EPSG:4258') and GEOMETRY('EPSG:4326') as it does for the published files.
     write(work / "es-2025.parquet", [
-        national("n1", "1", "15", box(gx, gy)),                  # wheat
-        national("n2", "62", "15", box(gx + 0.01, gy)),          # pasture, Atlantic
+        national("n1", "1", "39", box(gx, gy)),                  # wheat
+        national("n2", "62", "39", box(gx + 0.01, gy)),          # pasture, Atlantic
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
-        national("n5", "1", "36", box(gx + 0.03, gy)),           # on a regional border
+        national("n5", "1", "39", box(gx + 0.03, gy)),           # on a regional border
+        national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: dropped
     ], crs=CRS("EPSG:4258").to_json_dict())
-    write(work / "es_ga-2025.parquet", [
+    write(work / "es_cb-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
         regional("r2", "PS", box(gx + 0.95 * D, gy)),            # 5% over n1: gap
         regional("r3", "TA", box(gx + 0.05, gy)),                # alone: gap
@@ -90,6 +92,7 @@ with tempfile.TemporaryDirectory() as tmp:
         # Degenerate: no area once made valid, so dropped.
         regional("flat", "TA", shapely.Polygon([(gx + 0.09, gy), (gx + 0.09 + D, gy),
                                                 (gx + 0.09 + 2 * D, gy), (gx + 0.09, gy)])),
+        regional("tiny", "TA", box(gx + 0.11, gy, D / 4)),      # ~560 m2: under 0.1 ha
     ], crs=CRS("EPSG:4326").to_json_dict())
     to_utm = Transformer.from_crs("EPSG:4326", "EPSG:25830", always_xy=True).transform
     write(
@@ -103,7 +106,7 @@ with tempfile.TemporaryDirectory() as tmp:
         crs={"id": {"authority": "EPSG", "code": 25830}},
     )
 
-    status = merge_es_2025.main([str(work), "--regions", "es_ga", "es_pv", "--threads", "2"])
+    status = merge_es_2025.main([str(work), "--regions", "es_cb", "es_pv", "--threads", "2"])
     check(status == 0, f"merge exits 0, got {status}")
     out = work / "es_2025_merged.parquet"
     con = duckdb.connect()
@@ -120,21 +123,23 @@ with tempfile.TemporaryDirectory() as tmp:
     if len(dups) == 1:
         check(abs(dups[0][5] - (gx + 0.07)) < 1e-6, "the 'dup' parcel added is the free one")
     check(not any(r[7] == "flat" for r in raw), "a zero-area parcel is dropped")
+    check(not any(r[7] == "tiny" for r in raw), "a gap parcel under 0.1 ha is dropped")
+    check(not any(r[7] == "n6" for r in raw), "a Galician national parcel is dropped")
     # Keyed by source and source id; the 'dup' pair is checked above.
     rows = {f"{r[1]}:{r[7]}": r[1:7] for r in raw if r[7] != "dup"}
-    expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_ga:r2", "es_ga:r3", "es_pv:p2"}
+    expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_cb:r2", "es_cb:r3", "es_pv:p2"}
     check(len(raw) == len(expected) + 1, f"national parcels plus the gaps, got {len(raw)} rows")
     check(set(rows) == expected, f"national parcels plus the gaps, got {sorted(rows)}")
     if set(rows) == expected:
         check(rows["es:n1"][2] == "TA", f"n1 takes r1's land use, got {rows['es:n1'][2]}")
         check(rows["es:n3"][2] is None, "a national parcel no region overlaps has no land use")
         check(rows["es:n5"][2] == "OV", f"a border parcel takes the larger overlap, got {rows['es:n5'][2]}")
-        check(rows["es:n2"][3] == "es:62:atlantic", f"Galician pasture, got {rows['es:n2'][3]}")
+        check(rows["es:n2"][3] == "es:62:atlantic", f"Cantabrian pasture, got {rows['es:n2'][3]}")
         check(rows["es:n3"][3] == "es:62", f"pasture outside the north, got {rows['es:n3'][3]}")
         check(rows["es:n4"][3] == "es:63:atlantic", f"Basque pasture, got {rows['es:n4'][3]}")
         check(rows["es:n1"][3] == "es:1", f"national class, got {rows['es:n1'][3]}")
-        check(rows["es_ga:r3"][1] is None, "a gap parcel has no crop code")
-        check(rows["es_ga:r3"][3] == "es_ga:TA", f"gap class, got {rows['es_ga:r3'][3]}")
+        check(rows["es_cb:r3"][1] is None, "a gap parcel has no crop code")
+        check(rows["es_cb:r3"][3] == "es_cb:TA", f"gap class, got {rows['es_cb:r3'][3]}")
         check(rows["es_pv:p2"][0] == "es_pv", "gap parcels name their source")
         x, bx = rows["es_pv:p2"][4], rows["es_pv:p2"][5]
         check(abs(x - (px + 0.05)) < 1e-6, f"UTM input comes out in lon/lat, got xmin {x}")
@@ -144,8 +149,10 @@ with tempfile.TemporaryDirectory() as tmp:
     crs = geo["columns"]["geometry"].get("crs")
     check(crs is None, f"the output carries no CRS label (default lon/lat), got {crs}")
     stats = json.loads((work / "merge_stats.json").read_text())
-    check(stats["es_ga"]["gap_parcels"] == 3, f"three Galician gaps, got {stats['es_ga']}")
-    check(stats["es_ga"]["zero_area_dropped"] == 1, f"one flat parcel dropped, got {stats['es_ga']}")
+    cb = stats["es_cb"]
+    check(cb["gap_parcels"] == 3, f"three Cantabrian gaps, got {cb}")
+    check(cb["small_gaps_dropped"] == 1, f"one small gap dropped, got {cb}")
+    check(cb["zero_area_dropped"] == 1, f"one flat parcel dropped, got {cb}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

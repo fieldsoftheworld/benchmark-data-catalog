@@ -5,12 +5,18 @@
     uv run python tools/merge_es_2025.py <work_dir> --stats    # print the overlap numbers only
 
 The national edition (``es``, farmers' declarations, 385 crop codes) covers all of
-Spain but only declared land. Five regional editions (``es_an``, ``es_cb``,
-``es_cl``, ``es_ga``, ``es_pv``: SIGPAC land use, ~20 classes) cover every parcel
-in their regions. The union keeps every national parcel and adds a regional parcel
-only where the national edition has nothing: less than ``OVERLAP_MAX`` of the
-regional parcel's area overlaps any national parcel, whatever its class. Whole
-parcels are added or skipped, never cut, so no slivers appear along shared edges.
+Spain but only declared land. Four regional editions (``es_an``, ``es_cb``,
+``es_cl``, ``es_pv``: SIGPAC land use, ~20 classes) cover every parcel in their
+regions. The union keeps every national parcel and adds a regional parcel only where
+the national edition has nothing: less than ``OVERLAP_MAX`` of the regional parcel's
+area overlaps any national parcel, whatever its class, and the parcel is at least
+``MIN_GAP_M2`` (smaller gap parcels are garden plots and edge slivers, not visible
+fields at 10 m). Whole parcels are added or skipped, never cut.
+
+Galicia is left out entirely, national parcels included (``EXCLUDED_PROVINCES``):
+its SIGPAC parcels are mostly micro-plots and overgrown plots under tree cover, and
+the national edition alone leaves about half its farmland unlabelled. The regional
+``es_ga`` edition is excluded for the same reason.
 
 Columns of the output (``<work_dir>/es_2025_merged.parquet``):
 
@@ -21,7 +27,7 @@ Columns of the output (``<work_dir>/es_2025_merged.parquet``):
 - ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
   regional parcels.
 - ``landuse:code``, ``landuse:name_en``: SIGPAC land use. On regional parcels, their
-  own; on national parcels inside the five regions, the land use of the regional
+  own; on national parcels inside the four regions, the land use of the regional
   parcel they overlap most; NULL elsewhere.
 - ``admin_province_code``, ``metrics:area``, ``irrigation_system`` where the source has
   them.
@@ -54,13 +60,16 @@ REGIONS = {
     "es_an": "es_uso_filter.yaml",
     "es_cb": "es_uso_north_filter.yaml",
     "es_cl": "es_uso_filter.yaml",
-    "es_ga": "es_uso_north_filter.yaml",
     "es_pv": "es_uso_north_filter.yaml",
 }
 # Galicia, Asturias, Cantabria, País Vasco: pasture parcels are hedge-bounded meadows.
 ATLANTIC = ("15", "27", "32", "36", "33", "39", "01", "20", "48")
 PASTURE = ("62", "63")
 OVERLAP_MAX = 0.10
+# Smallest regional parcel added as a gap: 0.1 ha, about ten Sentinel-2 pixels.
+MIN_GAP_M2 = 1000.0
+# Galicia (A Coruña, Lugo, Ourense, Pontevedra): dropped from the union.
+EXCLUDED_PROVINCES = ("15", "27", "32", "36")
 # Metric CRS for areas (UTM 30N covers mainland Spain; ratios only).
 METRIC = "EPSG:25830"
 
@@ -132,6 +141,7 @@ def _lonlat(geom: str, crs: str) -> str:
 
 def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     crs = geo_crs(con, path)
+    excluded = ", ".join(f"'{p}'" for p in EXCLUDED_PROVINCES)
     atlantic = ", ".join(f"'{p}'" for p in ATLANTIC)
     pasture = ", ".join(f"'{c}'" for c in PASTURE)
     con.execute(
@@ -145,7 +155,9 @@ def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
                         ELSE 'es:' || CAST("crop:code" AS VARCHAR) END AS ftw_class,
                    {_lonlat("geometry", crs)} AS geom,
                    {_metric("geometry", crs)} AS g
-            FROM read_parquet('{path}') WHERE geometry IS NOT NULL"""
+            FROM read_parquet('{path}')
+            WHERE geometry IS NOT NULL
+              AND coalesce(admin_province_code, '') NOT IN ({excluded})"""
     )
 
 
@@ -216,7 +228,8 @@ def classify_region(con: duckdb.DuckDBPyConnection, hid: str) -> dict[str, float
         f"""INSERT INTO gaps
             SELECT r.id, r.source_id, '{hid}' AS source, r.landuse_code, r.landuse_name_en,
                    r.admin_province_code, r.area, r.ftw_class, r.geom
-            FROM reg r JOIN cover c USING (rid) WHERE c.covered < {OVERLAP_MAX}"""
+            FROM reg r JOIN cover c USING (rid)
+            WHERE c.covered < {OVERLAP_MAX} AND r.g_area >= {MIN_GAP_M2}"""
     )
     con.execute(
         """INSERT INTO nat_landuse
@@ -224,14 +237,17 @@ def classify_region(con: duckdb.DuckDBPyConnection, hid: str) -> dict[str, float
                   max(p.shared)
            FROM pairs p JOIN reg r USING (rid) GROUP BY p.nid"""
     )
-    total, gaps, gap_area, all_area = con.execute(
-        f"""SELECT count(*), count(*) FILTER (WHERE covered < {OVERLAP_MAX}),
-                   sum(r.g_area) FILTER (WHERE covered < {OVERLAP_MAX}), sum(r.g_area)
+    gap = f"covered < {OVERLAP_MAX} AND r.g_area >= {MIN_GAP_M2}"
+    small = f"covered < {OVERLAP_MAX} AND r.g_area < {MIN_GAP_M2}"
+    total, gaps, small_gaps, gap_area, all_area = con.execute(
+        f"""SELECT count(*), count(*) FILTER (WHERE {gap}), count(*) FILTER (WHERE {small}),
+                   sum(r.g_area) FILTER (WHERE {gap}), sum(r.g_area)
             FROM reg r JOIN cover USING (rid)"""
     ).fetchone()
     return {
         "regional_parcels": total,
         "gap_parcels": gaps,
+        "small_gaps_dropped": small_gaps,
         "gap_area_pct": round(100 * (gap_area or 0) / (all_area or 1), 1),
     }
 
