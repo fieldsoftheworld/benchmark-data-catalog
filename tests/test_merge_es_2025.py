@@ -81,10 +81,11 @@ with tempfile.TemporaryDirectory() as tmp:
         national("n3", "62", "06", box(gx + 0.02, gy)),          # pasture, Badajoz
         national("n4", "63", "48", box(px, py)),                 # young pasture, Bizkaia
         national("n5", "1", "33", box(gx + 0.03, gy)),           # on a regional border
-        national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: presence-only
-        national("n7", "62", "27", box(-7.5, 43.0)),             # Galician pasture: same
+        national("n6", "1", "15", box(-8.0, 43.0)),              # Galicia: dropped
+        national("n7", "62", "27", box(-7.5, 43.0)),             # Galician pasture: dropped
         national("n8", "1", "41", box(-5.9, 37.4)),              # Sevilla: presence-only
-        national("n9", "1", "39", box(-4.0, 43.4)),              # Cantabria: presence-only
+        national("n9", "1", "39", box(-4.0, 43.4)),              # Cantabria: dropped
+        national("n10", "5", "47", box(-4.7, 41.6)),             # Valladolid: presence-only
     ], crs=CRS("EPSG:4258").to_json_dict())
     write(work / "es_cb-2025.parquet", [
         regional("r1", "TA", box(gx, gy)),                       # same as n1: covered
@@ -130,8 +131,8 @@ with tempfile.TemporaryDirectory() as tmp:
         check(abs(dups[0][5] - (gx + 0.07)) < 1e-6, "the 'dup' parcel added is the free one")
     check(not any(r[7] == "flat" for r in raw), "a zero-area parcel is dropped")
     check(not any(r[7] == "tiny" for r in raw), "a gap parcel under 0.1 ha is dropped")
-    check(not any(r[7] in ("n6", "n7", "n8", "n9") for r in raw),
-          "national parcels in Galicia, Andalucía and Cantabria stay out of es_2025")
+    check(not any(r[7] in ("n6", "n7", "n8", "n9", "n10") for r in raw),
+          "national parcels in Galicia, Andalucía, Castilla y León and Cantabria stay out of es_2025")
     # Keyed by source and source id; the 'dup' pair is checked above.
     rows = {f"{r[1]}:{r[7]}": r[1:7] for r in raw if r[7] != "dup"}
     expected = {"es:n1", "es:n2", "es:n3", "es:n4", "es:n5", "es_cb:r2", "es_cb:r3", "es_pv:p2"}
@@ -159,10 +160,10 @@ with tempfile.TemporaryDirectory() as tmp:
     po_rows = {r[0]: r[1:] for r in con.execute(
         f"""SELECT source_id, "ftw:source", "ftw:class", "landuse:code" FROM read_parquet('{po}')"""
     ).fetchall()}
-    check(set(po_rows) == {"n6", "n7", "n8", "n9"},
-          f"es_po_2025 holds the presence-only provinces' national parcels only, got {sorted(po_rows)}")
-    if set(po_rows) == {"n6", "n7", "n8", "n9"}:
-        check(po_rows["n7"][1] == "es:62:atlantic", f"Galician pasture, got {po_rows['n7'][1]}")
+    check(set(po_rows) == {"n8", "n10"},
+          f"es_po_2025 holds Andalucía's and Castilla y León's national parcels only, "
+          f"not Galicia's or Cantabria's, got {sorted(po_rows)}")
+    if set(po_rows) == {"n8", "n10"}:
         check(po_rows["n8"][1] == "es:1", f"national class, got {po_rows['n8'][1]}")
         check(all(r[0] == "es" and r[2] is None for r in po_rows.values()),
               "presence-only parcels are national, with no land use")

@@ -12,9 +12,13 @@ Spain 2025 is split in two by province:
   outside Andalucía, Castilla y León, Galicia and Cantabria, plus regional gap parcels
   in País Vasco.
 - ``es_po_2025.parquet`` (dataset ``es_po_2025``, presence-only masks): national
-  parcels in Andalucía, Castilla y León, Galicia and Cantabria
-  (``PRESENCE_ONLY_PROVINCES``), and nothing else. Undeclared land there is not
-  labelled, so it is unknown, not background.
+  parcels in Andalucía and Castilla y León (``PRESENCE_ONLY_PROVINCES``), and nothing
+  else. Undeclared land there is not labelled, so it is unknown, not background.
+
+Galicia and Cantabria (``DROPPED_PROVINCES``) are in neither dataset. Their national
+parcels are mostly pasture (86% of Galicia's labelled area) and most of their chips are
+under 20% labelled field (Galicia 67%, Cantabria 53%), so they add little even as
+presence-only labels (2026-11 review of es_po_2025).
 
 The national edition (``es``, farmers' declarations, 385 crop codes) covers all of
 Spain but only declared land. The País Vasco regional edition (``es_pv``: SIGPAC land
@@ -31,7 +35,8 @@ there they include strips along roads, canals and railways, patches in scrub, an
 Galicia mostly micro-plots and overgrown plots under tree cover. Cantabria's gap parcels
 looked right, but its SIGPAC data is not CC-BY, so they are left out to keep es_2025
 openly licensed. The national parcels of all four regions alone leave too many visible
-fields unlabelled for wall-to-wall masks, so they go to the presence-only dataset.
+fields unlabelled for wall-to-wall masks, so they stay out of es_2025: Andalucía's and
+Castilla y León's go to the presence-only dataset, Galicia's and Cantabria's are dropped.
 
 Columns of both outputs:
 
@@ -82,13 +87,13 @@ PASTURE = ("62", "63")
 OVERLAP_MAX = 0.10
 # Smallest regional parcel added as a gap: 0.1 ha, about ten Sentinel-2 pixels.
 MIN_GAP_M2 = 1000.0
-# Andalucía, Castilla y León, Galicia, Cantabria: national parcels only, presence-only masks.
+# Andalucía, Castilla y León: national parcels only, presence-only masks.
 PRESENCE_ONLY_PROVINCES = (
     "04", "11", "14", "18", "21", "23", "29", "41",
     "05", "09", "24", "34", "37", "40", "42", "47", "49",
-    "15", "27", "32", "36",
-    "39",
 )
+# Galicia, Cantabria: in neither dataset (mostly pasture, sparse chips).
+DROPPED_PROVINCES = ("15", "27", "32", "36", "39")
 OUTPUTS = {"es_2025": "es_2025.parquet", "es_po_2025": "es_po_2025.parquet"}
 # Metric CRS for areas (UTM 30N covers mainland Spain; ratios only).
 METRIC = "EPSG:25830"
@@ -306,8 +311,10 @@ def write_outputs(con: duckdb.DuckDBPyConnection, work_dir: Path) -> dict[str, i
     """Write both datasets' inputs; returns parcels written per dataset."""
     po = ", ".join(f"'{p}'" for p in PRESENCE_ONLY_PROVINCES)
     in_po = f"coalesce(n.admin_province_code, '') IN ({po})"
+    out = ", ".join(f"'{p}'" for p in PRESENCE_ONLY_PROVINCES + DROPPED_PROVINCES)
+    not_out = f"coalesce(n.admin_province_code, '') NOT IN ({out})"
     queries = {
-        "es_2025": _national_sql(f"NOT {in_po}") + "\n        UNION ALL BY NAME" + GAPS_SQL,
+        "es_2025": _national_sql(not_out) + "\n        UNION ALL BY NAME" + GAPS_SQL,
         "es_po_2025": _national_sql(in_po),
     }
     return {name: _write(con, queries[name], work_dir / OUTPUTS[name]) for name in OUTPUTS}
