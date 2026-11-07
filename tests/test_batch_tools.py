@@ -196,6 +196,29 @@ other_meta = yaml.safe_load(new_dataset.recipe_text("xx_2022", ROW, other, urls,
 check(other_meta["license_url"] == "https://terms.example", "'other' carries the source's terms")
 check("license_url" not in recipe["metadata"], "an SPDX license needs no license_url")
 
+# A canton of a multi-source collection carries its own item's terms, not the collection's mix.
+mixed = {
+    **COLLECTION,
+    "license": "other",
+    "providers": [{"name": "Canton A", "roles": ["producer", "licensor"]},
+                  {"name": "Canton B", "roles": ["producer", "licensor"]}],
+    "attribution": "A; B",
+    "links": [*COLLECTION["links"], {"rel": "license", "href": "https://spdx.org/licenses/CC-BY-4.0.html"},
+              {"rel": "license", "href": "https://b.example/terms"}],
+}
+item_b = {"properties": {"license": "other", "attribution": "Canton B data",
+                         "providers": [{"name": "Canton B", "roles": ["producer", "licensor"]}]},
+          "links": [{"rel": "license", "href": "https://b.example/terms"}]}
+own = new_dataset.item_terms(mixed, item_b)
+own_meta = yaml.safe_load(new_dataset.recipe_text("xx_2022", ROW, own, urls, "9.9.9"))["metadata"]
+check(own_meta["license_url"] == "https://b.example/terms", f"the canton's own terms: {own_meta.get('license_url')}")
+check([p["name"] for p in own_meta["providers"]] == ["Canton B", "Fields of the World"],
+      f"only the canton and FTW are credited: {own_meta['providers']}")
+check(own_meta["attribution"] == "Canton B data", f"the canton's attribution: {own_meta['attribution']}")
+cc0 = new_dataset.item_terms(mixed, {"properties": {"license": "CC0-1.0"}, "links": []})
+check(cc0["license"] == "CC0-1.0", "an SPDX item license replaces the collection's 'other'")
+check(new_dataset.item_terms(COLLECTION, {"properties": {}}) is COLLECTION, "an item without terms keeps the collection's")
+
 no_attr = {**COLLECTION, "providers": []}
 check(new_dataset.attribution(no_attr) == "TODO(attest)", "missing attribution is flagged")
 

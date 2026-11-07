@@ -10,7 +10,8 @@ HTTPS, then writes:
 - ``datasets/<id>.yaml``: the ftwd recipe. ``fields_file`` is the year's own
   parquet (``<hid>/year=<Y>/<hid>-<Y>.parquet``), never ``latest``. The title
   is the harmonized year item's link title; license and producer/licensor
-  providers are copied from the harmonized collection, which is the attested
+  providers are copied from the harmonized year item where it states them (one
+  canton of a multi-source collection), else from the collection, which is the attested
   source. Fields of the World is appended as processor.
 - ``datasets/filters/<filter>``: a byte-for-byte copy of ftwd's
   ``configs/filters/<filter>`` at the pinned commit (or from a local checkout
@@ -130,6 +131,27 @@ def source_urls(row: dict[str, str]) -> dict[str, str]:
         "item": f"{base}/year={year}/{stem}-{year}.json",
         "parquet": f"{base}/year={year}/{stem}-{year}.parquet",
     }
+
+
+def item_terms(collection: dict, item: dict) -> dict:
+    """The collection with the year item's own terms, where the item states them.
+
+    A collection fed by several sources (the cantons of ``ch``) is ``other`` with
+    every source's license links and providers; each year item carries just its
+    source's license, license link, attribution and providers. A dataset cut
+    from one item must carry that item's terms, not the whole collection's.
+    """
+    props = item.get("properties", {})
+    if not props.get("license"):
+        return collection
+    out = {**collection, "license": props["license"]}
+    if props.get("providers"):
+        out["providers"] = props["providers"]
+    if props.get("attribution"):
+        out["attribution"] = props["attribution"]
+    item_licenses = [link for link in item.get("links", []) if link.get("rel") == "license"]
+    out["links"] = [link for link in collection.get("links", []) if link.get("rel") != "license"] + item_licenses
+    return out
 
 
 def item_title(collection: dict, item_url: str, fallback: str) -> str:
@@ -335,7 +357,8 @@ def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = Fal
 
     urls = source_urls(row)
     collection = fetch_json(urls["collection"])
-    fetch_json(urls["item"])  # fails loudly when the year was never published
+    item = fetch_json(urls["item"])  # fails loudly when the year was never published
+    collection = item_terms(collection, item)
     if derived := DERIVED.get(dataset_id):
         if tracking.filter_file(row) != derived["filter"]:
             sys.exit(f"{dataset_id}: tracking.csv filter must be {derived['filter']}, "
