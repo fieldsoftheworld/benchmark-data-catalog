@@ -71,6 +71,12 @@
     },
     {
       "rel": "child",
+      "href": "./chips/35VMG/catalog.json",
+      "type": "application/json",
+      "title": "35VMG"
+    },
+    {
+      "rel": "child",
       "href": "./chips/35VND/catalog.json",
       "type": "application/json",
       "title": "35VND"
@@ -254,7 +260,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-03T02:18:07Z",
+  "updated": "2026-11-04T19:52:19Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -277,15 +283,15 @@
   "ftw:nodata_max": 100.0,
   "ftw:config": {
     "ftwd_version": "0.1.0",
-    "ftwd_git_commit": "1df6cf5b39f7f97be9394bb21cef9984050cf923",
+    "ftwd_git_commit": "913b5b47e8cac8ed7dddf4d60337726b1c2b350d",
     "config_schema_version": 1,
-    "generated_at": "2026-11-03T02:14:44.403180+00:00",
+    "generated_at": "2026-11-04T08:07:49.082476+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/ee/year=2024/ee-2024.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/ee/collection.json",
       "sha256": "ccce0a3452d0a6082ae0c59b65c92e22d5bbac4cf3b6f8aae31d2291e7d49cec",
       "size": 263589795,
-      "fetched_at": "2026-11-01T23:31:49.506077Z"
+      "fetched_at": null
     },
     "config": {
       "fields_file": "https://data.source.coop/ftw/harmonized-field-data/ee/year=2024/ee-2024.parquet",
@@ -728,28 +734,28 @@
           "0307",
           "0309",
           "0317",
-          "0334"
+          "0334",
+          "0062",
+          "0092",
+          "0116",
+          "0148",
+          "0215",
+          "0239",
+          "0258"
         ],
         "exclude": [
           "0009",
           "0013",
           "0046",
-          "0062",
           "0067",
           "0077",
           "0084",
           "0090",
-          "0092",
-          "0116",
           "0120",
-          "0148",
           "0155",
           "0167",
           "0211",
           "0213",
-          "0215",
-          "0239",
-          "0258",
           "0269",
           "0320",
           "0330"
@@ -882,7 +888,7 @@
       "href": "./ee_2024_fields_filtered.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field polygons after the class filter",
-      "file:size": 128901471,
+      "file:size": 274625795,
       "table:columns": [
         {
           "name": "id",
@@ -929,7 +935,7 @@
           "type": "struct"
         }
       ],
-      "table:row_count": 86826,
+      "table:row_count": 163476,
       "roles": [
         "data"
       ]
@@ -938,7 +944,7 @@
       "href": "./ee_2024_boundary_lines.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field boundary lines",
-      "file:size": 128868081,
+      "file:size": 274437472,
       "table:columns": [
         {
           "name": "id",
@@ -985,7 +991,7 @@
           "type": "struct"
         }
       ],
-      "table:row_count": 86826,
+      "table:row_count": 163476,
       "roles": [
         "data"
       ]
@@ -994,7 +1000,7 @@
       "href": "./ee_2024_chips.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Chip definitions with field coverage",
-      "file:size": 740741,
+      "file:size": 834318,
       "table:columns": [
         {
           "name": "gzd",
@@ -1041,7 +1047,7 @@
           "type": "struct"
         }
       ],
-      "table:row_count": 6553,
+      "table:row_count": 7562,
       "roles": [
         "data"
       ]
@@ -1050,7 +1056,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 7619088,
+      "file:size": 7448933,
       "table:columns": [
         {
           "name": "type",
@@ -1069,11 +1075,11 @@
           "type": "varchar"
         },
         {
-          "name": "ftw:mosaic_year",
+          "name": "ftw:winter_harvest_day",
           "type": "bigint"
         },
         {
-          "name": "ftw:mosaic_requested_year",
+          "name": "ftw:winter_planting_day",
           "type": "bigint"
         },
         {
@@ -1133,28 +1139,12 @@
           "type": "struct"
         },
         {
-          "name": "portolan:render_order",
-          "type": "varchar[]"
-        },
-        {
           "name": "ftw:summer_planting_day",
           "type": "bigint"
         },
         {
           "name": "ftw:summer_harvest_day",
           "type": "bigint"
-        },
-        {
-          "name": "ftw:winter_planting_day",
-          "type": "bigint"
-        },
-        {
-          "name": "ftw:winter_harvest_day",
-          "type": "bigint"
-        },
-        {
-          "name": "ftw:imagery_modes",
-          "type": "varchar[]"
         },
         {
           "name": "bbox",
@@ -1165,7 +1155,7 @@
           "type": "geometry"
         }
       ],
-      "table:row_count": 6553,
+      "table:row_count": 7562,
       "roles": [
         "collection-mirror"
       ]
@@ -1177,7 +1167,7 @@
       "roles": [
         "visual"
       ],
-      "file:size": 2868703
+      "file:size": 3163240
     },
     "fields_tiles": {
       "href": "./fields.pmtiles",
@@ -1186,7 +1176,7 @@
       "roles": [
         "visual"
       ],
-      "file:size": 37982596
+      "file:size": 67085964
     },
     "style-split": {
       "href": "./styles/split.json",
@@ -1214,7 +1204,7 @@
       "roles": [
         "style"
       ],
-      "file:size": 2548
+      "file:size": 2534
     },
     "style-crops": {
       "href": "./styles/crops.json",
@@ -1223,7 +1213,7 @@
       "roles": [
         "style"
       ],
-      "file:size": 2416
+      "file:size": 2402
     },
     "style-outline": {
       "href": "./styles/outline.json",

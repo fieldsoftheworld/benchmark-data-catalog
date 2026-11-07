@@ -1,0 +1,95 @@
+{
+  "type": "Catalog",
+  "id": "54TWM",
+  "stac_version": "1.1.0",
+  "description": "Chips in MGRS 100 km square 54TWM",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0498_2024/ftw-54TWM0498_2024.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0498_2024"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0698_2024/ftw-54TWM0698_2024.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0698_2024"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0498_2024/ftw-54TWM0498_2024_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0498_2024_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0498_2024/ftw-54TWM0498_2024_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0498_2024_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0498_2024/ftw-54TWM0498_2024_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0498_2024_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0498_2024/ftw-54TWM0498_2024_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0498_2024_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0698_2024/ftw-54TWM0698_2024_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0698_2024_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0698_2024/ftw-54TWM0698_2024_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0698_2024_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0698_2024/ftw-54TWM0698_2024_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0698_2024_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-54TWM0698_2024/ftw-54TWM0698_2024_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-54TWM0698_2024_q4_s2"
+    },
+    {
+      "rel": "parent",
+      "href": "../../collection.json",
+      "type": "application/json",
+      "title": "Japan \u2014 2024"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Square README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Square agent guide"
+    }
+  ],
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json"
+  ],
+  "title": "54TWM"
+}

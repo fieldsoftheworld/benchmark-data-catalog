@@ -10,29 +10,29 @@ Open this collection in the [data browser](https://browser.portolan-sdi.org/#/ex
 
 ## What is in this collection
 
-This collection holds 3,203 chips and 122,200 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
+This collection holds 3,607 chips and 333,673 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
 
 Chips per benchmark split:
 
 | split | chips |
 | --- | --- |
-| train | 2,559 |
-| val | 336 |
-| test | 308 |
+| train | 2,871 |
+| val | 364 |
+| test | 372 |
 
 How much of a chip is mapped field, as a distribution over the chips (`field_coverage_pct`):
 
 | percentile | field coverage |
 | --- | --- |
-| 5th | 0.4% |
-| 25th | 5.1% |
-| 50th | 18.1% |
-| 75th | 46.4% |
-| 95th | 73.1% |
+| 5th | 3.8% |
+| 25th | 27.4% |
+| 50th | 51.3% |
+| 75th | 70.8% |
+| 95th | 85.8% |
 
 Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
-3,203 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
+3,602 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
 
 ## Crops
 
@@ -40,16 +40,16 @@ Crops are harmonized to the EuroCrops HCAT taxonomy. The classes covering most o
 
 | crop | HCAT code | share |
 | --- | --- | --- |
-| Winter wheat | 3301010101 | 36.9% |
-| Corn silage | 3301090400 | 16.6% |
-| Early potatoes  | 3301030000 | 12.2% |
-| Sugar beet | 3301290700 | 10.5% |
-| Winter barley | 3301010401 | 7.8% |
-| Winter spelt | 3301011001 | 4.0% |
-| Textile linen | 3301060701 | 3.6% |
-| Grain corn | 3301010600 | 3.0% |
-| Chicory with inulin | 3301310200 | 2.7% |
-| Peas harvested fresh,canning peas | 3301020600 | 2.7% |
+| Meadow and fodder | 3302000000 | 54.3% |
+| Winter wheat | 3301010101 | 17.3% |
+| Corn silage | 3301090400 | 7.8% |
+| Early potatoes  | 3301030000 | 5.7% |
+| Sugar beet | 3301290700 | 4.9% |
+| Winter barley | 3301010401 | 3.7% |
+| Winter spelt | 3301011001 | 1.9% |
+| Textile linen | 3301060701 | 1.7% |
+| Grain corn | 3301010600 | 1.4% |
+| Chicory with inulin | 3301310200 | 1.3% |
 
 ## Styles
 
@@ -80,7 +80,7 @@ Ready-made map styles ship with the collection:
 ## Limitations
 
 - Masks are derived from field boundaries declared for a given year; parcels that changed shape, were subdivided or merged after that declaration are not reflected.
-- Imagery windows follow a crop calendar rather than a fixed date, so acquisition dates differ between chips and cloud-free scenes are not guaranteed.
+- Quarterly mosaics are cloudless composites, but where every scene of a quarter was cloudy they have no data (-32768) rather than the chip being dropped; check `ftw:nodata_pct` on each quarter's child item.
 - Chips on the border of the source dataset may be only partly covered by field boundaries, and empty area there means unmapped, not fieldless.
 
 ## Access

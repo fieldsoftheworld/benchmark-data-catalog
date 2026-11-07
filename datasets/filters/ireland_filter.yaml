@@ -1,0 +1,193 @@
+# Class filter used for Ireland (IE) field boundaries. Keyed on crop:name (English), because the
+# crop:code representation is inconsistent across editions (e.g. "124.0" in 2022/2024 vs "124" in
+# 2023). Covers ie years 2022-2024; 167 distinct crop names. The HCAT group is shown as a comment.
+#
+# Excluded (background): reed canary grass; fallow; forestry, woodland,
+# Miscanthus, scrub, foliage, tree belts; daffodils & cut-flower/bulb crops; glasshouse crops;
+# riparian & planted buffer zones, bird-food & wildlife-cover plots, designated habitats, bog,
+# farmyards, roads, buildings, quarries, recreational & water areas and other non-crop/unknown land.
+#
+# Notable inclusions: cereals (barley, wheat, oats, rye, triticale), maize & sweetcorn; oilseed
+# rape, forage rape, mustard, sunflower, linseed, flax, camelina, hemp; beans, peas, vetch, lupins,
+# soya, protein/cereal mixes; clover, alfalfa/lucerne; fodder & sugar beet, potatoes and all field
+# vegetables & roots; herbs; arable silage (non-grass) & mixed cropping; grass grown for seed;
+# strawberries; and permanent & tree crops: orchards, fruit, berries & grapes, nurseries, Christmas
+# trees, short-rotation coppice and willow; and grassland: permanent, extensively-grazed &
+# low-input pasture, hay meadows, grass leys (Grass Year 1-5) and grass silage/grassmeal, which
+# cover ~90% of declared area and most hedge-bounded fields.
+
+column: ["crop:name", "crop_name"]
+
+include:
+  - "Barley - Spring"  # spring_barley
+  - "Barley - Winter"  # winter_barley
+  - "Wheat - Winter"  # winter_common_soft_wheat
+  - "Maize"  # grain_maize_corn_popcorn
+  - "Oats - Spring"  # spring_oats
+  - "Beans - Spring"  # beans
+  - "Oilseed Rape - Winter"  # winter_rapeseed_rape
+  - "Fodder Beet"  # mangelwurzel_fodder_beet
+  - "Oats - Winter"  # winter_oats
+  - "Potatoes - Maincrop"  # potatoes
+  - "Red Clover"  # clover
+  - "Wheat - Spring"  # spring_common_soft_wheat
+  - "Rye"  # rye
+  - "Protein/Cereal Mix 50/50"  # legumes_dried_pulses_protein_crops
+  - "Potatoes - Early"  # potatoes
+  - "Kale"  # kale
+  - "Carrots"  # carrots_daucus
+  - "Oilseed Rape - Spring"  # spring_rapeseed_rape
+  - "Mixed Cropping"  # arable_crops
+  - "Sugar Beet"  # sugar_beet
+  - "Forage Rape"  # rapeseed_rape
+  - "Peas"  # peas
+  - "Beans - Winter"  # beans
+  - "Grass Seed"  # temporary_grass
+  - "Turnips"  # turnips
+  - "Arable Silage (No Grass)"  # other_arable_land_crops
+  - "Cabbage - Spring"  # brassica_oleracea_cabbage
+  - "Broccoli - Spring"  # broccoli
+  - "Strawberries"  # strawberries
+  - "Parsnips"  # parsnips
+  - "Potatoes - Seed"  # potatoes
+  - "Triticale - Spring"  # spring_triticale
+  - "Swede"  # swede_rutabaga
+  - "Cabbage - Winter"  # brassica_oleracea_cabbage
+  - "Pumpkins"  # pumpkin_squash_gourd
+  - "Cauliflowers - Spring"  # cauliflower
+  - "Cauliflowers - Winter"  # cauliflower
+  - "Onions"  # onions
+  - "Clover"  # clover
+  - "Lettuce"  # salads_lettuce_leaf_vegetables
+  - "Brussel sprouts"  # brussels_sprouts
+  - "Leeks - Spring"  # leek
+  - "Beetroot"  # beetroot_beets
+  - "Broccoli - Winter"  # broccoli
+  - "Rhubarb"  # rhubarb
+  - "Peppers"  # capsicum
+  - "Triticale - Winter"  # winter_triticale
+  - "Leeks - Winter"  # leek
+  - "Mustard"  # mustard
+  - "Celery - Spring"  # celery
+  - "Sunflower"  # sunflower
+  - "Parsley"  # parsly
+  - "Scallions"  # scallion
+  - "Hemp for Industrial Use"  # hemp_cannabis
+  - "Baby Leaf Spinach"  # spinach
+  - "Celery - Winter"  # celery
+  - "Linseed"  # flax_linseed
+  - "Sweetcorn"  # grain_maize_corn_popcorn
+  - "Garlic"  # garlic
+  - "Perpetual Spinach"  # spinach
+  - "Alfalfa"  # alfalfa_lucerne
+  - "Hemp for Food Use"  # hemp_cannabis
+  - "Courgettes"  # zucchini_courgette
+  - "Lucerne"  # alfalfa_lucerne
+  - "Artichoke"  # artichoke
+  - "Lupins"  # sweet_lupins
+  - "Tomatoes"  # tomato
+  - "Pak Choi"  # bok_choy_pak_choi
+  - "Vetch"  # vetches
+  - "Flax"  # flax_linseed
+  - "Asparagus"  # asparagus
+  - "Borage"  # borage
+  - "Millet"  # millet_sorghum
+  - "Rosemary"  # rosemary
+  - "Squash"  # pumpkin_squash_gourd
+  - "Thyme"  # thyme
+  - "Camelina"  # camelina
+  - "Coriander"  # coriander
+  - "Basil"  # basil
+  - "Mint"  # mints_peppermint
+  - "Quinoa"  # quinoa
+  - "Rocket"  # rocket_arugula
+  - "Soya Bean"  # soy_soybeans
+  - "Calabrese"  # broccoli
+  - "Cucumbers"  # cucumber_pickle
+  - "Shallot"  # shallot
+  # Permanent and tree crops
+  - "Orchard"  # orchards_fruits
+  - "Willow"  # willows_osiers
+  - "Short Rotation Coppice"  # tree_wood_forest
+  - "Nursery"  # nurseries_nursery
+  - "Apples"  # apples
+  - "Raspberries"  # raspberry_raspberries
+  - "Blueberries"  # blueberry
+  - "Blackcurrants"  # blackcurrant_cassis
+  - "Blackberries"  # blackberry
+  - "Plums"  # plums
+  - "Cherries"  # cherry_cherries
+  - "Grapes"  # vineyards_wine_vine_rebland_grapes
+  - "Gooseberries"  # gooseberry_gooseberries_cranberries
+  - "Loganberries"  # berries_berry_species
+  - "Redcurrants"  # redcurrant
+  - "Pears"  # pears
+  - "Christmas Trees"  # other_tree_wood_forest
+
+  # Grassland: pastures, hay meadows, grass leys and grass silage
+  - "Permanent Pasture"  # pasture_meadow_grassland_grass
+  - "Extensively Grazed Pasture"  # pasture_meadow_grassland_grass
+  - "Low Input Grassland"  # pasture_meadow_grassland_grass
+  - "Low Input Permanent Pasture"  # pasture_meadow_grassland_grass
+  - "Traditional Hay Meadow"  # pasture_meadow_grassland_grass
+  - "Grass Year 1"  # temporary_grass
+  - "Grass Year 2"  # temporary_grass
+  - "Grass Year 3"  # temporary_grass
+  - "Grass Year 4"  # temporary_grass
+  - "Grass Year 5"  # temporary_grass
+  - "Permanent Pasture (MSS Measure)"  # pasture_meadow_grassland_grass
+  - "Permanent Pasture (MSS)"  # pasture_meadow_grassland_grass
+  - "Management of intensive grassland next to a watercourse"  # pasture_meadow_grassland_grass
+  - "Low Input Peat Grassland"  # pasture_meadow_grassland_grass
+  - "Arable Silage (Grass)"  # pasture_meadow_grassland_grass
+  - "Grass Year 1 (MSS Measure)"  # temporary_grass
+  - "Grass Year 1 (MSS)"  # temporary_grass
+  - "Grass Year 2 (MSS)"  # temporary_grass
+  - "Grass Year 3 (MSS)"  # temporary_grass
+  - "Permanent Pasture (MSS Eco-Scheme 2023)"  # pasture_meadow_grassland_grass
+  - "Grass Year 1 (MSS Eco-Scheme)"  # temporary_grass
+  - "Grass Year 5 (MSS)"  # temporary_grass
+  - "Grass Year 4 (MSS)"  # temporary_grass
+  - "Grassmeal"  # temporary_grass
+
+exclude:
+  - "Riparian Buffer Zone - Grassland"  # pasture_meadow_grassland_grass
+  - "Forestry Eligible"  # tree_wood_forest
+  - "Wild Bird Cover"  # not_known_and_other
+  - "Winter Bird Food Plot"  # not_known_and_other
+  - "Riparian Buffer Zone - Arable"  # not_known_and_other
+  - "Designated Habitat"  # not_known_and_other
+  - "Fallow"  # fallow_land_not_crop
+  - "Environmental Management Of Arable Fallow"  # fallow_land_not_crop
+  - "Riparian Zone"  # not_known_and_other
+  - "Miscanthus Sinensis"  # miscanthus_silvergrass
+  - "Tree belts for ammonia capture from farmyards"  # tree_wood_forest
+  - "Foliage"  # tree_wood_forest
+  - "Building"  # not_known_and_other
+  - "Daffodils"  # narcissus_daffodil
+  - "Bog"  # not_known_and_other
+  - "Glasshouse"  # greenhouse_foil_film
+  - "Forestry ESB Corridor Eligible"  # tree_wood_forest
+  - "Other cut flower / bulb crops"  # unspecified_flowers_ornamental_plants
+  - "Farmyard"  # not_known_and_other
+  - "Habitat"  # not_known_and_other
+  - "Scrub"  # shrubberries_shrubs
+  - "Inactive"  # not_known_and_other
+  - "Arable Habitat"  # arable_crops
+  - "Reed Canary Grass"  # poaceae_grasses
+  - "Rocky Outcrop"  # not_known_and_other
+  - "Woodland"  # tree_wood_forest
+  - "Access Road / Roadways"  # not_known_and_other
+  - "Farm Road"  # not_known_and_other
+  - "Lake / Waterway / Pond"  # not_known_and_other
+  - "Forestry Setaside"  # tree_wood_forest
+  - "Management of Environmental Fallow (horticulture)"  # fallow_land_not_crop
+  - "Forestry Ineligible"  # tree_wood_forest
+  - "Forestry"  # tree_wood_forest
+  - "Linnet Habitat"  # not_known_and_other
+  - "Unknown"  # not_known_and_other
+  - "Recreational Area"  # not_known_and_other
+  - "Quarry"  # not_known_and_other
+  - "Forestry Pre-2009"  # tree_wood_forest
+  - "Gardens"  # kitchen_gardens
+  - "Planted Buffer Zone"  # not_known_and_other

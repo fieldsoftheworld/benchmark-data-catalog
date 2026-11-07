@@ -1,0 +1,85 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3301011501",
+            "Winter cereals",
+            "3301011503",
+            "Summer cereals",
+            "3301020000",
+            "Leguminous crops",
+            "3301010500",
+            "Oats",
+            "3301150200",
+            "Buckwheat",
+            "3301010600",
+            "Corn",
+            "3301070000",
+            "Vegetables",
+            "3301290700",
+            "Sugar beet",
+            "3303020000",
+            "Berries",
+            "Other"
+          ],
+          "Winter cereals",
+          "#cd9b37",
+          "Summer cereals",
+          "#a6cee3",
+          "Leguminous crops",
+          "#1f78b4",
+          "Oats",
+          "#b2df8a",
+          "Buckwheat",
+          "#33a02c",
+          "Corn",
+          "#fb9a99",
+          "Vegetables",
+          "#e31a1c",
+          "Sugar beet",
+          "#cc324c",
+          "Berries",
+          "#fdbf6f",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 Benchmark chips for Croatia cut from the 2024 edition of the harmonized field boundary collection hr.
 
 
-It contains 8,803 chips and 929,854 field polygons. Chips are pre-assigned to benchmark splits (train 7,089, val 854, test 860).
+It contains 9,588 chips and 1,196,306 field polygons. Chips are pre-assigned to benchmark splits (train 7,605, val 973, test 1,010).
 
 Licensed [License](https://www.apprrr.hr/prostorni-podaci-servisi/).
 
@@ -22,6 +22,13 @@ The collection ships these files alongside `collection.json`:
 | `hr_2024_boundary_lines.parquet` | Field boundary lines |
 | `hr_2024_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
+| `chips.pmtiles` | Chips (PMTiles) |
+| `fields.pmtiles` | Field boundaries (PMTiles) |
+| `styles/split.json` | Chips by split |
+| `styles/field-coverage.json` | Field coverage |
+| `styles/dominant-crop.json` | Dominant crop per chip |
+| `styles/crops.json` | Crops |
+| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -54,9 +61,6 @@ FTW properties on each STAC item:
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
-- `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
-- `ftw:mosaic_requested_year`: mosaic year the selection asked for
-- `ftw:mosaic_year`: mosaic year used
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
 - `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year
@@ -67,11 +71,11 @@ Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`,
 
 ## Data quality & usage notes
 
-- Field coverage is uneven: the median chip is 8.7% mapped field while the bottom 5% sit at or below 0.1%. Filter on `field_coverage_pct` when sparse chips would skew an evaluation.
+- Field coverage is uneven: the median chip is 12.0% mapped field while the bottom 5% sit at or below 0.1%. Filter on `field_coverage_pct` when sparse chips would skew an evaluation.
 - Masks are derived from boundaries declared for one year; later parcel changes are not reflected.
 - Empty area inside a chip means unmapped, not necessarily fieldless.
 - Chips on the dataset border may be only partly covered by the source boundaries.
-- Imagery is chosen against a crop calendar, so acquisition dates and cloud cover vary between chips; check `eo:cloud_cover` on the season child items.
+- Quarterly mosaics are cloudless composites, but where every scene of a quarter was cloudy they have no data (-32768) rather than the chip being dropped; check `ftw:nodata_pct` on each quarter's child item.
 - Respect the pre-assigned splits: they are spatially blocked, so resampling chips at random leaks information between train and test.
 
 ## Example queries
@@ -82,9 +86,9 @@ Every query below was run against this collection when this file was written; th
 
 ```sql
 SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet') GROUP BY 1 ORDER BY 1;
--- result: test | 860
--- result: train | 7089
--- result: val | 854
+-- result: test | 1010
+-- result: train | 7605
+-- result: val | 973
 ```
 
 ### Chips with the highest field coverage
@@ -92,8 +96,8 @@ SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet'
 ```sql
 SELECT id, field_coverage_pct FROM read_parquet('hr_2024_chips.parquet') ORDER BY field_coverage_pct DESC LIMIT 5;
 -- result: ftw-34TCR2258 | 97.88
+-- result: ftw-34TCR3040 | 96.86
 -- result: ftw-34TCR2066 | 96.8
--- result: ftw-34TCR2456 | 96.72
 -- result: ... 2 more rows
 ```
 
@@ -101,10 +105,10 @@ SELECT id, field_coverage_pct FROM read_parquet('hr_2024_chips.parquet') ORDER B
 
 ```sql
 SELECT hcat_dominant_name_en AS crop, count(*) AS chips FROM read_parquet('hr_2024_chips.parquet') WHERE hcat_dominant_code IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10;
--- result: Arable land | 6932
--- result: Olive grove | 874
--- result: Orchard | 699
--- result: ... 4 more rows
+-- result: Arable land | 5422
+-- result: Meadow | 2709
+-- result: Olive grove | 818
+-- result: ... 6 more rows
 ```
 
 ### Field polygons intersecting one chip

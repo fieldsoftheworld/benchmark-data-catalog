@@ -1,0 +1,1256 @@
+{
+  "type": "Collection",
+  "id": "sk_2019",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Slovakia cut from the 2019 edition of the harmonized field boundary collection sk.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/sk",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TXP/catalog.json",
+      "type": "application/json",
+      "title": "33TXP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TYN/catalog.json",
+      "type": "application/json",
+      "title": "33TYN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33TYP/catalog.json",
+      "type": "application/json",
+      "title": "33TYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UXP/catalog.json",
+      "type": "application/json",
+      "title": "33UXP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UXQ/catalog.json",
+      "type": "application/json",
+      "title": "33UXQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UYP/catalog.json",
+      "type": "application/json",
+      "title": "33UYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UYQ/catalog.json",
+      "type": "application/json",
+      "title": "33UYQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34TBT/catalog.json",
+      "type": "application/json",
+      "title": "34TBT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34TBU/catalog.json",
+      "type": "application/json",
+      "title": "34TBU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34TCT/catalog.json",
+      "type": "application/json",
+      "title": "34TCT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34TCU/catalog.json",
+      "type": "application/json",
+      "title": "34TCU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UBU/catalog.json",
+      "type": "application/json",
+      "title": "34UBU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UBV/catalog.json",
+      "type": "application/json",
+      "title": "34UBV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UCU/catalog.json",
+      "type": "application/json",
+      "title": "34UCU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UCV/catalog.json",
+      "type": "application/json",
+      "title": "34UCV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UDU/catalog.json",
+      "type": "application/json",
+      "title": "34UDU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UDV/catalog.json",
+      "type": "application/json",
+      "title": "34UDV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UEU/catalog.json",
+      "type": "application/json",
+      "title": "34UEU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UEV/catalog.json",
+      "type": "application/json",
+      "title": "34UEV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34UFV/catalog.json",
+      "type": "application/json",
+      "title": "34UFV"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-06T11:11:31Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-06T00:59:56.211203+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/sk/year=2019/sk-2019.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/sk/collection.json",
+      "sha256": "386ad959bd53360bb1483b365d92a5df117df571e544a029d1e0896334f2b12a",
+      "size": 254218857,
+      "fetched_at": "2026-11-06T00:59:59.815378Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/sk/year=2019/sk-2019.parquet",
+      "output_dir": "staging/sk_2019",
+      "name": "sk_2019",
+      "year": 2019,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/sk/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/slovakia_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Slovakia \u2014 2019",
+        "description": "Benchmark chips for Slovakia cut from the 2019 edition of the harmonized field boundary collection sk.\n",
+        "license": "CC0-1.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "P\u00f4dohospod\u00e1rska platobn\u00e1 agent\u00fara",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "sk",
+          "2019"
+        ],
+        "providers": [
+          {
+            "name": "P\u00f4dohospod\u00e1rska platobn\u00e1 agent\u00fara",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.apa.sk"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:name",
+        "include": [
+          "P\u0161enica letn\u00e1 ozimn\u00e1",
+          "Kukurica",
+          "Ja\u010dme\u0148 jarn\u00fd",
+          "P\u0161enica tvrd\u00e1 ozimn\u00e1",
+          "Ja\u010dme\u0148 ozimn\u00fd",
+          "Kukurica na sil\u00e1\u017e",
+          "P\u0161enica letn\u00e1 jarn\u00e1",
+          "Ovos siaty",
+          "Tritikale",
+          "Ra\u017e siata",
+          "Cirok",
+          "P\u0161enica tvrd\u00e1 jarn\u00e1",
+          "Kukurica cukrov\u00e1",
+          "Cirok s podsevom",
+          "Proso",
+          "Kukurica na sil\u00e1\u017e s podsevom",
+          "Ovos nah\u00fd",
+          "Kukurica osivov\u00e1",
+          "Kukurica s podsevom",
+          "P\u0161enica \u0161paldov\u00e1",
+          "Cirok sud\u00e1nsky",
+          "Poh\u00e1nka",
+          "Ovos ozimn\u00fd",
+          "Poh\u00e1nka s podsevom",
+          "Lesknica kan\u00e1rska",
+          "Kukurica na zeleno",
+          "Kukurica pukancov\u00e1",
+          "Ra\u017e trv\u00e1ca",
+          "Kukurica osivov\u00e1 s podsevom",
+          "Kukurica na zeleno s podsevom",
+          "P\u0161enica ozimn\u00e1",
+          "P\u0161enica jarn\u00e1",
+          "P\u0161enica tvrd\u00e1",
+          "Tritikale ozimn\u00e9",
+          "Tritikale jarn\u00e9",
+          "Kukurica cukrov\u00e1 s podsevom",
+          "Kukurica pukancov\u00e1 s podsevom",
+          "L\u00e1skavec",
+          "Zmie\u0161an\u00e1 plodina",
+          "Kapusta repkov\u00e1 prav\u00e1 - ozimn\u00e1",
+          "Slne\u010dnica ro\u010dn\u00e1",
+          "Hor\u010dica biela",
+          "Mak siaty",
+          "Re\u010fkev siata olejn\u00e1 (in\u00e1 ako na priamy konzum)",
+          "Slne\u010dnica ro\u010dn\u00e1 s podsevom",
+          "Kapusta repkov\u00e1 prav\u00e1 - jarn\u00e1",
+          "Olejninovo-obiln\u00e1 mie\u0161anka",
+          "Konopa siata",
+          "Repica olejnat\u00e1",
+          "\u013dan siaty olejn\u00fd",
+          "Po\u017elt farbiarsky",
+          "Strukovinovo-olejn\u00e1 mie\u0161anka",
+          "Re\u010fkev siata \u010dierna",
+          "Re\u010fkev siata prav\u00e1 (re\u010fkovka)",
+          "Tabak Virginia",
+          "\u013dan siaty priadny",
+          "Lucerna siata",
+          "S\u00f3ja fazu\u013eov\u00e1",
+          "\u010eatelina l\u00fa\u010dna",
+          "Hrach siaty",
+          "Strukovinovo-obiln\u00e1 mie\u0161anka",
+          "\u010eatelina purpurov\u00e1",
+          "Vika siata",
+          "Hrach siaty k\u0155mny",
+          "\u010eatelina plaziv\u00e1",
+          "Viacro\u010dn\u00e1 mie\u0161anka bez tr\u00e1v",
+          "Hrach siaty (pelu\u0161ka)",
+          "Hrach siaty prav\u00fd str\u017e\u0148ov\u00fd",
+          "Vika hu\u0148at\u00e1",
+          "\u010eatelina egyptsk\u00e1 (alexandrijsk\u00e1)",
+          "Lupina \u00fazkolist\u00e1",
+          "Vi\u010denec vikolist\u00fd",
+          "\u010eatelina hybridn\u00e1",
+          "B\u00f4b oby\u010dajn\u00fd",
+          "Vika pan\u00f3nska",
+          "\u0160o\u0161ovica jedl\u00e1",
+          "Lupina biela",
+          "C\u00edcer baran\u00ed",
+          "Fazu\u013ea z\u00e1hradn\u00e1 (oby\u010dajn\u00e1)",
+          "B\u00f4b konsk\u00fd",
+          "Vika siata pre ekosch\u00e9mu",
+          "Lupina \u017elt\u00e1",
+          "\u010eatelina perzsk\u00e1",
+          "\u010eatelina purpurov\u00e1 pre ekosch\u00e9mu",
+          "Hrachor siaty",
+          "C\u00edcer",
+          "Fazu\u013ea oby\u010dajn\u00e1",
+          "Fazu\u013ea mesiacovit\u00e1",
+          "Fazu\u013ea ostrolist\u00e1",
+          "Fazu\u013ea \u0161arl\u00e1tov\u00e1",
+          "Jastrabina v\u00fdchodn\u00e1",
+          "Komonica biela",
+          "Komonica lek\u00e1rska",
+          "\u010eatelina alexandrijsk\u00e1",
+          "Vt\u00e1konoha siata",
+          "Senovka gr\u00e9cka",
+          "Slez k\u0155mny",
+          "Zemiaky konzumn\u00e9 (neskor\u00e9)",
+          "Repa cukrov\u00e1",
+          "Zemiaky konzumn\u00e9 (skor\u00e9)",
+          "Zemiaky konzumn\u00e9 (neskor\u00e9) s podsevom",
+          "Zemiaky konzumn\u00e9 (skor\u00e9) s podsevom",
+          "Mrkva oby\u010dajn\u00e1",
+          "Repa oby\u010dajn\u00e1 cviklov\u00e1 (Cvikla)",
+          "Zemiaky sadbov\u00e9",
+          "Repa k\u0155mna",
+          "Zemiaky sadbov\u00e9 s podsevom",
+          "Repa cukrov\u00e1 s podsevom",
+          "Kore\u0148ov\u00e1 zelenina (ostatn\u00e1)",
+          "Repa k\u0155mna s podsevom",
+          "Karotka",
+          "Pa\u0161trn\u00e1k siaty prav\u00fd",
+          "Repa oby\u010dajn\u00e1 cviklov\u00e1 (Cvikla) s podsevom",
+          "Kapusta repkov\u00e1 kvakov\u00e1 (kvaka)",
+          "Slne\u010dnica h\u013euznat\u00e1",
+          "Arti\u010doka",
+          "Zemiaky",
+          "Zemiaky konzumn\u00e9",
+          "Povojn\u00edk bat\u00e1tov\u00fd",
+          "Povojn\u00edk bat\u00e1tov\u00fd (bat\u00e1t)",
+          "Povojn\u00edk purpurov\u00fd (bat\u00e1t)",
+          "Repa oby\u010dajn\u00e1 cviklov\u00e1 (cvikla)",
+          "Zelenina a in\u00e9 z\u00e1hradn\u00e9 plodiny vo\u013ene pestovan\u00e9",
+          "Zmie\u0161an\u00e1 zelenina",
+          "Tekvica oby\u010dajn\u00e1 (pre produkciu semien na konzum a lisovanie)",
+          "Tekvica oby\u010dajn\u00e1 (pre produkciu na priamy konzum)",
+          "Kapusta hl\u00e1vkov\u00e1",
+          "Cibu\u013ea (jarn\u00e1)",
+          "\u0160pen\u00e1t siaty",
+          "Cibu\u013ea (zimn\u00e1)",
+          "Cesnak (zimn\u00fd)",
+          "Tekvica obrovsk\u00e1 (pre produkciu na priamy konzum)",
+          "Raj\u010diak jedl\u00fd",
+          "Paprika ro\u010dn\u00e1 zeleninov\u00e1",
+          "Dy\u0148a \u010derven\u00e1",
+          "Cuketa",
+          "Tekvica hokkaido",
+          "Mel\u00f3n cukrov\u00fd",
+          "Karfiol",
+          "Kaler\u00e1b (skor\u00fd)",
+          "Kel hl\u00e1vkov\u00fd",
+          "\u0160parg\u013ea",
+          "Uhorka naklada\u010dka",
+          "Zeler vo\u0148av\u00fd bu\u013evov\u00fd",
+          "Paprika ro\u010dn\u00e1 koreninov\u00e1",
+          "\u0160al\u00e1t siaty",
+          "Tekvica obrovsk\u00e1 (pre produkciu semien na konzum a lisovanie)",
+          "Kaler\u00e1b (neskor\u00fd)",
+          "Uhorka \u0161al\u00e1tov\u00e1",
+          "Cesnak (jarn\u00fd)",
+          "M\u00e4ta pieporn\u00e1",
+          "\u013du\u013eok bakla\u017e\u00e1nov\u00fd (bakla\u017e\u00e1n)",
+          "\u0160alotka (jarn\u00e1)",
+          "Kapusta hl\u00e1vkov\u00e1 s podsevom",
+          "\u010cakanka oby\u010dajn\u00e1 \u0161al\u00e1tov\u00e1",
+          "P\u00f3r pestovan\u00fd (zimn\u00fd)",
+          "Po\u013en\u00e1 zelenina",
+          "Bakla\u017e\u00e1n",
+          "Brokolica",
+          "Cesnak",
+          "Chren dedinsk\u00fd",
+          "Cibu\u013ea",
+          "Dy\u0148a",
+          "Mel\u00f3ny",
+          "Kaler\u00e1b",
+          "Kapusta",
+          "Kapusta pekinsk\u00e1",
+          "Kapusta \u010d\u00ednska",
+          "Kapusta sitinov\u00e1",
+          "Kel",
+          "Kel hl\u00e1vkov\u00fd s podsevom",
+          "Mrkva",
+          "Paprika",
+          "Paprika ro\u010dn\u00e1",
+          "Patiz\u00f3n",
+          "Tekvica",
+          "Pa\u0161trn\u00e1k",
+          "Petr\u017elen",
+          "Petr\u017elen v\u0148a\u0165ov\u00fd ku\u010derav\u00fd",
+          "P\u00f3r",
+          "P\u00f3r pestovan\u00fd (jarn\u00fd)",
+          "Raj\u010diaky",
+          "Repa oby\u010dajn\u00e1 (mangold)",
+          "Re\u010fkev",
+          "Re\u010fkev siata (\u010dierna a re\u010fkovka)",
+          "Re\u010fkovka",
+          "Zeler",
+          "Zeler vo\u0148av\u00fd stonkov\u00fd",
+          "\u010cakanka oby\u010dajn\u00e1",
+          "\u0160al\u00e1t",
+          "\u0160pen\u00e1t",
+          "\u0160tiavec",
+          "Ostropestrec mari\u00e1nsky",
+          "Lie\u010div\u00e9 rastliny",
+          "Petr\u017elen z\u00e1hradn\u00fd",
+          "Skorocel kopijovit\u00fd",
+          "Ruman\u010dek kamilkov\u00fd",
+          "Rasca l\u00fa\u010dna",
+          "Bylinn\u00e9 pol\u00ed\u010dko",
+          "Fenikel oby\u010dajn\u00fd",
+          "Medovka lek\u00e1rska",
+          "Levandu\u013ea \u00fazkolist\u00e1",
+          "Rebr\u00ed\u010dek oby\u010dajn\u00fd",
+          "Ostatn\u00e9 aromatick\u00e9 byliny",
+          "\u013dubovn\u00edk bodkovan\u00fd",
+          "K\u00f4por vo\u0148av\u00fd",
+          "Necht\u00edk lek\u00e1rsky",
+          "\u0160alvia lek\u00e1rska",
+          "Pamajor\u00e1n oby\u010dajn\u00fd (oregano)",
+          "D\u00fa\u0161ka tymi\u00e1nov\u00e1 ( tymi\u00e1n)",
+          "\u0160alvia mu\u0161k\u00e1tov\u00e1",
+          "Koreninov\u00e9 rastliny (ostatn\u00e9)",
+          "Echinacea purpurov\u00e1",
+          "Rebr\u00ed\u010dek kopcov\u00fd",
+          "Bazalka prav\u00e1",
+          "Bedrovn\u00edk an\u00edzov\u00fd",
+          "Bor\u00e1k lek\u00e1rsky",
+          "Koriander siaty",
+          "Ligur\u010dek lek\u00e1rsky",
+          "Medovka",
+          "M\u00e4ta",
+          "Slez maursk\u00fd",
+          "Yzop lek\u00e1rsky",
+          "\u0160alvia",
+          "Jahody",
+          "Chme\u013e oby\u010dajn\u00fd",
+          "Vinohrady",
+          "Vinohrad v re\u0161trukturaliz\u00e1cii",
+          "Vinohrad so zlat\u00fdm \u017eltnut\u00edm",
+          "Ovocn\u00e9 sady",
+          "Jablo\u0148 dom\u00e1ca",
+          "Slivka dom\u00e1ca",
+          "Orech kr\u00e1\u013eovsk\u00fd",
+          "Marhu\u013ea oby\u010dajn\u00e1",
+          "Brosky\u0148a oby\u010dajn\u00e1",
+          "Hru\u0161ka oby\u010dajn\u00e1",
+          "\u010cu\u010doriedka (Brusnica chochol\u00edkat\u00e1)",
+          "Jarabina \u010dierna (Ar\u00f3nia \u010diernoplod\u00e1)",
+          "\u010cere\u0161\u0148a vt\u00e1\u010dia",
+          "R\u00edbez\u013ea",
+          "Rakytn\u00edk re\u0161etliakovit\u00fd",
+          "Zmie\u0161an\u00fd krajinotvorn\u00fd sad",
+          "Malina",
+          "Vi\u0161\u0148a",
+          "Baza \u010dierna",
+          "Ga\u0161tan jedl\u00fd",
+          "\u010cernica",
+          "Zemolez kam\u010datsk\u00fd",
+          "Mand\u013ea oby\u010dajn\u00e1",
+          "Drie\u0148 oby\u010dajn\u00fd",
+          "Ru\u017ea jab\u013a\u010dkov\u00e1",
+          "Dula",
+          "Ringlota",
+          "Brusnica prav\u00e1",
+          "Jarabina vt\u00e1\u010dia",
+          "Lieska oby\u010dajn\u00e1",
+          "Moru\u0161a",
+          "Mi\u0161pu\u013ea",
+          "Nekt\u00e1rinka",
+          "Egre\u0161 oby\u010dajn\u00fd",
+          "Jarabina oskoru\u0161ov\u00e1",
+          "Jarabina \u010dierna",
+          "Slivka \u010dere\u0161\u0148oplod\u00e1 (myrobal\u00e1n)",
+          "Zemolez",
+          "\u010cu\u010doriedka",
+          "\u0160k\u00f4lky s drevnat\u00fdmi rastlinami",
+          "Bylinn\u00e9 trval\u00e9 plodiny",
+          "V\u0155ba biela",
+          "Topo\u013e maximowiczov",
+          "Topo\u013e kanadsk\u00fd robusta",
+          "Topo\u013e \u010dierny",
+          "V\u0155ba lykovcovit\u00e1",
+          "V\u0155ba ko\u0161ik\u00e1rska",
+          "Topo\u013e osikov\u00fd",
+          "Topo\u013e biely",
+          "Hrab oby\u010dajn\u00fd",
+          "Breza previsnut\u00e1",
+          "Jel\u0161a siv\u00e1",
+          "Jase\u0148 \u0161t\u00edhly",
+          "Topo\u013e chlpatoplod\u00fd",
+          "Topo\u013e robusta",
+          "Topo\u013e simonov",
+          "V\u0155ba rakytov\u00e1",
+          "Trval\u00fd tr\u00e1vny porast",
+          "Tr\u00e1vy alebo in\u00e9 bylinn\u00e9 krmoviny",
+          "Zatr\u00e1vnen\u00e1 orn\u00e1 p\u00f4da v CH\u00da (ekosch\u00e9ma)",
+          "Zatr\u00e1vnen\u00e1 orn\u00e1 p\u00f4da (neprojektov\u00e9 opatrenia)",
+          "Tr\u00e1vy a in\u00e9 rastlinn\u00e9 krmiv\u00e1"
+        ],
+        "exclude": [
+          "Teplomiln\u00e9 a suchomiln\u00e9 trval\u00e9 tr\u00e1vne porasty (typ A)",
+          "Mezofiln\u00e9 trval\u00e9 tr\u00e1vne porasty (typ B)",
+          "Horsk\u00e9 kosn\u00e9 l\u00faky (typ C)",
+          "Vlhkomiln\u00e9 porasty ni\u017e\u0161\u00edch pol\u00f4h (typ D)",
+          "N\u00ed\u017einn\u00e9 aluvi\u00e1lne porasty (typ E)",
+          "Vlhkomiln\u00e9 porasty vy\u0161\u0161\u00edch pol\u00f4h, slatinn\u00e9 a bezkolencov\u00e9 l\u00faky (typ F)",
+          "Vysokohorsk\u00e9 tr\u00e1vne porasty (typ G)",
+          "P\u00f4da le\u017eiaca \u00fahorom s porastom",
+          "P\u00f4da le\u017eiaca \u00fahorom pre medonosn\u00e9 plodiny",
+          "Biop\u00e1s",
+          "Biop\u00e1s pre medonosn\u00e9 plodiny",
+          "P\u00f4da le\u017eiaca \u00fahorom",
+          "Biop\u00e1s tvoren\u00fd \u00fahorom s porastom",
+          "Biop\u00e1s kosen\u00fd po 31. j\u00fali",
+          "Fac\u00e9lia vrati\u010dolist\u00e1",
+          "L\u00edniov\u00fd vegeta\u010dn\u00fd prvok",
+          "N\u00e1razn\u00edkov\u00e1 z\u00f3na a medza",
+          "P\u00f4da le\u017eiaca \u00fahorom s produkciou bez hnojenia",
+          "P\u00f4da le\u017eiaca \u00fahorom s produkciou s hnojen\u00edm",
+          "Biop\u00e1s pre medonosn\u00e9 plodiny kosen\u00fd po 31. j\u00fali",
+          "Ostrov biodiverzity",
+          "Ostrov biodiverzity medonosn\u00fd",
+          "Zalesnen\u00e1 orn\u00e1 p\u00f4da",
+          "Kvety a okrasn\u00e9 rastliny vo\u013ene pestovan\u00e9",
+          "Zelenina a in\u00e9 z\u00e1hradn\u00e9 plodiny pod sklom alebo f\u00f3liou",
+          "Kvety a okrasn\u00e9 rastliny pod sklom alebo f\u00f3liou",
+          "Kapuc\u00ednka v\u00e4\u010d\u0161ia",
+          "Sida obojpohlavn\u00e1",
+          "Ostatn\u00e1 manipula\u010dn\u00e1 plocha"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/slovakia_filter.yaml",
+        "column_aliases": [
+          "crop_name"
+        ]
+      }
+    }
+  },
+  "title": "Slovakia \u2014 2019",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          16.83639253920221,
+          47.73435538302786,
+          22.533268230847646,
+          49.59901417869067
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2019-01-01T00:00:00Z",
+          "2019-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC0-1.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "sk",
+    "2019"
+  ],
+  "providers": [
+    {
+      "name": "P\u00f4dohospod\u00e1rska platobn\u00e1 agent\u00fara",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.apa.sk"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./sk_2019_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 368830222,
+      "table:columns": [
+        {
+          "name": "municipality",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop_group",
+          "type": "varchar"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 247544,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./sk_2019_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 278257556,
+      "table:columns": [
+        {
+          "name": "municipality",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop_group",
+          "type": "varchar"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 213954,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./sk_2019_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 277999477,
+      "table:columns": [
+        {
+          "name": "municipality",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop_group",
+          "type": "varchar"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 213954,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./sk_2019_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 1034491,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 9856,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 9554847,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 9856,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 3276053
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 82410733
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1076
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2324
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2350
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Slovakia \u2014 2019 \u2014 Field outlines"
+    }
+  }
+}

@@ -5,7 +5,7 @@
 Benchmark chips for Belgium-Wallonia cut from the 2022 edition of the harmonized field boundary collection be_wal.
 
 
-It contains 3,203 chips and 122,200 field polygons. Chips are pre-assigned to benchmark splits (train 2,559, val 336, test 308).
+It contains 3,607 chips and 333,673 field polygons. Chips are pre-assigned to benchmark splits (train 2,871, val 364, test 372).
 
 Licensed [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html).
 
@@ -22,6 +22,13 @@ The collection ships these files alongside `collection.json`:
 | `be_wal_2022_boundary_lines.parquet` | Field boundary lines |
 | `be_wal_2022_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
+| `chips.pmtiles` | Chips (PMTiles) |
+| `fields.pmtiles` | Field boundaries (PMTiles) |
+| `styles/split.json` | Chips by split |
+| `styles/field-coverage.json` | Field coverage |
+| `styles/dominant-crop.json` | Dominant crop per chip |
+| `styles/crops.json` | Crops |
+| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -54,9 +61,6 @@ FTW properties on each STAC item:
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
-- `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
-- `ftw:mosaic_requested_year`: mosaic year the selection asked for
-- `ftw:mosaic_year`: mosaic year used
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
 - `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year
@@ -67,11 +71,11 @@ Label rasters available as item assets: `instance_mask`, `semantic_2class_mask`,
 
 ## Data quality & usage notes
 
-- Field coverage is uneven: the median chip is 18.1% mapped field while the bottom 5% sit at or below 0.4%. Filter on `field_coverage_pct` when sparse chips would skew an evaluation.
+- Field coverage is uneven: the median chip is 51.3% mapped field while the bottom 5% sit at or below 3.8%. Filter on `field_coverage_pct` when sparse chips would skew an evaluation.
 - Masks are derived from boundaries declared for one year; later parcel changes are not reflected.
 - Empty area inside a chip means unmapped, not necessarily fieldless.
 - Chips on the dataset border may be only partly covered by the source boundaries.
-- Imagery is chosen against a crop calendar, so acquisition dates and cloud cover vary between chips; check `eo:cloud_cover` on the season child items.
+- Quarterly mosaics are cloudless composites, but where every scene of a quarter was cloudy they have no data (-32768) rather than the chip being dropped; check `ftw:nodata_pct` on each quarter's child item.
 - Respect the pre-assigned splits: they are spatially blocked, so resampling chips at random leaks information between train and test.
 
 ## Example queries
@@ -82,18 +86,18 @@ Every query below was run against this collection when this file was written; th
 
 ```sql
 SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet') GROUP BY 1 ORDER BY 1;
--- result: test | 308
--- result: train | 2559
--- result: val | 336
+-- result: test | 372
+-- result: train | 2871
+-- result: val | 364
 ```
 
 ### Chips with the highest field coverage
 
 ```sql
 SELECT id, field_coverage_pct FROM read_parquet('be_wal_2022_chips.parquet') ORDER BY field_coverage_pct DESC LIMIT 5;
--- result: ftw-31UFS4212 | 97.39
--- result: ftw-31UFS3610 | 97.04
--- result: ftw-31UFS6414 | 95.49
+-- result: ftw-31UFS3610 | 97.8
+-- result: ftw-31UFS4212 | 97.67
+-- result: ftw-31UFS6010 | 96.66
 -- result: ... 2 more rows
 ```
 
@@ -101,9 +105,9 @@ SELECT id, field_coverage_pct FROM read_parquet('be_wal_2022_chips.parquet') ORD
 
 ```sql
 SELECT hcat_dominant_name_en AS crop, count(*) AS chips FROM read_parquet('be_wal_2022_chips.parquet') WHERE hcat_dominant_code IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10;
--- result: Winter wheat | 1406
--- result: Corn silage | 857
--- result: Winter spelt | 144
+-- result: Meadow and fodder | 2777
+-- result: Winter wheat | 751
+-- result: Winter barley | 17
 -- result: ... 7 more rows
 ```
 

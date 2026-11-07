@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "grasses",
+            "3301010101",
+            "Winter wheat",
+            "3301010402",
+            "Summer barley",
+            "3301090300",
+            "Birdsfoot trefoil (100%)",
+            "3301060401",
+            "Winter oilseed rape",
+            "3301010102",
+            "Summer wheat",
+            "3301010500",
+            "Oats undersown (excl. legumes)",
+            "3301090303",
+            "Alsike clover (100%)",
+            "3301020600",
+            "Eastern goat pea (100% eastern goat pea)",
+            "3301010401",
+            "Winter barley",
+            "3301020100",
+            "Broad bean (excl. \"\"Jgeva\"\") ",
+            "3301010600",
+            "Baby corn",
+            "Other"
+          ],
+          "grasses",
+          "#32cc32",
+          "Winter wheat",
+          "#cda737",
+          "Summer barley",
+          "#a6cee3",
+          "Birdsfoot trefoil (100%)",
+          "#1f78b4",
+          "Winter oilseed rape",
+          "#b2df8a",
+          "Summer wheat",
+          "#fb9a99",
+          "Oats undersown (excl. legumes)",
+          "#e31a1c",
+          "Alsike clover (100%)",
+          "#fdbf6f",
+          "Eastern goat pea (100% eastern goat pea)",
+          "#ff7f00",
+          "Winter barley",
+          "#6a3d9a",
+          "Broad bean (excl. \"\"Jgeva\"\") ",
+          "#ffff99",
+          "Baby corn",
+          "#b15928",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

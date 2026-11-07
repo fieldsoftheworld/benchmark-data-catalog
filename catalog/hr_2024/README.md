@@ -10,29 +10,29 @@ Open this collection in the [data browser](https://browser.portolan-sdi.org/#/ex
 
 ## What is in this collection
 
-This collection holds 8,803 chips and 929,854 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
+This collection holds 9,588 chips and 1,196,306 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
 
 Chips per benchmark split:
 
 | split | chips |
 | --- | --- |
-| train | 7,089 |
-| val | 854 |
-| test | 860 |
+| train | 7,605 |
+| val | 973 |
+| test | 1,010 |
 
 How much of a chip is mapped field, as a distribution over the chips (`field_coverage_pct`):
 
 | percentile | field coverage |
 | --- | --- |
 | 5th | 0.1% |
-| 25th | 1.6% |
-| 50th | 8.7% |
-| 75th | 38.3% |
-| 95th | 80.6% |
+| 25th | 2.5% |
+| 50th | 12.0% |
+| 75th | 40.4% |
+| 95th | 80.5% |
 
 Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
-8,803 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
+9,588 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
 
 ## Crops
 
@@ -40,10 +40,11 @@ Crops are harmonized to the EuroCrops HCAT taxonomy. The classes covering most o
 
 | crop | HCAT code | share |
 | --- | --- | --- |
-| Arable land | 3301000000 | 92.0% |
-| Orchard | 3303010000 | 4.2% |
-| Olive grove | 3303050000 | 1.8% |
-| Mother block of vines | 3303060000 | 1.8% |
+| Arable land | 3301000000 | 80.2% |
+| Meadow | 3302000000 | 12.8% |
+| Orchard | 3303010000 | 3.7% |
+| Olive grove | 3303050000 | 1.6% |
+| Mother block of vines | 3303060000 | 1.5% |
 | Mixed perennial crops | 3303000000 | 0.2% |
 | Nursery | 3303070000 | 0.0% |
 | Short rotation coppice | 3306000000 | 0.0% |
@@ -77,7 +78,7 @@ Ready-made map styles ship with the collection:
 ## Limitations
 
 - Masks are derived from field boundaries declared for a given year; parcels that changed shape, were subdivided or merged after that declaration are not reflected.
-- Imagery windows follow a crop calendar rather than a fixed date, so acquisition dates differ between chips and cloud-free scenes are not guaranteed.
+- Quarterly mosaics are cloudless composites, but where every scene of a quarter was cloudy they have no data (-32768) rather than the chip being dropped; check `ftw:nodata_pct` on each quarter's child item.
 - Chips on the border of the source dataset may be only partly covered by field boundaries, and empty area there means unmapped, not fieldless.
 
 ## Access

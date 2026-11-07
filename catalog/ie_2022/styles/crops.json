@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Pasture meadow grassland grass",
+            "3301010402",
+            "Spring barley",
+            "3301010401",
+            "Winter barley",
+            "3301090100",
+            "Temporary grass",
+            "3301010101",
+            "Winter common soft wheat",
+            "3301010600",
+            "Grain maize corn popcorn",
+            "3301010501",
+            "Winter oats",
+            "3301010502",
+            "Spring oats",
+            "3301060401",
+            "Winter rapeseed rape",
+            "3301020100",
+            "Beans",
+            "3301290400",
+            "Mangelwurzel fodder beet",
+            "3301030000",
+            "Potatoes",
+            "Other"
+          ],
+          "Pasture meadow grassland grass",
+          "#32cc32",
+          "Spring barley",
+          "#cea13b",
+          "Winter barley",
+          "#a6cee3",
+          "Temporary grass",
+          "#1f78b4",
+          "Winter common soft wheat",
+          "#b2df8a",
+          "Grain maize corn popcorn",
+          "#fb9a99",
+          "Winter oats",
+          "#e31a1c",
+          "Spring oats",
+          "#fdbf6f",
+          "Winter rapeseed rape",
+          "#ff7f00",
+          "Beans",
+          "#6a3d9a",
+          "Mangelwurzel fodder beet",
+          "#cc324c",
+          "Potatoes",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

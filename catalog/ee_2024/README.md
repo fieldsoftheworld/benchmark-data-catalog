@@ -10,29 +10,29 @@ Open this collection in the [data browser](https://browser.portolan-sdi.org/#/ex
 
 ## What is in this collection
 
-This collection holds 6,553 chips and 86,826 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
+This collection holds 7,562 chips and 163,476 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
 
 Chips per benchmark split:
 
 | split | chips |
 | --- | --- |
-| train | 5,224 |
-| val | 660 |
-| test | 669 |
+| train | 6,037 |
+| val | 733 |
+| test | 792 |
 
 How much of a chip is mapped field, as a distribution over the chips (`field_coverage_pct`):
 
 | percentile | field coverage |
 | --- | --- |
-| 5th | 0.6% |
-| 25th | 6.9% |
-| 50th | 19.1% |
-| 75th | 35.8% |
-| 95th | 60.4% |
+| 5th | 0.9% |
+| 25th | 9.4% |
+| 50th | 24.6% |
+| 75th | 43.3% |
+| 95th | 66.6% |
 
 Every chip carries these label rasters as STAC assets: `instance_mask`, `semantic_2class_mask`, `semantic_3class_mask`, `decode_boundary_mask`, `decode_distance_mask`.
 
-6,553 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
+7,562 chips have Sentinel-2 quarterly cloudless mosaics selected for them, one for each quarter (Q1-Q4) of a single year.
 
 ## Crops
 
@@ -40,16 +40,16 @@ Crops are harmonized to the EuroCrops HCAT taxonomy. The classes covering most o
 
 | crop | HCAT code | share |
 | --- | --- | --- |
-| Winter wheat | 3301010101 | 25.3% |
-| Birdsfoot trefoil (100%) | 3301090300 | 13.8% |
-| Summer barley | 3301010402 | 11.9% |
-| Eastern goat pea (100% eastern goat pea) | 3301020600 | 9.2% |
-| Oats undersown (excl. legumes) | 3301010500 | 9.0% |
-| Winter oilseed rape | 3301060401 | 8.8% |
-| Alsike clover (100%) | 3301090303 | 6.6% |
-| Summer wheat | 3301010102 | 6.2% |
-| Winter barley | 3301010401 | 5.6% |
-| Grain maize | 3301010600 | 3.7% |
+| grasses | 3302000000 | 31.5% |
+| Winter wheat | 3301010101 | 18.0% |
+| Birdsfoot trefoil (100%) | 3301090300 | 9.8% |
+| Summer barley | 3301010402 | 8.4% |
+| Eastern goat pea (100% eastern goat pea) | 3301020600 | 6.5% |
+| Oats undersown (excl. legumes) | 3301010500 | 6.4% |
+| Winter oilseed rape | 3301060401 | 6.2% |
+| Alsike clover (100%) | 3301090303 | 4.7% |
+| Summer wheat | 3301010102 | 4.4% |
+| Winter barley | 3301010401 | 4.0% |
 
 ## Styles
 
@@ -81,7 +81,7 @@ Ready-made map styles ship with the collection:
 ## Limitations
 
 - Masks are derived from field boundaries declared for a given year; parcels that changed shape, were subdivided or merged after that declaration are not reflected.
-- Imagery windows follow a crop calendar rather than a fixed date, so acquisition dates differ between chips and cloud-free scenes are not guaranteed.
+- Quarterly mosaics are cloudless composites, but where every scene of a quarter was cloudy they have no data (-32768) rather than the chip being dropped; check `ftw:nodata_pct` on each quarter's child item.
 - Chips on the border of the source dataset may be only partly covered by field boundaries, and empty area there means unmapped, not fieldless.
 
 ## Access

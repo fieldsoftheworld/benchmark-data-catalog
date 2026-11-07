@@ -1,3 +1,3 @@
 # Belgium, Wallonia — 2022 — MGRS square 31UFR
 
-This square holds 1648 chips on the FTW grid. Each item carries the same asset types as the rest of the collection — label masks and, where imagery was downloaded, clipped scenes — see the [collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md) for what every asset means.
+This square holds 1867 chips on the FTW grid. Each item carries the same asset types as the rest of the collection — label masks and, where imagery was downloaded, clipped scenes — see the [collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md) for what every asset means.

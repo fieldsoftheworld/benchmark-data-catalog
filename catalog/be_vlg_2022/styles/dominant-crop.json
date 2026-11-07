@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "Grassland",
+            3301090400,
+            "Silage maize",
+            3301010101,
+            "Intercropping winter wheat or triticale and winter legume",
+            3301010600,
+            "grain corn",
+            3301030000,
+            "Potatoes (certified seed)",
+            3303011200,
+            "Perennial fruit crops (pear)",
+            3301090303,
+            "grass clover",
+            3301010401,
+            "winter barley",
+            3303010200,
+            "Perennial fruit crops (apple)",
+            3301070000,
+            "Other vegetables - fresh",
+            3301010301,
+            "winter rye",
+            3301290700,
+            "sugar beets",
+            "Other"
+          ],
+          "Grassland",
+          "#32cc32",
+          "Silage maize",
+          "#ccb732",
+          "Intercropping winter wheat or triticale and winter legume",
+          "#a6cee3",
+          "grain corn",
+          "#1f78b4",
+          "Potatoes (certified seed)",
+          "#b2df8a",
+          "Perennial fruit crops (pear)",
+          "#fb9a99",
+          "grass clover",
+          "#e31a1c",
+          "winter barley",
+          "#fdbf6f",
+          "Perennial fruit crops (apple)",
+          "#cc4c32",
+          "Other vegetables - fresh",
+          "#ff7f00",
+          "winter rye",
+          "#6a3d9a",
+          "sugar beets",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}
