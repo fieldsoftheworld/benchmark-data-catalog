@@ -309,7 +309,9 @@ metadata:
 stages:
   chips:
     min_coverage: 0.01
-    drop_border_chips: true
+    # Border chips may cut wall-to-wall labels short; in presence-only data unlabelled
+    # pixels are unknown anyway, and sparse samples would lose every chip.
+    drop_border_chips: {"false" if presence_only else "true"}
   splits:
     split_type: block3x3
     split_percents: [80, 10, 10]

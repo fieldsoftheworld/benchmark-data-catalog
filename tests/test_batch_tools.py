@@ -144,6 +144,7 @@ check(select["nodata_max"] == 100.0, "mosaics keep their gaps")
 check(recipe["stages"]["download_images"]["mode"] == "clip", "imagery is clipped onto the mask grid")
 check(recipe["fields_file"] == urls["parquet"], "an ordinary dataset reads the harmonized parquet")
 check(recipe["stages"]["masks"]["presence_only"] is False, "wall-to-wall by default")
+check(recipe["stages"]["chips"]["drop_border_chips"] is True, "wall-to-wall drops border chips")
 
 # A derived dataset reads the script's output; a Presence-only row gets presence-only masks.
 es_row = {**ROW, "dataset_id": "es_po_2025", "harmonized_id": "es", "year": "2025",
@@ -153,6 +154,8 @@ derived = yaml.safe_load(new_dataset.recipe_text("es_po_2025", es_row, COLLECTIO
 check(derived["fields_file"] == "work/es_po_2025.parquet", f"derived input: {derived['fields_file']}")
 check(derived["source_via"] == es_urls["collection"], "a derived dataset still names its collection")
 check(derived["stages"]["masks"]["presence_only"] is True, "Presence-only row: presence_only true")
+check(derived["stages"]["chips"]["drop_border_chips"] is False,
+      "presence-only keeps border chips: sparse samples would lose every chip")
 check(derived["stages"]["masks"]["mask_types"] == ["semantic_2_class", "semantic_3_class"],
       f"presence-only builds the semantic masks only: {derived['stages']['masks']['mask_types']}")
 
