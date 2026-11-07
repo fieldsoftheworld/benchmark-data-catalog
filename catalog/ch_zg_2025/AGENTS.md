@@ -7,7 +7,7 @@ Benchmark chips for Switzerland cut from the 2025 edition of the harmonized fiel
 
 It contains 32 chips and 9,597 field polygons. Chips are pre-assigned to benchmark splits (train 23, test 9).
 
-Licensed [License](https://spdx.org/licenses/CC-BY-4.0.html).
+Licensed [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html).
 
 ## Accessing the data
 
@@ -22,13 +22,6 @@ The collection ships these files alongside `collection.json`:
 | `ch_zg_2025_boundary_lines.parquet` | Field boundary lines |
 | `ch_zg_2025_chips.parquet` | Chip definitions with field coverage |
 | `items.parquet` | STAC items in GeoParquet format (collection mirror) |
-| `chips.pmtiles` | Chips (PMTiles) |
-| `fields.pmtiles` | Field boundaries (PMTiles) |
-| `styles/split.json` | Chips by split |
-| `styles/field-coverage.json` | Field coverage |
-| `styles/dominant-crop.json` | Dominant crop per chip |
-| `styles/crops.json` | Crops |
-| `styles/outline.json` | Field outlines |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -61,6 +54,9 @@ FTW properties on each STAC item:
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
+- `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
+- `ftw:mosaic_requested_year`: mosaic year the selection asked for
+- `ftw:mosaic_year`: mosaic year used
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
 - `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year

@@ -1,0 +1,74 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "Extensively used meadows (without pastures)",
+            3301090100,
+            "Artificial meadows (without pastures)",
+            3301010101,
+            "Winter wheat (excluding feed list)",
+            3301090400,
+            "Silage and green maize",
+            3301010401,
+            "Winter barley",
+            3301010600,
+            "Grain maize",
+            3303060000,
+            "Vines/vineyards",
+            "Other"
+          ],
+          "Extensively used meadows (without pastures)",
+          "#32cc32",
+          "Artificial meadows (without pastures)",
+          "#a6cee3",
+          "Winter wheat (excluding feed list)",
+          "#cda737",
+          "Silage and green maize",
+          "#1f78b4",
+          "Winter barley",
+          "#b2df8a",
+          "Grain maize",
+          "#fb9a99",
+          "Vines/vineyards",
+          "#e31a1c",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

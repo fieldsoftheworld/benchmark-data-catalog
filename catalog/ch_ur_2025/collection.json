@@ -1,0 +1,1109 @@
+{
+  "type": "Collection",
+  "id": "ch_ur_2025",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Switzerland cut from the 2025 edition of the harmonized field boundary collection ch.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/ch",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TMS/catalog.json",
+      "type": "application/json",
+      "title": "32TMS"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-07T02:29:51Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-07T02:29:41.539264+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/ch/year=2025/ch_ur-2025.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/ch/collection.json",
+      "sha256": "8ed529b8f37f0fd62c4b0d791bb0f59d761a796905c126fb504b4ece05e93742",
+      "size": 11489134,
+      "fetched_at": "2026-11-06T01:03:56.772909Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/ch/year=2025/ch_ur-2025.parquet",
+      "output_dir": "staging/ch_ur_2025",
+      "name": "ch_ur_2025",
+      "year": 2025,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/ch/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/switzerland_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Switzerland, Uri \u2014 2025",
+        "description": "Benchmark chips for Switzerland cut from the 2025 edition of the harmonized field boundary collection ch.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Quelle: Lisag AG (GIS Uri) \u2014 Landwirtschaftliche Nutzungsfl\u00e4chen, https://www.geodienste.ch/services/lwb_nutzungsflaechen",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "ch_ur",
+          "2025"
+        ],
+        "providers": [
+          {
+            "name": "Kanton Uri, via geodienste.ch",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.geodienste.ch/services/lwb_nutzungsflaechen"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "Silo- und Gr\u00fcnmais",
+          "Winterweizen (ohne Futterweizen der Sortenliste swiss granum)",
+          "Wintergerste",
+          "Einj\u00e4hrige Freilandgem\u00fcse, ohne Konservengem\u00fcse",
+          "Winterraps zur Speise\u00f6lgewinnung",
+          "K\u00f6rnermais",
+          "Zuckerr\u00fcben",
+          "Kartoffeln",
+          "Futterweizen gem\u00e4ss Sortenliste swiss granum",
+          "Dinkel",
+          "Triticale",
+          "Sonnenblumen zur Speise\u00f6lgewinnung",
+          "Roggen",
+          "Hafer",
+          "Soja",
+          "Hausg\u00e4rten",
+          "Mehrj\u00e4hrige Gew\u00fcrz- und Medizinalpflanzen",
+          "Erbsen zur K\u00f6rnergewinnung (z.B. Eiweisserbsen)",
+          "Sommerweizen (ohne Futterweizen der Sortenliste swiss granum)",
+          "Sommergerste",
+          "Spargel",
+          "Pflanzkartoffeln (Vertragsanbau)",
+          "Einj\u00e4hrige Beeren (z.B. Erdbeeren)",
+          "Freiland-Konservengem\u00fcse",
+          "Bohnen und Wicken zur K\u00f6rnergewinnung (z.B. Ackerbohnen)",
+          "\u00dcbrige offene Ackerfl\u00e4che, beitragsberechtigt",
+          "Permakultur",
+          "Getreide siliert",
+          "\u00dcbrige offene Ackerfl\u00e4che, nicht beitragsberechtigt",
+          "Futterr\u00fcben",
+          "Einj\u00e4hrige Gew\u00fcrz- und Medizinalpflanzen",
+          "Mischungen von Bohnen, Wicken, Erbsen, Kichererbsen und Lupinen mit Getreide oder Leindotter, mindestens 30 % Anteil Leguminosen bei der Ernte (zur K\u00f6rnergewinnung)",
+          "Rhabarber",
+          "Lupinen",
+          "Sorghum zur Nutzung ganze Pflanze",
+          "Lein",
+          "Tabak",
+          "Futterleguminosen f\u00fcr die Samenproduktion (Vertragsanbau)",
+          "Wurzeln der Treibzichorie",
+          "Emmer, Einkorn",
+          "Hartweizen",
+          "Mischel Futtergetreide",
+          "\u00d6lk\u00fcrbisse",
+          "Linsen",
+          "Hirse zur K\u00f6rnergewinnung",
+          "Futtergr\u00e4ser f\u00fcr die Samenproduktion (Vertragsanbau)",
+          "Buchweizen",
+          "Mischungen von Linsen mit Getreide oder Leindotter, mindestens 30 % Anteil Linsen bei der Ernte (zur K\u00f6rnergewinnung)",
+          "Kichererbsen",
+          "Sommerraps zur Speise\u00f6lgewinnung",
+          "Trockenreis",
+          "Mischel Brotgetreide",
+          "Hanf zur Nutzung der Samen",
+          "Senf",
+          "Mohn",
+          "Sonnenblumen als nachwachsender Rohstoff",
+          "Hopfen",
+          "Anderer Hanf",
+          "Nassreis",
+          "Saatmais (Vertragsanbau)",
+          "Winterraps als nachwachsender Rohstoff",
+          "Quinoa",
+          "Sorghum zur K\u00f6rnergewinnung",
+          "Leindotter",
+          "Hanf zur Fasernutzung",
+          "Saflor",
+          "Einj\u00e4hrige nachwachsende Rohstoffe (Kenaf, usw.)",
+          "Hirse zur Nutzung ganze Pflanze",
+          "Reben",
+          "Rebfl\u00e4chen mit nat\u00fcrlicher Artenvielfalt",
+          "Obstanlagen (Steinobst)",
+          "Obstanlagen (\u00c4pfel)",
+          "Obstanlagen (Birnen)",
+          "Mehrj\u00e4hrige Beeren",
+          "Gepflegte Selven (Edelkastanienb\u00e4ume)",
+          "Christb\u00e4ume",
+          "Andere Obstanlagen (Kiwis, Holunder usw.)",
+          "Zierstr\u00e4ucher, Ziergeh\u00f6lze und Zierstauden",
+          "Reben (regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4chen)",
+          "\u00dcbrige Fl\u00e4chen mit Dauerkulturen, beitragsberechtigt",
+          "Baumschulen von Obst und Beeren",
+          "\u00dcbrige Baumschulen (Rosen, Zierstauden, usw.)",
+          "Baumschule von Forstpflanzen ausserhalb der Forstzone",
+          "\u00dcbrige Fl\u00e4chen mit Dauerkulturen, nicht beitragsberechtigt",
+          "Tr\u00fcffelanlagen",
+          "Maulbeerbaumanlagen (F\u00fctterung Seidenraupen)",
+          "Baumschulen von Reben",
+          "Obstanlagen aggregiert",
+          "501",
+          "502",
+          "504",
+          "505",
+          "506",
+          "507",
+          "508",
+          "510",
+          "511",
+          "512",
+          "513",
+          "514",
+          "515",
+          "516",
+          "519",
+          "520",
+          "521",
+          "522",
+          "523",
+          "524",
+          "525",
+          "526",
+          "527",
+          "528",
+          "529",
+          "531",
+          "534",
+          "536",
+          "537",
+          "538",
+          "539",
+          "540",
+          "541",
+          "543",
+          "544",
+          "545",
+          "546",
+          "547",
+          "548",
+          "551",
+          "552",
+          "553",
+          "566",
+          "567",
+          "568",
+          "569",
+          "570",
+          "573",
+          "574",
+          "575",
+          "576",
+          "577",
+          "578",
+          "579",
+          "580",
+          "581",
+          "591",
+          "592",
+          "597",
+          "598",
+          "631",
+          "632",
+          "701",
+          "702",
+          "703",
+          "704",
+          "705",
+          "706",
+          "708",
+          "709",
+          "710",
+          "712",
+          "713",
+          "714",
+          "717",
+          "718",
+          "719",
+          "720",
+          "722",
+          "723",
+          "724",
+          "725",
+          "730",
+          "731",
+          "797",
+          "798",
+          "909",
+          "\u00dcbrige Dauerwiesen (ohne Weiden)",
+          "Extensiv genutzte Wiesen (ohne Weiden)",
+          "Extensiv genutzte Weiden",
+          "Weiden (Heimweiden, \u00fcbrige Weiden ohne S\u00f6mmerungsweiden)",
+          "Kunstwiesen (ohne Weiden)",
+          "Wenig intensiv genutzte Wiesen (ohne Weiden)",
+          "\u00dcbrige Gr\u00fcnfl\u00e4che (Dauergr\u00fcnfl\u00e4che), beitragsberechtigt",
+          "\u00dcbrige Dauerweiden, beitragsberechtigt aggregiert",
+          "601",
+          "611",
+          "612",
+          "613",
+          "616",
+          "617",
+          "660",
+          "697"
+        ],
+        "exclude": [
+          "\u00dcbrige Kunstwiese, beitragsberechtigt (z.B. Schweineweide, Gefl\u00fcgelweide)",
+          "602",
+          "Hecken-, Feld- und Ufergeh\u00f6lze (mit Krautsaum)",
+          "S\u00f6mmerungsweiden",
+          "Regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4che (Gr\u00fcnfl\u00e4chen ohne Weiden)",
+          "Wald",
+          "Hecken-, Feld- und Ufergeh\u00f6lze (mit Pufferstreifen)",
+          "Streuefl\u00e4chen in der landwirtschaftlichen Nutzfl\u00e4che",
+          "Uferwiesen (ohne Weiden)",
+          "\u00dcbrige unproduktive Fl\u00e4chen (z.B. gemulchte Fl\u00e4chen, stark verunkrautete Fl\u00e4chen, Hecken ohne Pufferstreifen)",
+          "Waldweiden (ohne bewaldete Fl\u00e4che)",
+          "\u00dcbrige Fl\u00e4chen innerhalb der landwirtschaftlichen Nutzfl\u00e4che, nicht beitragsberechtigt",
+          "Buntbrache",
+          "\u00dcbrige Fl\u00e4chen ausserhalb der landwirtschaftlichen Nutzfl\u00e4che und S\u00f6mmerungsfl\u00e4che",
+          "Fl\u00e4chen ohne landwirtschaftliche Hauptzweckbestimmung (erschlossenes Bauland, Spiel-, Reit-, Camping-, Golf-, Flug- und Milit\u00e4rpl\u00e4tze oder ausgemarchte Bereiche von Eisenbahnen, \u00f6ffentlichen Strassen und Gew\u00e4ssern)",
+          "\u00dcbrige Gr\u00fcnfl\u00e4che (Dauergr\u00fcnfl\u00e4chen), nicht beitragsberechtigt",
+          "Wassergr\u00e4ben, T\u00fcmpel, Teiche",
+          "Saum auf Ackerfl\u00e4chen",
+          "N\u00fctzlingsstreifen auf offener Ackerfl\u00e4che",
+          "Rotationsbrache",
+          "Heuwiesen im S\u00f6mmerungsgebiet, Typ extensiv genutzte Wiese",
+          "Unbefestigte, nat\u00fcrliche Wege",
+          "Gem\u00fcsekulturen in gesch\u00fctztem Anbau ohne festes Fundament; im gewachsenen Boden",
+          "Heuwiesen im S\u00f6mmerungsgebiet, \u00dcbrige Wiesen",
+          "Ruderalfl\u00e4chen, Steinhaufen und -w\u00e4lle",
+          "Einj\u00e4hrige g\u00e4rtnerische Freilandkulturen (Blumen, Rollrasen usw.)",
+          "Hecken-, Feld- und Ufergeh\u00f6lze (mit Pufferstreifen) (regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4che)",
+          "Trockenmauern",
+          "\u00dcbrige Fl\u00e4chen innerhalb der landwirtschaftlichen Nutzfl\u00e4che, beitragsberechtigt",
+          "Heuwiesen im S\u00f6mmerungsgebiet, Typ wenig intensiv genutzte Wiese",
+          "\u00dcbrige offene Ackerfl\u00e4che, nicht beitragsberechtigt (regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4che)",
+          "Gem\u00fcsekulturen in Gew\u00e4chsh\u00e4usern mit festem Fundament",
+          "Gemeinschaftsweiden",
+          "Regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4chen",
+          "Offene Ackerfl\u00e4che, beitragsberechtigt (regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4che)",
+          "Streuefl\u00e4chen im S\u00f6mmerungsgebiet",
+          "G\u00e4rtnerische Kulturen in gesch\u00fctztem Anbau ohne festes Fundament",
+          "Beerenkulturen in gesch\u00fctztem Anbau ohne festes Fundament; auf Pflanztischen oder -gestellen",
+          "Mehrj\u00e4hrige g\u00e4rtnerische Freilandkulturen (nicht im Gew\u00e4chshaus)",
+          "\u00dcbrige Spezialkulturen in gesch\u00fctztem Anbau ohne festes Fundament",
+          "Heuwiesen mit Zuf\u00fctterung w\u00e4hrend der S\u00f6mmerung",
+          "Beerenkulturen in gesch\u00fctztem Anbau ohne festes Fundament; im gewachsenen Boden",
+          "Mehrj\u00e4hrige nachwachsende Rohstoffe (Chinaschilf, usw.)",
+          "G\u00e4rtnerische Kulturen in Gew\u00e4chsh\u00e4usern mit festem Fundament",
+          "\u00dcbrige Kulturen in gesch\u00fctztem Anbau ohne festes Fundament, beitragsberechtigt",
+          "Gem\u00fcsekulturen in gesch\u00fctztem Anbau ohne festes Fundament; auf Pflanztischen oder -gestellen",
+          "\u00dcbrige Spezialkulturen in Gew\u00e4chsh\u00e4usern mit festem Fundament",
+          "Regionsspezifische Biodiversit\u00e4tsf\u00f6rderfl\u00e4chen (Weiden)",
+          "\u00dcbrige Kulturen in gesch\u00fctztem Anbau ohne festes Fundament, nicht beitragsberechtigt",
+          "\u00dcbrige Kulturen in gesch\u00fctztem Anbau mit festem Fundament",
+          "Landwirtschaftliche Produktion in Geb\u00e4uden (z. B. Champignon, Br\u00fcsseler)",
+          "Kulturen in ganzj\u00e4hrig gesch\u00fctztem Anbau, beitragsberechtigt aggregiert",
+          "Beerenkulturen in Gew\u00e4chsh\u00e4usern mit festem Fundament",
+          "Pilze (Freiland)",
+          "Pilze in gesch\u00fctztem Anbau mit festem Fundament",
+          "399",
+          "554",
+          "556",
+          "557",
+          "559",
+          "572",
+          "594",
+          "595",
+          "618",
+          "621",
+          "622",
+          "623",
+          "625",
+          "635",
+          "693",
+          "694",
+          "698",
+          "707",
+          "711",
+          "721",
+          "801",
+          "802",
+          "803",
+          "804",
+          "807",
+          "808",
+          "810",
+          "811",
+          "812",
+          "813",
+          "814",
+          "830",
+          "847",
+          "848",
+          "849",
+          "851",
+          "852",
+          "857",
+          "858",
+          "891",
+          "897",
+          "898",
+          "901",
+          "902",
+          "903",
+          "904",
+          "905",
+          "906",
+          "907",
+          "908",
+          "911",
+          "929",
+          "930",
+          "933",
+          "935",
+          "936",
+          "998"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/switzerland_filter.yaml",
+        "column_aliases": [
+          "crop:name",
+          "crop_name"
+        ]
+      }
+    }
+  },
+  "title": "Switzerland, Uri \u2014 2025",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          7.789072732593861,
+          46.17344799778721,
+          9.037086115789592,
+          47.198011203980194
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2025-01-01T00:00:00Z",
+          "2025-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "ch_ur",
+    "2025"
+  ],
+  "providers": [
+    {
+      "name": "Kanton Uri, via geodienste.ch",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.geodienste.ch/services/lwb_nutzungsflaechen"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./ch_ur_2025_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 18764527,
+      "table:columns": [
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 11551,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./ch_ur_2025_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 10277499,
+      "table:columns": [
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 8913,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./ch_ur_2025_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 10264667,
+      "table:columns": [
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 8913,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./ch_ur_2025_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 6675,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 15,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 130887,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:mosaic_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:mosaic_requested_year",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "portolan:render_order",
+          "type": "varchar[]"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:imagery_modes",
+          "type": "varchar[]"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 15,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 9190
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 4615946
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 873
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1077
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1223
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2560
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Switzerland, Uri \u2014 2025 \u2014 Field outlines"
+    }
+  }
+}

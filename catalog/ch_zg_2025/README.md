@@ -62,28 +62,9 @@ Ready-made map styles ship with the collection:
 
 ## Provenance
 
-- [Kanton Aargau, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Appenzell Innerrhoden, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Appenzell Ausserrhoden, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Bern, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Basel-Landschaft, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Fribourg, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [État de Genève, Office cantonal de l'agriculture et de la nature](https://ge.ch/sitg/): producer, licensor
-- [Kanton Glarus, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Graubünden, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Jura, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Luzern, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton St. Gallen, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Schaffhausen, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Solothurn, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Schwyz, Amt für Landwirtschaft](https://www.sz.ch/landwirtschaft): producer, licensor
-- [Kanton Thurgau, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Uri, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Valais, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
 - [Kanton Zug, via geodienste.ch](https://www.geodienste.ch/services/lwb_nutzungsflaechen): producer, licensor
-- [Kanton Zürich, Amt für Landschaft und Natur](https://www.zh.ch/de/umwelt-tiere/landwirtschaft.html): producer, licensor
 - [Fields of the World](https://fieldsofthe.world): processor
-- License: [License](https://spdx.org/licenses/CC-BY-4.0.html)
+- License: [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)
 - Source data: [Field boundaries for Switzerland](https://source.coop/ftw/harmonized-field-data/ch) (harmonized field boundaries; STAC [collection.json](https://data.source.coop/ftw/harmonized-field-data/ch/collection.json))
 - Chips are 2 km (2,000 m) on a side
 - Splits assigned with the `block3x3` strategy, random seed 42
