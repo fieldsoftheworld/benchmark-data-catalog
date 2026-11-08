@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Forage grass",
+            "3301010400",
+            "Feed Barley",
+            "3301010500",
+            "Green fodder grain (oats)",
+            "3301010102",
+            "Spring wheat",
+            "3301010101",
+            "Winter wheat",
+            "3301020600",
+            "Field Pea",
+            "3301060402",
+            "Spring rape",
+            "3301010000",
+            "Green fodder grain (mixed cereals)",
+            "3301010301",
+            "Autumn rye",
+            "3301030000",
+            "Early potato (under cover)",
+            "3301061211",
+            "Caraway",
+            "3301020000",
+            "Mixed crops (protein crops + cereals)",
+            "Other"
+          ],
+          "Forage grass",
+          "#32cc32",
+          "Feed Barley",
+          "#cc9e32",
+          "Green fodder grain (oats)",
+          "#a6cee3",
+          "Spring wheat",
+          "#1f78b4",
+          "Winter wheat",
+          "#b2df8a",
+          "Field Pea",
+          "#fb9a99",
+          "Spring rape",
+          "#e31a1c",
+          "Green fodder grain (mixed cereals)",
+          "#fdbf6f",
+          "Autumn rye",
+          "#ff7f00",
+          "Early potato (under cover)",
+          "#6a3d9a",
+          "Caraway",
+          "#ffff99",
+          "Mixed crops (protein crops + cereals)",
+          "#b15928",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

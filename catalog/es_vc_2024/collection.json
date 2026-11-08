@@ -1,0 +1,925 @@
+{
+  "type": "Collection",
+  "id": "es_vc_2024",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Spain-VC cut from the 2024 edition of the harmonized field boundary collection es_vc.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/es_vc",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SXG/catalog.json",
+      "type": "application/json",
+      "title": "30SXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SXH/catalog.json",
+      "type": "application/json",
+      "title": "30SXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SXJ/catalog.json",
+      "type": "application/json",
+      "title": "30SXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SXK/catalog.json",
+      "type": "application/json",
+      "title": "30SXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SYH/catalog.json",
+      "type": "application/json",
+      "title": "30SYH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SYJ/catalog.json",
+      "type": "application/json",
+      "title": "30SYJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30SYK/catalog.json",
+      "type": "application/json",
+      "title": "30SYK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXK/catalog.json",
+      "type": "application/json",
+      "title": "30TXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYK/catalog.json",
+      "type": "application/json",
+      "title": "30TYK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYL/catalog.json",
+      "type": "application/json",
+      "title": "30TYL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31SBC/catalog.json",
+      "type": "application/json",
+      "title": "31SBC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31SBD/catalog.json",
+      "type": "application/json",
+      "title": "31SBD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBE/catalog.json",
+      "type": "application/json",
+      "title": "31TBE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBF/catalog.json",
+      "type": "application/json",
+      "title": "31TBF"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-06T18:03:33Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-06T10:52:39.087985+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/es_vc/year=2024/es_vc-2024.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/es_vc/collection.json",
+      "sha256": "73bd4778ca6785d5a99701fd37eb60c5c9240daf7c7e24c1047e3f24c92812bf",
+      "size": 1031454550,
+      "fetched_at": "2026-11-06T10:52:54.251906Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/es_vc/year=2024/es_vc-2024.parquet",
+      "output_dir": "staging/es_vc_2024",
+      "name": "es_vc_2024",
+      "year": 2024,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/es_vc/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/es_uso_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Spain Valencia \u2014 2024",
+        "description": "Benchmark chips for Spain-VC cut from the 2024 edition of the harmonized field boundary collection es_vc.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "\u00a9 Institut Cartogr\u00e0fic Valenci\u00e0, Generalitat",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "es_vc",
+          "2024"
+        ],
+        "providers": [
+          {
+            "name": "Spanish Agricultural Guarantee Fund (FEGA) of the Ministry of Agriculture, Fisheries and Food",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.fega.gob.es/es/PwfGcp/es/el_fega/index.jsp"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "TA",
+          "OV",
+          "VI",
+          "FY",
+          "FS",
+          "CI",
+          "OP",
+          "VO",
+          "FL",
+          "CF",
+          "VF",
+          "OF",
+          "OC",
+          "FV",
+          "FF",
+          "CS",
+          "CV"
+        ],
+        "exclude": [
+          "PR",
+          "PS",
+          "PA",
+          "EP",
+          "\u00010"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/es_uso_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "Spain Valencia \u2014 2024",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -1.5258851281894679,
+          37.84383739056585,
+          0.5147573212575877,
+          40.78522005263166
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2024-01-01T00:00:00Z",
+          "2024-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "es_vc",
+    "2024"
+  ],
+  "providers": [
+    {
+      "name": "Spanish Agricultural Guarantee Fund (FEGA) of the Ministry of Agriculture, Fisheries and Food",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.fega.gob.es/es/PwfGcp/es/el_fega/index.jsp"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./es_vc_2024_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 1059091126,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_municipality_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_province_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 2319893,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./es_vc_2024_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 847322402,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_municipality_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_province_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 2115489,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./es_vc_2024_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 847249894,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_municipality_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "admin_province_code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 2115489,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./es_vc_2024_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 537882,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 4926,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 4961937,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 4926,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 1607427
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 315145363
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1076
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1724
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1744
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Spain Valencia \u2014 2024 \u2014 Field outlines"
+    }
+  }
+}

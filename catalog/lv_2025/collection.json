@@ -1,0 +1,1109 @@
+{
+  "type": "Collection",
+  "id": "lv_2025",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Latvia cut from the 2025 edition of the harmonized field boundary collection lv.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/lv",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEH/catalog.json",
+      "type": "application/json",
+      "title": "34VEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEJ/catalog.json",
+      "type": "application/json",
+      "title": "34VEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFH/catalog.json",
+      "type": "application/json",
+      "title": "34VFH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFJ/catalog.json",
+      "type": "application/json",
+      "title": "34VFJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35UMB/catalog.json",
+      "type": "application/json",
+      "title": "35UMB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35UMC/catalog.json",
+      "type": "application/json",
+      "title": "35UMC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35UNB/catalog.json",
+      "type": "application/json",
+      "title": "35UNB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35UNC/catalog.json",
+      "type": "application/json",
+      "title": "35UNC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLC/catalog.json",
+      "type": "application/json",
+      "title": "35VLC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLD/catalog.json",
+      "type": "application/json",
+      "title": "35VLD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLE/catalog.json",
+      "type": "application/json",
+      "title": "35VLE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMC/catalog.json",
+      "type": "application/json",
+      "title": "35VMC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMD/catalog.json",
+      "type": "application/json",
+      "title": "35VMD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VME/catalog.json",
+      "type": "application/json",
+      "title": "35VME"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VNC/catalog.json",
+      "type": "application/json",
+      "title": "35VNC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VND/catalog.json",
+      "type": "application/json",
+      "title": "35VND"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-06T17:37:52Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-06T09:45:20.732637+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/lv/year=2025/lv-2025.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/lv/collection.json",
+      "sha256": "8730f8e37b93d3f9f7b6ad706f4aff2497cf2752d417b0382181a764ae05cf44",
+      "size": 434673455,
+      "fetched_at": "2026-11-06T09:45:26.620534Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/lv/year=2025/lv-2025.parquet",
+      "output_dir": "staging/lv_2025",
+      "name": "lv_2025",
+      "year": 2025,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/lv/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/latvia_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Latvia \u2014 2025",
+        "description": "Benchmark chips for Latvia cut from the 2025 edition of the harmonized field boundary collection lv.\n",
+        "license": "CC-BY-SA-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Lauku atbalsta dienests",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "lv",
+          "2025"
+        ],
+        "providers": [
+          {
+            "name": "Rural Support Service Republic of Latvia (Lauku atbalsta dienests)",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.lad.gov.lv/lv/lauku-registra-dati"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "111",
+          "112",
+          "113",
+          "115",
+          "116",
+          "117",
+          "118",
+          "119",
+          "121",
+          "122",
+          "123",
+          "124",
+          "125",
+          "131",
+          "132",
+          "133",
+          "135",
+          "140",
+          "141",
+          "142",
+          "143",
+          "150",
+          "151",
+          "152",
+          "154",
+          "160",
+          "161",
+          "170",
+          "180",
+          "181",
+          "182",
+          "211",
+          "212",
+          "213",
+          "214",
+          "215",
+          "216",
+          "218",
+          "219",
+          "220",
+          "221",
+          "310",
+          "330",
+          "410",
+          "411",
+          "420",
+          "421",
+          "430",
+          "441",
+          "442",
+          "443",
+          "444",
+          "445",
+          "446",
+          "447",
+          "471",
+          "472",
+          "714",
+          "723",
+          "724",
+          "725",
+          "726",
+          "727",
+          "728",
+          "729",
+          "731",
+          "732",
+          "733",
+          "734",
+          "735",
+          "736",
+          "737",
+          "738",
+          "739",
+          "741",
+          "742",
+          "743",
+          "760",
+          "761",
+          "773",
+          "774",
+          "775",
+          "776",
+          "777",
+          "778",
+          "779",
+          "781",
+          "782",
+          "785",
+          "791",
+          "811",
+          "820",
+          "821",
+          "825",
+          "826",
+          "831",
+          "832",
+          "833",
+          "842",
+          "843",
+          "844",
+          "845",
+          "846",
+          "847",
+          "848",
+          "849",
+          "850",
+          "851",
+          "852",
+          "853",
+          "854",
+          "855",
+          "856",
+          "857",
+          "858",
+          "859",
+          "860",
+          "861",
+          "862",
+          "863",
+          "864",
+          "865",
+          "866",
+          "867",
+          "869",
+          "870",
+          "871",
+          "872",
+          "873",
+          "874",
+          "877",
+          "878",
+          "879",
+          "881",
+          "882",
+          "883",
+          "884",
+          "885",
+          "886",
+          "887",
+          "888",
+          "889",
+          "890",
+          "926",
+          "930",
+          "937",
+          "960",
+          "911",
+          "912",
+          "914",
+          "915",
+          "918",
+          "919",
+          "921",
+          "922",
+          "924",
+          "927",
+          "928",
+          "929",
+          "931",
+          "932",
+          "933",
+          "934",
+          "935",
+          "938",
+          "939",
+          "950",
+          "952",
+          "640",
+          "644",
+          "645",
+          "646",
+          "710",
+          "713",
+          "720"
+        ],
+        "exclude": [
+          "0",
+          "610",
+          "612",
+          "620",
+          "641",
+          "642",
+          "715",
+          "716",
+          "792",
+          "940",
+          "340",
+          "473",
+          "619",
+          "630",
+          "783",
+          "784",
+          "810",
+          "880",
+          "910"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/latvia_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "Latvia \u2014 2025",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          20.984659925843747,
+          55.67535577616556,
+          28.2203294304663,
+          58.07650912619064
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2025-01-01T00:00:00Z",
+          "2025-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-SA-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "lv",
+    "2025"
+  ],
+  "providers": [
+    {
+      "name": "Rural Support Service Republic of Latvia (Lauku atbalsta dienests)",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.lad.gov.lv/lv/lauku-registra-dati"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./lv_2025_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 627909135,
+      "table:columns": [
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "metrics:perimeter",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 417383,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./lv_2025_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 603782970,
+      "table:columns": [
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "metrics:perimeter",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 398509,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./lv_2025_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 603465664,
+      "table:columns": [
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "metrics:perimeter",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 398509,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./lv_2025_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 1349845,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 13061,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 11836070,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 13061,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 4988218
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 158135200
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1077
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2480
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2510
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Latvia \u2014 2025 \u2014 Field outlines"
+    }
+  }
+}

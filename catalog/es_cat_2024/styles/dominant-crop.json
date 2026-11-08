@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3301010400,
+            "BARLEY",
+            3303050000,
+            "OLIVE TREE",
+            3302000000,
+            "GRASSLAND",
+            3301010100,
+            "SOFT WHEAT",
+            3303060000,
+            "VINEYARD",
+            3301010500,
+            "OAT",
+            3301090000,
+            "FORAGE MIXTURE",
+            3301090301,
+            "ALFALFA",
+            3303030100,
+            "ALMOND TREES",
+            3301090305,
+            "HAIRY VETCH",
+            3303030200,
+            "HAZELNUT TREE",
+            3301010700,
+            "RICE",
+            "Other"
+          ],
+          "BARLEY",
+          "#cc9e32",
+          "OLIVE TREE",
+          "#a6cee3",
+          "GRASSLAND",
+          "#32cc32",
+          "SOFT WHEAT",
+          "#1f78b4",
+          "VINEYARD",
+          "#b2df8a",
+          "OAT",
+          "#fb9a99",
+          "FORAGE MIXTURE",
+          "#e31a1c",
+          "ALFALFA",
+          "#fdbf6f",
+          "ALMOND TREES",
+          "#ff7f00",
+          "HAIRY VETCH",
+          "#6a3d9a",
+          "HAZELNUT TREE",
+          "#ffff99",
+          "RICE",
+          "#b15928",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

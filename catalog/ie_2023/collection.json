@@ -1,0 +1,1046 @@
+{
+  "type": "Collection",
+  "id": "ie_2023",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Ireland cut from the 2023 edition of the harmonized field boundary collection ie.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/ie",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UMA/catalog.json",
+      "type": "application/json",
+      "title": "29UMA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UMT/catalog.json",
+      "type": "application/json",
+      "title": "29UMT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UMU/catalog.json",
+      "type": "application/json",
+      "title": "29UMU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UMV/catalog.json",
+      "type": "application/json",
+      "title": "29UMV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UNA/catalog.json",
+      "type": "application/json",
+      "title": "29UNA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UNB/catalog.json",
+      "type": "application/json",
+      "title": "29UNB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UNT/catalog.json",
+      "type": "application/json",
+      "title": "29UNT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UNU/catalog.json",
+      "type": "application/json",
+      "title": "29UNU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UNV/catalog.json",
+      "type": "application/json",
+      "title": "29UNV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UPA/catalog.json",
+      "type": "application/json",
+      "title": "29UPA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UPB/catalog.json",
+      "type": "application/json",
+      "title": "29UPB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UPT/catalog.json",
+      "type": "application/json",
+      "title": "29UPT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UPU/catalog.json",
+      "type": "application/json",
+      "title": "29UPU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29UPV/catalog.json",
+      "type": "application/json",
+      "title": "29UPV"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-06T18:09:55Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-05T23:18:04.345045+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/ie/year=2023/ie-2023.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/ie/collection.json",
+      "sha256": "bf4087a8e00840f9481767460580ca039ad1d0d321077b046667c60ab3f94d3b",
+      "size": 840782944,
+      "fetched_at": null
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/ie/year=2023/ie-2023.parquet",
+      "output_dir": "staging/ie_2023",
+      "name": "ie_2023",
+      "year": 2023,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/ie/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/ireland_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Ireland \u2014 2023",
+        "description": "Benchmark chips for Ireland cut from the 2023 edition of the harmonized field boundary collection ie.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Ireland Department of Agriculture, Food and the Marine",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "ie",
+          "2023"
+        ],
+        "providers": [
+          {
+            "name": "Department of Agriculture, Food and the Marine",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.gov.ie/en/organisation/department-of-agriculture-food-and-the-marine/"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:name",
+        "include": [
+          "Barley - Spring",
+          "Barley - Winter",
+          "Wheat - Winter",
+          "Maize",
+          "Oats - Spring",
+          "Beans - Spring",
+          "Oilseed Rape - Winter",
+          "Fodder Beet",
+          "Oats - Winter",
+          "Potatoes - Maincrop",
+          "Red Clover",
+          "Wheat - Spring",
+          "Rye",
+          "Protein/Cereal Mix 50/50",
+          "Potatoes - Early",
+          "Kale",
+          "Carrots",
+          "Oilseed Rape - Spring",
+          "Mixed Cropping",
+          "Sugar Beet",
+          "Forage Rape",
+          "Peas",
+          "Beans - Winter",
+          "Grass Seed",
+          "Turnips",
+          "Arable Silage (No Grass)",
+          "Cabbage - Spring",
+          "Broccoli - Spring",
+          "Strawberries",
+          "Parsnips",
+          "Potatoes - Seed",
+          "Triticale - Spring",
+          "Swede",
+          "Cabbage - Winter",
+          "Pumpkins",
+          "Cauliflowers - Spring",
+          "Cauliflowers - Winter",
+          "Onions",
+          "Clover",
+          "Lettuce",
+          "Brussel sprouts",
+          "Leeks - Spring",
+          "Beetroot",
+          "Broccoli - Winter",
+          "Rhubarb",
+          "Peppers",
+          "Triticale - Winter",
+          "Leeks - Winter",
+          "Mustard",
+          "Celery - Spring",
+          "Sunflower",
+          "Parsley",
+          "Scallions",
+          "Hemp for Industrial Use",
+          "Baby Leaf Spinach",
+          "Celery - Winter",
+          "Linseed",
+          "Sweetcorn",
+          "Garlic",
+          "Perpetual Spinach",
+          "Alfalfa",
+          "Hemp for Food Use",
+          "Courgettes",
+          "Lucerne",
+          "Artichoke",
+          "Lupins",
+          "Tomatoes",
+          "Pak Choi",
+          "Vetch",
+          "Flax",
+          "Asparagus",
+          "Borage",
+          "Millet",
+          "Rosemary",
+          "Squash",
+          "Thyme",
+          "Camelina",
+          "Coriander",
+          "Basil",
+          "Mint",
+          "Quinoa",
+          "Rocket",
+          "Soya Bean",
+          "Calabrese",
+          "Cucumbers",
+          "Shallot",
+          "Orchard",
+          "Willow",
+          "Short Rotation Coppice",
+          "Nursery",
+          "Apples",
+          "Raspberries",
+          "Blueberries",
+          "Blackcurrants",
+          "Blackberries",
+          "Plums",
+          "Cherries",
+          "Grapes",
+          "Gooseberries",
+          "Loganberries",
+          "Redcurrants",
+          "Pears",
+          "Christmas Trees",
+          "Permanent Pasture",
+          "Extensively Grazed Pasture",
+          "Low Input Grassland",
+          "Low Input Permanent Pasture",
+          "Traditional Hay Meadow",
+          "Grass Year 1",
+          "Grass Year 2",
+          "Grass Year 3",
+          "Grass Year 4",
+          "Grass Year 5",
+          "Permanent Pasture (MSS Measure)",
+          "Permanent Pasture (MSS)",
+          "Management of intensive grassland next to a watercourse",
+          "Low Input Peat Grassland",
+          "Arable Silage (Grass)",
+          "Grass Year 1 (MSS Measure)",
+          "Grass Year 1 (MSS)",
+          "Grass Year 2 (MSS)",
+          "Grass Year 3 (MSS)",
+          "Permanent Pasture (MSS Eco-Scheme 2023)",
+          "Grass Year 1 (MSS Eco-Scheme)",
+          "Grass Year 5 (MSS)",
+          "Grass Year 4 (MSS)",
+          "Grassmeal"
+        ],
+        "exclude": [
+          "Riparian Buffer Zone - Grassland",
+          "Forestry Eligible",
+          "Wild Bird Cover",
+          "Winter Bird Food Plot",
+          "Riparian Buffer Zone - Arable",
+          "Designated Habitat",
+          "Fallow",
+          "Environmental Management Of Arable Fallow",
+          "Riparian Zone",
+          "Miscanthus Sinensis",
+          "Tree belts for ammonia capture from farmyards",
+          "Foliage",
+          "Building",
+          "Daffodils",
+          "Bog",
+          "Glasshouse",
+          "Forestry ESB Corridor Eligible",
+          "Other cut flower / bulb crops",
+          "Farmyard",
+          "Habitat",
+          "Scrub",
+          "Inactive",
+          "Arable Habitat",
+          "Reed Canary Grass",
+          "Rocky Outcrop",
+          "Woodland",
+          "Access Road / Roadways",
+          "Farm Road",
+          "Lake / Waterway / Pond",
+          "Forestry Setaside",
+          "Management of Environmental Fallow (horticulture)",
+          "Forestry Ineligible",
+          "Forestry",
+          "Linnet Habitat",
+          "Unknown",
+          "Recreational Area",
+          "Quarry",
+          "Forestry Pre-2009",
+          "Gardens",
+          "Planted Buffer Zone"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/ireland_filter.yaml",
+        "column_aliases": [
+          "crop_name"
+        ]
+      }
+    }
+  },
+  "title": "Ireland \u2014 2023",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -10.592077026005253,
+          51.42217701056331,
+          -5.994829351117395,
+          55.38271278736281
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2023-01-01T00:00:00Z",
+          "2023-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "ie",
+    "2023"
+  ],
+  "providers": [
+    {
+      "name": "Department of Agriculture, Food and the Marine",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.gov.ie/en/organisation/department-of-agriculture-food-and-the-marine/"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./ie_2023_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 833854251,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 1117023,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./ie_2023_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 817529823,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 1077312,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./ie_2023_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 817490230,
+      "table:columns": [
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 1077312,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./ie_2023_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 1552832,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 16762,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 15444829,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 16762,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 5073805
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 235489860
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1077
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2348
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2386
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Ireland \u2014 2023 \u2014 Field outlines"
+    }
+  }
+}

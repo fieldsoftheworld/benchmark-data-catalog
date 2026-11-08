@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Grassland natural. Main function agriculture.",
+            "3301090100",
+            "Grassland temporary",
+            "3301090400",
+            "maize cut",
+            "3301030000",
+            "Potatoes AM . control measure",
+            "3301010101",
+            "wheat winter",
+            "3301290700",
+            "beets sugar",
+            "3301220400",
+            "onions silver",
+            "3301010402",
+            "barley summer",
+            "3301010600",
+            "Corn corncob mix",
+            "3303011200",
+            "pears. Planted current season.",
+            "3301010401",
+            "barley winter",
+            "3301290300",
+            "Carrot production",
+            "Other"
+          ],
+          "Grassland natural. Main function agriculture.",
+          "#32cc32",
+          "Grassland temporary",
+          "#a6cee3",
+          "maize cut",
+          "#ccb732",
+          "Potatoes AM . control measure",
+          "#1f78b4",
+          "wheat winter",
+          "#b2df8a",
+          "beets sugar",
+          "#cc324c",
+          "onions silver",
+          "#fb9a99",
+          "barley summer",
+          "#e31a1c",
+          "Corn corncob mix",
+          "#fdbf6f",
+          "pears. Planted current season.",
+          "#ff7f00",
+          "barley winter",
+          "#6a3d9a",
+          "Carrot production",
+          "#cc7a32",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}
