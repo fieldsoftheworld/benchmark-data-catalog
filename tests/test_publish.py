@@ -450,8 +450,141 @@ if importlib.util.find_spec("botocore") is not None:
 
     _cfg = _retry_config()
     check(_cfg is not None and _cfg.retries == {"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"}, "S3 clients use the standard retry mode with more attempts")
+    from publish import _client_config
+
+    _pc = _client_config(retry=True, pool_size=32)
+    check(_pc.max_pool_connections == 32 and _pc.retries["mode"] == "standard", "the listing client gets a pool for every worker and keeps the retries")
+    check(_client_config(retry=False, pool_size=None) is None, "a default client gets no Config")
     _tc = _transfer_config()
     check(_tc is not None and _tc.multipart_chunksize == MULTIPART_CHUNK_BYTES, "uploads use large multipart chunks")
+
+# --- the parallel bucket listing -----------------------------------------
+# A fake S3 answers list_objects_v2 with Prefix, Delimiter and 2-key pages, so
+# the walk is checked against a plain flat listing of the same keys.
+import threading as _threading  # noqa: E402
+
+import publish as _publish  # noqa: E402
+
+
+class FakeLister:
+    def __init__(self, keys, fail_prefix=None, page_size=2, failures=None):
+        self.keys = sorted(keys)
+        self.fail_prefix = fail_prefix
+        self.failures = failures  # None: fail every time
+        self.page_size = page_size
+        self.requests = []
+        self.lock = _threading.Lock()
+
+    def get_paginator(self, name):
+        assert name == "list_objects_v2"
+        return self
+
+    def paginate(self, Bucket, Prefix, Delimiter=None):
+        with self.lock:
+            self.requests.append((Prefix, Delimiter))
+        if self.fail_prefix is not None and Prefix.startswith(self.fail_prefix):
+            with self.lock:
+                fail = self.failures is None or self.failures > 0
+                if self.failures:
+                    self.failures -= 1
+            if fail:
+                raise RuntimeError("520")
+        contents, folders = [], []
+        for key in self.keys:
+            if not key.startswith(Prefix):
+                continue
+            rest = key[len(Prefix):]
+            if Delimiter and Delimiter in rest:
+                folder = Prefix + rest.split(Delimiter)[0] + Delimiter
+                if folder not in folders:
+                    folders.append(folder)
+            else:
+                contents.append({"Key": key, "Size": len(key), "ETag": f'"{key}"'})
+        entries = [("c", c) for c in contents] + [("p", f) for f in folders]
+        for i in range(0, max(len(entries), 1), self.page_size):
+            chunk = entries[i:i + self.page_size]
+            yield {
+                "Contents": [c for kind, c in chunk if kind == "c"],
+                "CommonPrefixes": [{"Prefix": f} for kind, f in chunk if kind == "p"],
+            }
+
+
+_keys = [
+    "bd/catalog.json",
+    "bd/README.md",
+    "bd/aa_2024/collection.json",
+    "bd/aa_2024/items.parquet",
+    "bd/bb_2025/collection.json",
+    "bd-other/unrelated.txt",
+    "elsewhere/x.json",
+]
+for tile in ("30SVH", "31TBF"):
+    for chip in range(3):
+        for f in ("image_s2.tif", "mask.tif"):
+            _keys.append(f"bd/aa_2024/chips/{tile}/ftw-{tile}{chip}/{f}")
+_keys.append("bd/bb_2025/chips/32ULU/ftw-32ULU0/mask.tif")
+_expected = {k: (len(k), f'"{k}"') for k in _keys if k.startswith("bd/")}
+
+_saved = (_publish.aws_session, _publish.s3_client, _publish.LIST_RETRY_SECONDS)
+_publish.LIST_RETRY_SECONDS = 0
+try:
+    _publish.aws_session = lambda config: None
+    _lister = FakeLister(_keys)
+    _publish.s3_client = lambda session, endpoint_url=None, **kw: _lister
+    _out = io.StringIO()
+    with redirect_stdout(_out):
+        _index = _publish.remote_index("b", "bd", {})
+    check(_index == _expected, "the parallel walk finds every key under <prefix>/ and nothing else")
+    _flat = [p for p, d in _lister.requests if d is None]
+    check(
+        sorted(_flat) == ["bd/aa_2024/chips/30SVH/", "bd/aa_2024/chips/31TBF/",
+                          "bd/bb_2025/chips/32ULU/"],
+        f"folders are split down to the tile and listed flat there, got {sorted(_flat)}",
+    )
+    check(
+        not any(p.count("/") > 4 for p, _ in _lister.requests),
+        "single chip folders are not listed one by one",
+    )
+
+    _lister = FakeLister(_keys)
+    with redirect_stdout(_out):
+        _only = _publish.remote_index("b", "bd", {}, only={"aa_2024"})
+    check(
+        _only == {k: v for k, v in _expected.items() if k.startswith("bd/aa_2024/")},
+        "only= lists just those datasets' folders",
+    )
+    check(
+        all(p.startswith("bd/aa_2024/") for p, _ in _lister.requests),
+        "only= sends no request outside those folders",
+    )
+    _flat = sorted(p for p, d in _lister.requests if d is None)
+    check(
+        _flat == ["bd/aa_2024/chips/30SVH/", "bd/aa_2024/chips/31TBF/"],
+        f"only= splits to the same tile depth, got {_flat}",
+    )
+
+    _lister = FakeLister(_keys, fail_prefix="bd/aa_2024/chips/31TBF/")
+    _out = io.StringIO()
+    with redirect_stdout(_out):
+        _failed = _publish.remote_index("b", "bd", {})
+    check(_failed == {}, "one failed request fails the whole listing, never a partial index")
+    check("could not list" in _out.getvalue(), "a failed listing says so")
+
+    check(
+        sum(p == "bd/aa_2024/chips/31TBF/" for p, _ in _lister.requests) == _publish.LIST_ATTEMPTS,
+        "a failing folder is tried LIST_ATTEMPTS times before the listing gives up",
+    )
+
+    _lister = FakeLister(_keys, fail_prefix="bd/aa_2024/chips/31TBF/", failures=2)
+    with redirect_stdout(io.StringIO()):
+        _retried = _publish.remote_index("b", "bd", {})
+    check(_retried == _expected, "a folder that fails twice and then answers is listed in full")
+
+    _lister = FakeLister([])
+    with redirect_stdout(io.StringIO()):
+        check(_publish.remote_index("b", "bd", {}) == {}, "an empty bucket lists as empty")
+finally:
+    _publish.aws_session, _publish.s3_client, _publish.LIST_RETRY_SECONDS = _saved
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

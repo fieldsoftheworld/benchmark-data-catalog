@@ -206,7 +206,7 @@ def main() -> int:
         print(f"nothing under {base}/ to upload", file=sys.stderr)
         return 1
 
-    index = {} if args.force else remote_index(bucket, prefix, config)
+    index = {} if args.force else remote_index(bucket, prefix, config, only=only)
     changed = [u for u in uploads if args.force or not is_unchanged(u, index)]
 
     print(f"data_dir:    {base}/")

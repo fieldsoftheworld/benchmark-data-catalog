@@ -61,8 +61,7 @@ def main() -> int:
     client = s3_client(aws_session(config), config.get("endpoint_url"))
     status = 0
     for dataset_id in args.dataset_ids:
-        under = f"{prefix}/{dataset_id}/" if prefix else f"{dataset_id}/"
-        remote = remote_index(bucket, under, config)
+        remote = remote_index(bucket, prefix, config, only={dataset_id})
         stale = stale_keys(dataset_id, config, remote)
         print(
             f"{dataset_id}: {len(remote)} object(s) in the bucket, {len(stale)} stale"

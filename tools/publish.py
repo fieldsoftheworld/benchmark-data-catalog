@@ -43,8 +43,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import queue
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -259,7 +261,7 @@ def aws_session(config: dict[str, str]):
     )
 
 
-def s3_client(session, endpoint_url: str | None = None):
+def s3_client(session, endpoint_url: str | None = None, *, pool_size: int | None = None):
     """An S3 client from ``session``, honouring an optional ``endpoint_url``.
 
     Source Cooperative is addressed through its data proxy (``endpoint_url``
@@ -268,14 +270,33 @@ def s3_client(session, endpoint_url: str | None = None):
     the keyword is added only when a value is actually set so that test
     doubles standing in for ``session`` (which only need to support the
     single-argument call boto3 itself accepts) keep working unchanged.
+
+    ``pool_size`` raises the connection pool (botocore's default is 10) for a
+    client shared by that many threads.
     """
+    kwargs = {}
+    config = _client_config(retry=bool(endpoint_url), pool_size=pool_size)
     if endpoint_url:
-        kwargs = {"endpoint_url": endpoint_url}
-        retry = _retry_config()
-        if retry is not None:
-            kwargs["config"] = retry
-        return session.client("s3", **kwargs)
-    return session.client("s3")
+        kwargs["endpoint_url"] = endpoint_url
+    if config is not None:
+        kwargs["config"] = config
+    return session.client("s3", **kwargs)
+
+
+def _client_config(*, retry: bool, pool_size: int | None):
+    """The botocore Config for s3_client, or None when nothing is set."""
+    settings = {}
+    if retry:
+        settings["retries"] = {"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"}
+    if pool_size:
+        settings["max_pool_connections"] = pool_size
+    if not settings:
+        return None
+    try:
+        from botocore.config import Config
+    except ImportError:
+        return None
+    return Config(**settings)
 
 
 # Source Cooperative's data proxy occasionally answers a multipart part with a
@@ -306,18 +327,45 @@ def _transfer_config():
     return TransferConfig(multipart_chunksize=MULTIPART_CHUNK_BYTES, max_concurrency=2)
 
 
+# A listing is one page of 1,000 keys per round trip. Listed serially, the
+# whole bucket (every collection's chips) took about 7 hours by November 2026.
+# The walk lists each folder level with a "/" delimiter and fans out over the
+# subfolders, so pages are fetched LIST_WORKERS at a time.
+LIST_WORKERS = 32
+# Folder levels below write_prefix that are split before a flat listing:
+# <dataset>/chips/<tile>/ in this bucket. Deeper, the folders are single chips
+# of a few files each, and one request per chip would cost more than it saves.
+LIST_SPLIT_DEPTH = 3
+# The proxy answers some requests with a 520, which botocore does not retry.
+# One failed folder fails the whole listing, so each folder is retried from its
+# first page this many times, waiting LIST_RETRY_SECONDS * 2**attempt between.
+LIST_ATTEMPTS = 6
+LIST_RETRY_SECONDS = 2.0
+
+
 def remote_index(
-    bucket: str, prefix: str, config: dict[str, str]
+    bucket: str,
+    prefix: str,
+    config: dict[str, str],
+    *,
+    only: set[str] | None = None,
 ) -> dict[str, tuple[int, str]]:
-    """Size and ETag for every object under the prefix, or {} when unreadable."""
+    """Size and ETag for every object under the prefix, or {} when unreadable.
+
+    ``only`` limits the listing to those dataset folders under the prefix.
+    Every key this tool writes is ``<prefix>/<rel>``, so the listing starts at
+    ``<prefix>/``.
+    """
+    root = f"{prefix.rstrip('/')}/" if prefix else ""
+    if only is None:
+        roots = [(root, 0)]
+    else:
+        roots = [(f"{root}{dataset_id}/", 1) for dataset_id in sorted(only)]
     try:
-        client = s3_client(aws_session(config), config.get("endpoint_url"))
-        index = {}
-        paginator = client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-            for obj in page.get("Contents", []):
-                index[obj["Key"]] = (obj["Size"], obj["ETag"])
-        return index
+        client = s3_client(
+            aws_session(config), config.get("endpoint_url"), pool_size=LIST_WORKERS
+        )
+        return _parallel_listing(client, bucket, roots)
     except ImportError:
         print("note: boto3 is not installed; treating every file as changed")
         return {}
@@ -325,6 +373,73 @@ def remote_index(
         print(f"note: could not list s3://{bucket}/{prefix} ({exc});")
         print("      treating every file as changed")
         return {}
+
+
+def _list_folder(
+    client, bucket: str, prefix: str, flat: bool
+) -> tuple[dict[str, tuple[int, str]], list[str]]:
+    """The objects under ``prefix``: all of them when flat, else this level and its subfolders.
+
+    A failed request restarts the folder from its first page, up to LIST_ATTEMPTS times.
+    """
+    for attempt in range(LIST_ATTEMPTS):
+        try:
+            return _list_folder_once(client, bucket, prefix, flat)
+        except Exception:  # noqa: BLE001 - any error is retried, the last one raised
+            if attempt == LIST_ATTEMPTS - 1:
+                raise
+            time.sleep(LIST_RETRY_SECONDS * 2**attempt)
+    raise AssertionError("unreachable")
+
+
+def _list_folder_once(
+    client, bucket: str, prefix: str, flat: bool
+) -> tuple[dict[str, tuple[int, str]], list[str]]:
+    """One attempt at _list_folder."""
+    kwargs = {"Bucket": bucket, "Prefix": prefix}
+    if not flat:
+        kwargs["Delimiter"] = "/"
+    objects: dict[str, tuple[int, str]] = {}
+    folders: list[str] = []
+    for page in client.get_paginator("list_objects_v2").paginate(**kwargs):
+        for obj in page.get("Contents", []):
+            objects[obj["Key"]] = (obj["Size"], obj["ETag"])
+        folders.extend(p["Prefix"] for p in page.get("CommonPrefixes", []))
+    return objects, folders
+
+
+def _parallel_listing(
+    client, bucket: str, roots: list[tuple[str, int]]
+) -> dict[str, tuple[int, str]]:
+    """List each (prefix, depth) root, splitting folders down to LIST_SPLIT_DEPTH.
+
+    Any failed request fails the whole listing: a partial index would make
+    files that are in the bucket look missing.
+    """
+    done: queue.Queue = queue.Queue()
+    pool = ThreadPoolExecutor(max_workers=LIST_WORKERS)
+    outstanding = 0
+
+    def submit(prefix: str, depth: int) -> None:
+        nonlocal outstanding
+        outstanding += 1
+        future = pool.submit(_list_folder, client, bucket, prefix, depth >= LIST_SPLIT_DEPTH)
+        future.add_done_callback(lambda f, d=depth: done.put((f, d)))
+
+    index: dict[str, tuple[int, str]] = {}
+    try:
+        for prefix, depth in roots:
+            submit(prefix, depth)
+        while outstanding:
+            future, depth = done.get()
+            outstanding -= 1
+            objects, folders = future.result()
+            index.update(objects)
+            for folder in folders:
+                submit(folder, depth + 1)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return index
 
 
 def upload_all(
