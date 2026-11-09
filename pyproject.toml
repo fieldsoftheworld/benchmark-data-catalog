@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     # The dataset cutter. Pinned by commit while its Portolan conformance PRs
     # are open; switch to "ftw-dataset-tools==X.Y.Z" once released on PyPI.
-    "ftw-dataset-tools @ git+https://github.com/fieldsoftheworld/ftw-dataset-tools@0b5d4337e5629c64433761bf14f4bd2af109a3c1",
+    "ftw-dataset-tools @ git+https://github.com/fieldsoftheworld/ftw-dataset-tools@5d4ea76d7ba15dd83388bd30710ff4c335fb3831",
     # Validators, pinned to what CI runs (.github/workflows/ci.yml)
     "rashid>=0.1.5,<0.2.0",
     "stac-check>=1.6",
