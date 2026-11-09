@@ -1,0 +1,1353 @@
+{
+  "type": "Collection",
+  "id": "fi_2020",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Finland cut from the 2020 edition of the harmonized field boundary collection fi.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/fi",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VDM/catalog.json",
+      "type": "application/json",
+      "title": "34VDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEM/catalog.json",
+      "type": "application/json",
+      "title": "34VEM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEN/catalog.json",
+      "type": "application/json",
+      "title": "34VEN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEP/catalog.json",
+      "type": "application/json",
+      "title": "34VEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VEQ/catalog.json",
+      "type": "application/json",
+      "title": "34VEQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VER/catalog.json",
+      "type": "application/json",
+      "title": "34VER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFM/catalog.json",
+      "type": "application/json",
+      "title": "34VFM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFN/catalog.json",
+      "type": "application/json",
+      "title": "34VFN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFP/catalog.json",
+      "type": "application/json",
+      "title": "34VFP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFQ/catalog.json",
+      "type": "application/json",
+      "title": "34VFQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VFR/catalog.json",
+      "type": "application/json",
+      "title": "34VFR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WFS/catalog.json",
+      "type": "application/json",
+      "title": "34WFS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WFU/catalog.json",
+      "type": "application/json",
+      "title": "34WFU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLG/catalog.json",
+      "type": "application/json",
+      "title": "35VLG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLH/catalog.json",
+      "type": "application/json",
+      "title": "35VLH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLJ/catalog.json",
+      "type": "application/json",
+      "title": "35VLJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLK/catalog.json",
+      "type": "application/json",
+      "title": "35VLK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VLL/catalog.json",
+      "type": "application/json",
+      "title": "35VLL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMG/catalog.json",
+      "type": "application/json",
+      "title": "35VMG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMH/catalog.json",
+      "type": "application/json",
+      "title": "35VMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMJ/catalog.json",
+      "type": "application/json",
+      "title": "35VMJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VMK/catalog.json",
+      "type": "application/json",
+      "title": "35VMK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VML/catalog.json",
+      "type": "application/json",
+      "title": "35VML"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VNH/catalog.json",
+      "type": "application/json",
+      "title": "35VNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VNJ/catalog.json",
+      "type": "application/json",
+      "title": "35VNJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VNK/catalog.json",
+      "type": "application/json",
+      "title": "35VNK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VNL/catalog.json",
+      "type": "application/json",
+      "title": "35VNL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VPH/catalog.json",
+      "type": "application/json",
+      "title": "35VPH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VPJ/catalog.json",
+      "type": "application/json",
+      "title": "35VPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VPK/catalog.json",
+      "type": "application/json",
+      "title": "35VPK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35VPL/catalog.json",
+      "type": "application/json",
+      "title": "35VPL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WLM/catalog.json",
+      "type": "application/json",
+      "title": "35WLM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WLN/catalog.json",
+      "type": "application/json",
+      "title": "35WLN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WLP/catalog.json",
+      "type": "application/json",
+      "title": "35WLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WLQ/catalog.json",
+      "type": "application/json",
+      "title": "35WLQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WML/catalog.json",
+      "type": "application/json",
+      "title": "35WML"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WMM/catalog.json",
+      "type": "application/json",
+      "title": "35WMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WMN/catalog.json",
+      "type": "application/json",
+      "title": "35WMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WMP/catalog.json",
+      "type": "application/json",
+      "title": "35WMP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WMQ/catalog.json",
+      "type": "application/json",
+      "title": "35WMQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WMR/catalog.json",
+      "type": "application/json",
+      "title": "35WMR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WNL/catalog.json",
+      "type": "application/json",
+      "title": "35WNL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WNM/catalog.json",
+      "type": "application/json",
+      "title": "35WNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WNN/catalog.json",
+      "type": "application/json",
+      "title": "35WNN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WNP/catalog.json",
+      "type": "application/json",
+      "title": "35WNP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WNQ/catalog.json",
+      "type": "application/json",
+      "title": "35WNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WPM/catalog.json",
+      "type": "application/json",
+      "title": "35WPM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WPN/catalog.json",
+      "type": "application/json",
+      "title": "35WPN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WPP/catalog.json",
+      "type": "application/json",
+      "title": "35WPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36VUP/catalog.json",
+      "type": "application/json",
+      "title": "36VUP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36VUQ/catalog.json",
+      "type": "application/json",
+      "title": "36VUQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36VUR/catalog.json",
+      "type": "application/json",
+      "title": "36VUR"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-06T23:07:56Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-06T00:59:56.111673+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/fi/year=2020/fi-2020.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/fi/collection.json",
+      "sha256": "1d310fc04d2e5d81e6f20344ef60d5d228b0292accaacdf95789727af3a64aae",
+      "size": 299278170,
+      "fetched_at": "2026-11-06T01:00:00.214865Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/fi/year=2020/fi-2020.parquet",
+      "output_dir": "staging/fi_2020",
+      "name": "fi_2020",
+      "year": 2020,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/fi/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/finland_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Finland \u2014 2020",
+        "description": "Benchmark chips for Finland cut from the 2020 edition of the harmonized field boundary collection fi.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Finnish Food Authority",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "fi",
+          "2020"
+        ],
+        "providers": [
+          {
+            "name": "Finnish Food Authority",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.ruokavirasto.fi/en/about-us/open-information/spatial-data-sets/"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "1110",
+          "1120",
+          "1141",
+          "1142",
+          "1210",
+          "1211",
+          "1220",
+          "1230",
+          "1310",
+          "1320",
+          "1330",
+          "1400",
+          "1410",
+          "1545",
+          "1555",
+          "1601",
+          "1602",
+          "1603",
+          "1604",
+          "1605",
+          "1700",
+          "1710",
+          "1750",
+          "1800",
+          "1810",
+          "2110",
+          "2120",
+          "2170",
+          "2176",
+          "2181",
+          "2185",
+          "2195",
+          "2200",
+          "2300",
+          "2400",
+          "2410",
+          "2420",
+          "2430",
+          "2440",
+          "2450",
+          "2500",
+          "2510",
+          "3110",
+          "3120",
+          "3130",
+          "3150",
+          "3160",
+          "3190",
+          "3210",
+          "3330",
+          "3340",
+          "4010",
+          "4020",
+          "4030",
+          "4110",
+          "4120",
+          "4210",
+          "4220",
+          "4300",
+          "4390",
+          "4400",
+          "4525",
+          "4530",
+          "4610",
+          "4620",
+          "4810",
+          "5102",
+          "5103",
+          "5104",
+          "5105",
+          "5106",
+          "5108",
+          "5109",
+          "5110",
+          "5111",
+          "5113",
+          "5114",
+          "5115",
+          "5116",
+          "5117",
+          "5119",
+          "5120",
+          "5121",
+          "5122",
+          "5123",
+          "5124",
+          "5125",
+          "5127",
+          "5128",
+          "5129",
+          "5131",
+          "5134",
+          "5140",
+          "5141",
+          "5142",
+          "5143",
+          "5148",
+          "5149",
+          "5150",
+          "5157",
+          "5158",
+          "5165",
+          "5176",
+          "5198",
+          "5311",
+          "5806",
+          "5816",
+          "5824",
+          "5831",
+          "5838",
+          "5846",
+          "5847",
+          "5855",
+          "5856",
+          "5858",
+          "5859",
+          "5860",
+          "6150",
+          "6151",
+          "6401",
+          "6545",
+          "6546",
+          "6550",
+          "6561",
+          "6562",
+          "6565",
+          "9061",
+          "9630",
+          "1130",
+          "1401",
+          "2175",
+          "2180",
+          "2196",
+          "2197",
+          "2460",
+          "3230",
+          "5101",
+          "5133",
+          "5175",
+          "5845",
+          "6113",
+          "6115",
+          "6123",
+          "6125",
+          "6402",
+          "4913",
+          "4914",
+          "5210",
+          "5212",
+          "5213",
+          "5220",
+          "5221",
+          "5222",
+          "5301",
+          "5302",
+          "5303",
+          "5305",
+          "5310",
+          "5312",
+          "5313",
+          "5314",
+          "5318",
+          "5319",
+          "5442",
+          "5443",
+          "5451",
+          "5452",
+          "5512",
+          "5537",
+          "5440",
+          "5441",
+          "5534",
+          "6130",
+          "6140",
+          "9412",
+          "6111",
+          "6112",
+          "6121",
+          "6122",
+          "6210",
+          "6220"
+        ],
+        "exclude": [
+          "9812",
+          "4904",
+          "4905",
+          "5173",
+          "5410",
+          "5420",
+          "5854",
+          "6050",
+          "6060",
+          "6300",
+          "6304",
+          "6308",
+          "9062",
+          "9403",
+          "9404",
+          "9409",
+          "9415",
+          "9425",
+          "9426",
+          "9427",
+          "9428",
+          "9651",
+          "9652",
+          "9710",
+          "9805",
+          "9809",
+          "9813",
+          "9814",
+          "9820",
+          "9999",
+          "4930",
+          "5850",
+          "5851",
+          "5852",
+          "5853",
+          "6051",
+          "6303",
+          "6305",
+          "6307",
+          "6600",
+          "6710",
+          "6720",
+          "9060",
+          "9101",
+          "9102",
+          "9405",
+          "9413",
+          "9414",
+          "9416",
+          "9422",
+          "9423",
+          "9424",
+          "9620",
+          "9621",
+          "9700",
+          "9801",
+          "9802",
+          "9803",
+          "9804",
+          "9806",
+          "9807",
+          "9808",
+          "9810",
+          "9811",
+          "9830"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/finland_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "Finland \u2014 2020",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          19.3269818547768,
+          59.81017655126283,
+          31.381964628481835,
+          70.0838053051553
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2020-01-01T00:00:00Z",
+          "2020-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "fi",
+    "2020"
+  ],
+  "providers": [
+    {
+      "name": "Finnish Food Authority",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.ruokavirasto.fi/en/about-us/open-information/spatial-data-sets/"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./fi_2020_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 452109868,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 1088750,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./fi_2020_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 384596444,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 896518,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./fi_2020_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 384402429,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "block_id",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 896518,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./fi_2020_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 3980990,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 37389,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 33492356,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 37389,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 16499711
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 126604802
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1075
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2482
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2446
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Finland \u2014 2020 \u2014 Field outlines"
+    }
+  }
+}

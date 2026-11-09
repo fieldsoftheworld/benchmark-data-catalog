@@ -1,0 +1,1854 @@
+{
+  "type": "Collection",
+  "id": "fr_2022",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for France cut from the 2022 edition of the harmonized field boundary collection fr.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://etalab.gouv.fr/licence-ouverte-open-licence",
+      "title": "License"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/fr",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TUU/catalog.json",
+      "type": "application/json",
+      "title": "30TUU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TVT/catalog.json",
+      "type": "application/json",
+      "title": "30TVT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TVU/catalog.json",
+      "type": "application/json",
+      "title": "30TVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TWS/catalog.json",
+      "type": "application/json",
+      "title": "30TWS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TWT/catalog.json",
+      "type": "application/json",
+      "title": "30TWT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TWU/catalog.json",
+      "type": "application/json",
+      "title": "30TWU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXN/catalog.json",
+      "type": "application/json",
+      "title": "30TXN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXP/catalog.json",
+      "type": "application/json",
+      "title": "30TXP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXQ/catalog.json",
+      "type": "application/json",
+      "title": "30TXQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXR/catalog.json",
+      "type": "application/json",
+      "title": "30TXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXS/catalog.json",
+      "type": "application/json",
+      "title": "30TXS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXT/catalog.json",
+      "type": "application/json",
+      "title": "30TXT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TXU/catalog.json",
+      "type": "application/json",
+      "title": "30TXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYN/catalog.json",
+      "type": "application/json",
+      "title": "30TYN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYP/catalog.json",
+      "type": "application/json",
+      "title": "30TYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYQ/catalog.json",
+      "type": "application/json",
+      "title": "30TYQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYR/catalog.json",
+      "type": "application/json",
+      "title": "30TYR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYS/catalog.json",
+      "type": "application/json",
+      "title": "30TYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYT/catalog.json",
+      "type": "application/json",
+      "title": "30TYT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30TYU/catalog.json",
+      "type": "application/json",
+      "title": "30TYU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UUU/catalog.json",
+      "type": "application/json",
+      "title": "30UUU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UVU/catalog.json",
+      "type": "application/json",
+      "title": "30UVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UVV/catalog.json",
+      "type": "application/json",
+      "title": "30UVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UWA/catalog.json",
+      "type": "application/json",
+      "title": "30UWA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UWU/catalog.json",
+      "type": "application/json",
+      "title": "30UWU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UWV/catalog.json",
+      "type": "application/json",
+      "title": "30UWV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UXA/catalog.json",
+      "type": "application/json",
+      "title": "30UXA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UXU/catalog.json",
+      "type": "application/json",
+      "title": "30UXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UXV/catalog.json",
+      "type": "application/json",
+      "title": "30UXV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UYU/catalog.json",
+      "type": "application/json",
+      "title": "30UYU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30UYV/catalog.json",
+      "type": "application/json",
+      "title": "30UYV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBH/catalog.json",
+      "type": "application/json",
+      "title": "31TBH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBJ/catalog.json",
+      "type": "application/json",
+      "title": "31TBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBK/catalog.json",
+      "type": "application/json",
+      "title": "31TBK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBL/catalog.json",
+      "type": "application/json",
+      "title": "31TBL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBM/catalog.json",
+      "type": "application/json",
+      "title": "31TBM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBN/catalog.json",
+      "type": "application/json",
+      "title": "31TBN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TBP/catalog.json",
+      "type": "application/json",
+      "title": "31TBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCH/catalog.json",
+      "type": "application/json",
+      "title": "31TCH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCJ/catalog.json",
+      "type": "application/json",
+      "title": "31TCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCK/catalog.json",
+      "type": "application/json",
+      "title": "31TCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCL/catalog.json",
+      "type": "application/json",
+      "title": "31TCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCM/catalog.json",
+      "type": "application/json",
+      "title": "31TCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCN/catalog.json",
+      "type": "application/json",
+      "title": "31TCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TCP/catalog.json",
+      "type": "application/json",
+      "title": "31TCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDG/catalog.json",
+      "type": "application/json",
+      "title": "31TDG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDH/catalog.json",
+      "type": "application/json",
+      "title": "31TDH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDJ/catalog.json",
+      "type": "application/json",
+      "title": "31TDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDK/catalog.json",
+      "type": "application/json",
+      "title": "31TDK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDL/catalog.json",
+      "type": "application/json",
+      "title": "31TDL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDM/catalog.json",
+      "type": "application/json",
+      "title": "31TDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDN/catalog.json",
+      "type": "application/json",
+      "title": "31TDN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TDP/catalog.json",
+      "type": "application/json",
+      "title": "31TDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEH/catalog.json",
+      "type": "application/json",
+      "title": "31TEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEJ/catalog.json",
+      "type": "application/json",
+      "title": "31TEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEK/catalog.json",
+      "type": "application/json",
+      "title": "31TEK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEL/catalog.json",
+      "type": "application/json",
+      "title": "31TEL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEM/catalog.json",
+      "type": "application/json",
+      "title": "31TEM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEN/catalog.json",
+      "type": "application/json",
+      "title": "31TEN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TEP/catalog.json",
+      "type": "application/json",
+      "title": "31TEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFJ/catalog.json",
+      "type": "application/json",
+      "title": "31TFJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFK/catalog.json",
+      "type": "application/json",
+      "title": "31TFK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFL/catalog.json",
+      "type": "application/json",
+      "title": "31TFL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFM/catalog.json",
+      "type": "application/json",
+      "title": "31TFM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFN/catalog.json",
+      "type": "application/json",
+      "title": "31TFN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TFP/catalog.json",
+      "type": "application/json",
+      "title": "31TFP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGH/catalog.json",
+      "type": "application/json",
+      "title": "31TGH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGJ/catalog.json",
+      "type": "application/json",
+      "title": "31TGJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGK/catalog.json",
+      "type": "application/json",
+      "title": "31TGK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGL/catalog.json",
+      "type": "application/json",
+      "title": "31TGL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGM/catalog.json",
+      "type": "application/json",
+      "title": "31TGM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGN/catalog.json",
+      "type": "application/json",
+      "title": "31TGN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31TGP/catalog.json",
+      "type": "application/json",
+      "title": "31TGP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UBP/catalog.json",
+      "type": "application/json",
+      "title": "31UBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UBQ/catalog.json",
+      "type": "application/json",
+      "title": "31UBQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UBR/catalog.json",
+      "type": "application/json",
+      "title": "31UBR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UCP/catalog.json",
+      "type": "application/json",
+      "title": "31UCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UCQ/catalog.json",
+      "type": "application/json",
+      "title": "31UCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UCR/catalog.json",
+      "type": "application/json",
+      "title": "31UCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UDP/catalog.json",
+      "type": "application/json",
+      "title": "31UDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UDQ/catalog.json",
+      "type": "application/json",
+      "title": "31UDQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UDR/catalog.json",
+      "type": "application/json",
+      "title": "31UDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UDS/catalog.json",
+      "type": "application/json",
+      "title": "31UDS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UEP/catalog.json",
+      "type": "application/json",
+      "title": "31UEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UEQ/catalog.json",
+      "type": "application/json",
+      "title": "31UEQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UER/catalog.json",
+      "type": "application/json",
+      "title": "31UER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UES/catalog.json",
+      "type": "application/json",
+      "title": "31UES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFP/catalog.json",
+      "type": "application/json",
+      "title": "31UFP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFQ/catalog.json",
+      "type": "application/json",
+      "title": "31UFQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UFR/catalog.json",
+      "type": "application/json",
+      "title": "31UFR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UGP/catalog.json",
+      "type": "application/json",
+      "title": "31UGP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31UGQ/catalog.json",
+      "type": "application/json",
+      "title": "31UGQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKN/catalog.json",
+      "type": "application/json",
+      "title": "32TKN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKP/catalog.json",
+      "type": "application/json",
+      "title": "32TKP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKQ/catalog.json",
+      "type": "application/json",
+      "title": "32TKQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKR/catalog.json",
+      "type": "application/json",
+      "title": "32TKR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKS/catalog.json",
+      "type": "application/json",
+      "title": "32TKS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKT/catalog.json",
+      "type": "application/json",
+      "title": "32TKT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TKU/catalog.json",
+      "type": "application/json",
+      "title": "32TKU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLN/catalog.json",
+      "type": "application/json",
+      "title": "32TLN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLP/catalog.json",
+      "type": "application/json",
+      "title": "32TLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLQ/catalog.json",
+      "type": "application/json",
+      "title": "32TLQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLR/catalog.json",
+      "type": "application/json",
+      "title": "32TLR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLS/catalog.json",
+      "type": "application/json",
+      "title": "32TLS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLT/catalog.json",
+      "type": "application/json",
+      "title": "32TLT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TLU/catalog.json",
+      "type": "application/json",
+      "title": "32TLU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TML/catalog.json",
+      "type": "application/json",
+      "title": "32TML"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TMM/catalog.json",
+      "type": "application/json",
+      "title": "32TMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TMN/catalog.json",
+      "type": "application/json",
+      "title": "32TMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TNL/catalog.json",
+      "type": "application/json",
+      "title": "32TNL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TNM/catalog.json",
+      "type": "application/json",
+      "title": "32TNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32TNN/catalog.json",
+      "type": "application/json",
+      "title": "32TNN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UKU/catalog.json",
+      "type": "application/json",
+      "title": "32UKU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UKV/catalog.json",
+      "type": "application/json",
+      "title": "32UKV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32ULU/catalog.json",
+      "type": "application/json",
+      "title": "32ULU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32ULV/catalog.json",
+      "type": "application/json",
+      "title": "32ULV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UMU/catalog.json",
+      "type": "application/json",
+      "title": "32UMU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32UMV/catalog.json",
+      "type": "application/json",
+      "title": "32UMV"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-08T00:46:22Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-05T23:17:02.118873+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/fr/year=2022/fr-2022.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/fr/collection.json",
+      "sha256": "922764232fafeab3af2c7bbeda0042cc61ddd28448d7be5cc9b8cad4bee248a5",
+      "size": 2614338731,
+      "fetched_at": "2026-11-05T23:17:45.216078Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/fr/year=2022/fr-2022.parquet",
+      "output_dir": "staging/fr_2022",
+      "name": "fr_2022",
+      "year": 2022,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/fr/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/france_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "France \u2014 2022",
+        "description": "Benchmark chips for France cut from the 2022 edition of the harmonized field boundary collection fr.\n",
+        "license": "other",
+        "license_url": "https://etalab.gouv.fr/licence-ouverte-open-licence",
+        "version": "2.0.0-alpha.1",
+        "attribution": "IGN - Original data from https://geoservices.ign.fr/rpg",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "fr",
+          "2022"
+        ],
+        "providers": [
+          {
+            "name": "Anstitut National de l'Information G\u00e9ographique et Foresti\u00e8re",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/"
+          },
+          {
+            "name": "Joint Research Centre, European Commission",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "BTH",
+          "BTP",
+          "TTH",
+          "BDH",
+          "MCR",
+          "SOG",
+          "AVH",
+          "AVP",
+          "SRS",
+          "SGH",
+          "EPE",
+          "MLT",
+          "BDP",
+          "TTP",
+          "CAG",
+          "CHT",
+          "MCS",
+          "SGP",
+          "CGP",
+          "CGO",
+          "CHA",
+          "CPA",
+          "CHH",
+          "CPT",
+          "CAH",
+          "CHS",
+          "CPH",
+          "CGH",
+          "CGF",
+          "CPZ",
+          "CPS",
+          "BDT",
+          "MIS",
+          "MIE",
+          "MID",
+          "ORH",
+          "ORP",
+          "RIZ",
+          "CZH",
+          "CZP",
+          "TRN",
+          "SOJ",
+          "LIH",
+          "LIP",
+          "OEI",
+          "OAG",
+          "MOL",
+          "NVE",
+          "OHR",
+          "NVH",
+          "ARA",
+          "OEH",
+          "OHN",
+          "OPR",
+          "OPN",
+          "PPR",
+          "FVL",
+          "MPC",
+          "PHI",
+          "PHF",
+          "FVP",
+          "PHS",
+          "LDH",
+          "LDP",
+          "MLS",
+          "MPP",
+          "FEV",
+          "PAG",
+          "LEC",
+          "PCH",
+          "LIF",
+          "CHV",
+          "CSE",
+          "LUZ",
+          "MLG",
+          "TRE",
+          "MLF",
+          "MLC",
+          "SAI",
+          "CPL",
+          "LUD",
+          "FAG",
+          "MH7",
+          "BVF",
+          "LU8",
+          "LU7",
+          "MH6",
+          "LU6",
+          "LU5",
+          "MH5",
+          "MOH",
+          "VES",
+          "FSG",
+          "TR8",
+          "TR7",
+          "MC8",
+          "MC7",
+          "TR6",
+          "ML8",
+          "ML7",
+          "FFO",
+          "PFP",
+          "PFH",
+          "SA8",
+          "SA7",
+          "ML6",
+          "CHF",
+          "AFG",
+          "TR5",
+          "SA6",
+          "ML5",
+          "FF8",
+          "FF7",
+          "SA5",
+          "LOT",
+          "VE8",
+          "VE7",
+          "RDF",
+          "PP8",
+          "PP7",
+          "TRD",
+          "MC6",
+          "MEL",
+          "SAD",
+          "PH8",
+          "PH7",
+          "GES",
+          "LEF",
+          "LFP",
+          "MLD",
+          "LFH",
+          "MC5",
+          "NVF",
+          "LP8",
+          "LP7",
+          "LH8",
+          "LH7",
+          "CAF",
+          "MIN",
+          "JOS",
+          "VED",
+          "LO8",
+          "LO7",
+          "VE6",
+          "ME8",
+          "ME7",
+          "LH6",
+          "LH5",
+          "FF6",
+          "LP5",
+          "SER",
+          "LP6",
+          "ME6",
+          "JO6",
+          "MI8",
+          "MI7",
+          "SE8",
+          "SE7",
+          "JO8",
+          "JO7",
+          "JO5",
+          "PH6",
+          "VE5",
+          "MED",
+          "PP5",
+          "PP6",
+          "FF5",
+          "SE6",
+          "PH5",
+          "SE5",
+          "BTN",
+          "LAV",
+          "PPP",
+          "MOT",
+          "PPA",
+          "AAR",
+          "SGE",
+          "TAB",
+          "ARP",
+          "AME",
+          "THY",
+          "CRD",
+          "PSL",
+          "CML",
+          "HBL",
+          "TOT",
+          "FNO",
+          "MTH",
+          "FNU",
+          "PRF",
+          "ROM",
+          "MLI",
+          "MRJ",
+          "CMM",
+          "SRI",
+          "BAS",
+          "CIB",
+          "ANE",
+          "CHR",
+          "EST",
+          "PSN",
+          "ANG",
+          "ORT",
+          "CRF",
+          "MAV",
+          "PSY",
+          "MLP",
+          "BRH",
+          "VAL",
+          "OSE",
+          "ANI",
+          "BAR",
+          "CAV",
+          "CUM",
+          "PTC",
+          "FLA",
+          "CHU",
+          "FLP",
+          "MDI",
+          "OIG",
+          "PPO",
+          "HAR",
+          "FRA",
+          "CAR",
+          "ART",
+          "MLO",
+          "LBF",
+          "POT",
+          "PTF",
+          "POR",
+          "AIL",
+          "CES",
+          "CMB",
+          "TOM",
+          "CCT",
+          "NVT",
+          "RDI",
+          "CEL",
+          "MAC",
+          "EPI",
+          "PME",
+          "CCN",
+          "PVP",
+          "TOP",
+          "PAN",
+          "AUB",
+          "ROQ",
+          "PAS",
+          "SFI",
+          "RUT",
+          "CRS",
+          "DOL",
+          "CRA",
+          "CRN",
+          "CID",
+          "CIT",
+          "TBT",
+          "VRG",
+          "PRU",
+          "PFR",
+          "CBT",
+          "PVT",
+          "PWT",
+          "AGR",
+          "AVO",
+          "VRC",
+          "VRN",
+          "VRT",
+          "NOX",
+          "CTG",
+          "NOS",
+          "PIS",
+          "CAB",
+          "OLI",
+          "PEP",
+          "PEV",
+          "TCR",
+          "TRU",
+          "ACP",
+          "PPH",
+          "PRL",
+          "PTR",
+          "RGA",
+          "FET",
+          "DTY",
+          "GFP",
+          "FLO",
+          "PAT",
+          "BRO",
+          "XFE"
+        ],
+        "exclude": [
+          "J6S",
+          "JAC",
+          "J5M",
+          "J6P",
+          "JNO",
+          "SPH",
+          "SPL",
+          "BOP",
+          "GAI",
+          "RVI",
+          "CSS",
+          "HPC",
+          "BLT",
+          "PAQ",
+          "MRG",
+          "PMV",
+          "PSE",
+          "VER",
+          "BUR",
+          "SNE",
+          "BTA",
+          "BOR",
+          "BFS",
+          "BFP",
+          "SBO",
+          "CEE",
+          "MCT",
+          "CAE",
+          "MSW",
+          "SIN",
+          "PCL",
+          "GRA",
+          "MPA",
+          "MRS",
+          "ROS",
+          "SNU",
+          "SAG",
+          "NYG",
+          "CNE",
+          "CNA"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/france_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "France \u2014 2022",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -5.126620306251546,
+          41.366042066058355,
+          9.559618726994819,
+          51.07510062402307
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2022-01-01T00:00:00Z",
+          "2022-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "other",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "fr",
+    "2022"
+  ],
+  "providers": [
+    {
+      "name": "Anstitut National de l'Information G\u00e9ographique et Foresti\u00e8re",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/"
+    },
+    {
+      "name": "Joint Research Centre, European Commission",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./fr_2022_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 3521889205,
+      "table:columns": [
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "group_code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 9888758,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./fr_2022_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 3032667356,
+      "table:columns": [
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "group_code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 7992282,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./fr_2022_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 3032717936,
+      "table:columns": [
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "parcel_id",
+          "type": "varchar"
+        },
+        {
+          "name": "group_code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 7992282,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./fr_2022_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 11947745,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 121995,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 109757063,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 121995,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 36029928
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 994514578
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1077
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2452
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2688
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "France \u2014 2022 \u2014 Field outlines"
+    }
+  }
+}

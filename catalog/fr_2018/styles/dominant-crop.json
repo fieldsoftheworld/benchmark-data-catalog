@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "Long rotation meadow (6 years or more)",
+            3301010101,
+            "Soft winter wheat",
+            3301010600,
+            "Maize",
+            3303060000,
+            "Vine: table grapes",
+            3301060401,
+            "Other winter oilseeds of the species Brassica napus",
+            3301090400,
+            "Silage Maize",
+            3301090100,
+            "Other pure forage grass 5 years or less",
+            3301010401,
+            "Winter barley",
+            3301010201,
+            "Hard winter wheat",
+            3301060500,
+            "Sunflower",
+            3301010402,
+            "Spring barley",
+            3301090301,
+            "Alfalfa planted for the 2016 harvest",
+            "Other"
+          ],
+          "Long rotation meadow (6 years or more)",
+          "#32cc32",
+          "Soft winter wheat",
+          "#cda737",
+          "Maize",
+          "#a6cee3",
+          "Vine: table grapes",
+          "#1f78b4",
+          "Other winter oilseeds of the species Brassica napus",
+          "#b2df8a",
+          "Silage Maize",
+          "#fb9a99",
+          "Other pure forage grass 5 years or less",
+          "#e31a1c",
+          "Winter barley",
+          "#fdbf6f",
+          "Hard winter wheat",
+          "#ff7f00",
+          "Sunflower",
+          "#cc32cb",
+          "Spring barley",
+          "#6a3d9a",
+          "Alfalfa planted for the 2016 harvest",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Long rotation meadow (6 years or more)",
+            "3301010101",
+            "Soft winter wheat",
+            "3301010600",
+            "Maize",
+            "3301090400",
+            "Silage Maize",
+            "3301090100",
+            "Other pure forage grass 5 years or less",
+            "3301010401",
+            "Other winter cereal of the genus Hordeum",
+            "3301060401",
+            "Other winter oilseeds of the species Brassica napus",
+            "3301060500",
+            "Other oilseeds of the species Helianthus",
+            "3303060000",
+            "Vine: table grapes",
+            "3301010402",
+            "Other spring cereal of the genus Hordeum",
+            "3301090301",
+            "Dehydrated alfalfa",
+            "3301290700",
+            "Non-forage beet / Swiss chard",
+            "Other"
+          ],
+          "Long rotation meadow (6 years or more)",
+          "#32cc32",
+          "Soft winter wheat",
+          "#cda737",
+          "Maize",
+          "#a6cee3",
+          "Silage Maize",
+          "#1f78b4",
+          "Other pure forage grass 5 years or less",
+          "#b2df8a",
+          "Other winter cereal of the genus Hordeum",
+          "#fb9a99",
+          "Other winter oilseeds of the species Brassica napus",
+          "#e31a1c",
+          "Other oilseeds of the species Helianthus",
+          "#cc32cb",
+          "Vine: table grapes",
+          "#fdbf6f",
+          "Other spring cereal of the genus Hordeum",
+          "#ff7f00",
+          "Dehydrated alfalfa",
+          "#6a3d9a",
+          "Non-forage beet / Swiss chard",
+          "#cc324c",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

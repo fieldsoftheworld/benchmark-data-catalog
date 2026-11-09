@@ -1,0 +1,1234 @@
+{
+  "type": "Collection",
+  "id": "se_2019",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Sweden cut from the 2019 edition of the harmonized field boundary collection se.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/se",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32VPJ/catalog.json",
+      "type": "application/json",
+      "title": "32VPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32VPK/catalog.json",
+      "type": "application/json",
+      "title": "32VPK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32VPL/catalog.json",
+      "type": "application/json",
+      "title": "32VPL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32VPM/catalog.json",
+      "type": "application/json",
+      "title": "32VPM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33CWM/catalog.json",
+      "type": "application/json",
+      "title": "33CWM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33CXN/catalog.json",
+      "type": "application/json",
+      "title": "33CXN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UUB/catalog.json",
+      "type": "application/json",
+      "title": "33UUB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UUC/catalog.json",
+      "type": "application/json",
+      "title": "33UUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UVB/catalog.json",
+      "type": "application/json",
+      "title": "33UVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33UVC/catalog.json",
+      "type": "application/json",
+      "title": "33UVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VUC/catalog.json",
+      "type": "application/json",
+      "title": "33VUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VUD/catalog.json",
+      "type": "application/json",
+      "title": "33VUD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VUE/catalog.json",
+      "type": "application/json",
+      "title": "33VUE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VUF/catalog.json",
+      "type": "application/json",
+      "title": "33VUF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VUG/catalog.json",
+      "type": "application/json",
+      "title": "33VUG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVC/catalog.json",
+      "type": "application/json",
+      "title": "33VVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVD/catalog.json",
+      "type": "application/json",
+      "title": "33VVD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVE/catalog.json",
+      "type": "application/json",
+      "title": "33VVE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVF/catalog.json",
+      "type": "application/json",
+      "title": "33VVF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVG/catalog.json",
+      "type": "application/json",
+      "title": "33VVG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVH/catalog.json",
+      "type": "application/json",
+      "title": "33VVH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVK/catalog.json",
+      "type": "application/json",
+      "title": "33VVK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VVL/catalog.json",
+      "type": "application/json",
+      "title": "33VVL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWC/catalog.json",
+      "type": "application/json",
+      "title": "33VWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWD/catalog.json",
+      "type": "application/json",
+      "title": "33VWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWE/catalog.json",
+      "type": "application/json",
+      "title": "33VWE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWF/catalog.json",
+      "type": "application/json",
+      "title": "33VWF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWG/catalog.json",
+      "type": "application/json",
+      "title": "33VWG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWH/catalog.json",
+      "type": "application/json",
+      "title": "33VWH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWJ/catalog.json",
+      "type": "application/json",
+      "title": "33VWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWK/catalog.json",
+      "type": "application/json",
+      "title": "33VWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VWL/catalog.json",
+      "type": "application/json",
+      "title": "33VWL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXC/catalog.json",
+      "type": "application/json",
+      "title": "33VXC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXD/catalog.json",
+      "type": "application/json",
+      "title": "33VXD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXE/catalog.json",
+      "type": "application/json",
+      "title": "33VXE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXF/catalog.json",
+      "type": "application/json",
+      "title": "33VXF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXG/catalog.json",
+      "type": "application/json",
+      "title": "33VXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXH/catalog.json",
+      "type": "application/json",
+      "title": "33VXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXJ/catalog.json",
+      "type": "application/json",
+      "title": "33VXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXK/catalog.json",
+      "type": "application/json",
+      "title": "33VXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33VXL/catalog.json",
+      "type": "application/json",
+      "title": "33VXL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCJ/catalog.json",
+      "type": "application/json",
+      "title": "34VCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCK/catalog.json",
+      "type": "application/json",
+      "title": "34VCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCL/catalog.json",
+      "type": "application/json",
+      "title": "34VCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCM/catalog.json",
+      "type": "application/json",
+      "title": "34VCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCQ/catalog.json",
+      "type": "application/json",
+      "title": "34VCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VCR/catalog.json",
+      "type": "application/json",
+      "title": "34VCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34VDR/catalog.json",
+      "type": "application/json",
+      "title": "34VDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WCS/catalog.json",
+      "type": "application/json",
+      "title": "34WCS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WCT/catalog.json",
+      "type": "application/json",
+      "title": "34WCT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WDR/catalog.json",
+      "type": "application/json",
+      "title": "34WDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WDS/catalog.json",
+      "type": "application/json",
+      "title": "34WDS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WDT/catalog.json",
+      "type": "application/json",
+      "title": "34WDT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WES/catalog.json",
+      "type": "application/json",
+      "title": "34WES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WET/catalog.json",
+      "type": "application/json",
+      "title": "34WET"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WEU/catalog.json",
+      "type": "application/json",
+      "title": "34WEU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34WFU/catalog.json",
+      "type": "application/json",
+      "title": "34WFU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35WLP/catalog.json",
+      "type": "application/json",
+      "title": "35WLP"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "instance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Instance segmentation mask"
+    },
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "decode_boundary_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE field boundary mask"
+    },
+    "decode_distance_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "DECODE normalized distance-to-boundary map"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_boundary_mask": {
+      "title": "DECODE field boundaries",
+      "assets": [
+        "decode_boundary_mask"
+      ],
+      "nodata": 0
+    },
+    "decode_distance_mask": {
+      "title": "DECODE distance to boundary",
+      "assets": [
+        "decode_distance_mask"
+      ],
+      "rescale": [
+        [
+          0,
+          1
+        ]
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    },
+    "instance_mask": {
+      "title": "Field instances",
+      "assets": [
+        "instance_mask"
+      ],
+      "nodata": 0,
+      "colormap_name": "viridis"
+    }
+  },
+  "updated": "2026-11-07T08:38:27Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "instance",
+    "semantic_2_class",
+    "semantic_3_class",
+    "decode_boundary",
+    "decode_distance"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-06T00:59:56.106336+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/se/collection.json",
+      "sha256": "b6a6697a0366780d60ed6beefd824504fc3cea73b6b449bf08e7d9df5e4031f9",
+      "size": 309349029,
+      "fetched_at": "2026-11-06T01:00:00.877196Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet",
+      "output_dir": "staging/se_2019",
+      "name": "se_2019",
+      "year": 2019,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/se/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": true,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "instance",
+            "semantic_2_class",
+            "semantic_3_class",
+            "decode_boundary",
+            "decode_distance"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": "filters/sweden_filter.yaml",
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Sweden \u2014 2019",
+        "description": "Benchmark chips for Sweden cut from the 2019 edition of the harmonized field boundary collection se.\n",
+        "license": "CC0-1.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Jordbruksverket",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "se",
+          "2019"
+        ],
+        "providers": [
+          {
+            "name": "Jordbruksverket (The Swedish Board of Agriculture)",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://jordbruksverket.se"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": {
+        "column": "crop:code",
+        "include": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "27",
+          "28",
+          "29",
+          "30",
+          "31",
+          "32",
+          "33",
+          "34",
+          "35",
+          "36",
+          "37",
+          "38",
+          "39",
+          "40",
+          "41",
+          "42",
+          "43",
+          "45",
+          "46",
+          "47",
+          "48",
+          "58",
+          "59",
+          "62",
+          "70",
+          "74",
+          "79",
+          "80",
+          "86",
+          "87",
+          "88",
+          "300",
+          "302",
+          "303",
+          "305",
+          "306",
+          "307",
+          "308",
+          "309",
+          "311",
+          "312",
+          "313",
+          "315",
+          "316",
+          "317",
+          "65",
+          "67",
+          "68",
+          "71",
+          "72",
+          "73",
+          "78",
+          "83",
+          "49",
+          "50",
+          "301",
+          "57"
+        ],
+        "exclude": [
+          "17",
+          "26",
+          "51",
+          "52",
+          "53",
+          "54",
+          "55",
+          "56",
+          "60",
+          "61",
+          "63",
+          "66",
+          "69",
+          "77",
+          "81",
+          "82",
+          "85",
+          "89",
+          "90",
+          "95",
+          "304",
+          "310",
+          "314",
+          "318"
+        ],
+        "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/sweden_filter.yaml",
+        "column_aliases": [
+          "crop_code"
+        ]
+      }
+    }
+  },
+  "title": "Sweden \u2014 2019",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          10.987537072692351,
+          55.33770065789324,
+          24.121393454642508,
+          68.45944269521965
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2019-01-01T00:00:00Z",
+          "2019-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC0-1.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "se",
+    "2019"
+  ],
+  "providers": [
+    {
+      "name": "Jordbruksverket (The Swedish Board of Agriculture)",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://jordbruksverket.se"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./se_2019_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 489250294,
+      "table:columns": [
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 1125696,
+      "roles": [
+        "data"
+      ]
+    },
+    "fields_filtered": {
+      "href": "./se_2019_fields_filtered.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field polygons after the class filter",
+      "file:size": 343275075,
+      "table:columns": [
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 802595,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./se_2019_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 343108042,
+      "table:columns": [
+        {
+          "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:code",
+          "type": "uinteger"
+        },
+        {
+          "name": "hcat:name",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat:name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 802595,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./se_2019_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 3478392,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 32880,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 29205533,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_dominant_code",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:hcat_dominant_name_en",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:hcat_dominant_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:hcat_top",
+          "type": "struct"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 32880,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 12973219
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 112013268
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1075
+    },
+    "style-dominant-crop": {
+      "href": "./styles/dominant-crop.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Dominant crop per chip",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2384
+    },
+    "style-crops": {
+      "href": "./styles/crops.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Crops",
+      "roles": [
+        "style"
+      ],
+      "file:size": 2376
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Sweden \u2014 2019 \u2014 Field outlines"
+    }
+  }
+}
