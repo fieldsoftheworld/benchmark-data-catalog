@@ -196,6 +196,37 @@ except SystemExit as stop:
 finally:
     tracking.row = real_row
 
+# The real tracking rows of the research sets scaffold the recipes decided for them
+# (2026-11-10): label extents with semantic masks, and LEM plain presence-only.
+from ftw_dataset_tools.api.config import DatasetConfig  # noqa: E402
+
+EXTENT_IDS = ["ai4sf_ml_2021", "glocab_2017", "glocab_2018", "glocab_2019", "glocab_2020",
+              "rw_rwanda_ml_2021", *(f"wri_trazo_{y}" for y in range(2020, 2025))]
+for real_id in [*EXTENT_IDS, "br_ba_lem_2020"]:
+    real = tracking.row(real_id)
+    check(new_dataset.row_problem(real) is None, f"{real_id}: {new_dataset.row_problem(real)}")
+    check("label-extent support" not in real["issues"], f"{real_id}: obsolete issue {real['issues']!r}")
+    text = new_dataset.recipe_text(real_id, real, COLLECTION, new_dataset.source_urls(real), "9.9.9")
+    real_recipe = yaml.safe_load(text)
+    masks, chips = real_recipe["stages"]["masks"], real_recipe["stages"]["chips"]
+    check(masks["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+          f"{real_id}: semantic masks only: {masks['mask_types']}")
+    check(chips["drop_border_chips"] is False, f"{real_id}: border chips kept")
+    if real_id in EXTENT_IDS:
+        check(masks.get("label_extent") == f"../work/extents/{real_id}.parquet"
+              and masks["presence_only"] is False, f"{real_id}: reads its label extent: {masks}")
+    else:
+        check("label_extent" not in masks and masks["presence_only"] is True,
+              f"{real_id}: presence-only, no extent: {masks}")
+    # ftwd's own validation (label_extent with presence_only, mask types); the extent file
+    # itself is checked when ftwd loads the recipe from disk, not here.
+    try:
+        DatasetConfig.from_dict(real_recipe)
+    except Exception as exc:  # noqa: BLE001 - any refusal is the failure
+        errors.append(f"{real_id}: ftwd refuses the recipe: {exc}")
+check(tracking.row("wri_trazo_2020")["issues"].startswith("waiting for fiboa/cli#354"),
+      "Trazo still waits for its converter and the harmonized publish")
+
 # Credits for a dataset drawn from several collections.
 cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [
     {"name": "Nat", "roles": ["producer"]}, {"name": "Fields of the World", "roles": ["host"]}]}

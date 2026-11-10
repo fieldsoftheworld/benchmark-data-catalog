@@ -390,14 +390,22 @@ def manifest_entry(dataset_id: str, thumb: dict) -> str:
     )
 
 
+def row_problem(row: dict[str, str]) -> str | None:
+    """Why a tracking row cannot be scaffolded, or None."""
+    dataset_id = row["dataset_id"]
+    if row["status"] != "include":
+        return f"{dataset_id}: tracking.csv status is {row['status']!r}, not 'include'"
+    if has_label_extent(row) and row.get("wall_to_wall") == PRESENCE_ONLY:
+        return (f"{dataset_id}: {row['harmonized_id']} has a label extent, so its row cannot be "
+                f"{PRESENCE_ONLY!r} (ftwd takes one or the other)")
+    return None
+
+
 def scaffold(dataset_id: str, *, checkout: Path | None = None, force: bool = False) -> Path:
     """Write the recipe, filter and manifest entry for ``dataset_id``."""
     row = tracking.row(dataset_id)
-    if row["status"] != "include":
-        sys.exit(f"{dataset_id}: tracking.csv status is {row['status']!r}, not 'include'")
-    if has_label_extent(row) and row.get("wall_to_wall") == PRESENCE_ONLY:
-        sys.exit(f"{dataset_id}: {row['harmonized_id']} has a label extent, so its row cannot be "
-                 f"{PRESENCE_ONLY!r} (ftwd takes one or the other)")
+    if problem := row_problem(row):
+        sys.exit(problem)
     recipe_path = ROOT / "datasets" / f"{dataset_id}.yaml"
     if recipe_path.exists() and not force:
         sys.exit(f"{recipe_path.relative_to(ROOT)} exists (use --force to regenerate it)")
