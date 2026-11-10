@@ -159,6 +159,74 @@ check(derived["stages"]["chips"]["drop_border_chips"] is False,
 check(derived["stages"]["masks"]["mask_types"] == ["semantic_2_class", "semantic_3_class"],
       f"presence-only builds the semantic masks only: {derived['stages']['masks']['mask_types']}")
 
+# A collection labelled only inside its sample areas reads its label extent instead.
+for hid in new_dataset.LABEL_EXTENT_SOURCES:
+    ext_row = {**ROW, "dataset_id": f"{hid}_2021", "harmonized_id": hid, "year": "2021",
+               "wall_to_wall": "Yes (inside labelled tiles)"}
+    ext = yaml.safe_load(new_dataset.recipe_text(
+        f"{hid}_2021", ext_row, COLLECTION, new_dataset.source_urls(ext_row), "9.9.9"))
+    ext_masks = ext["stages"]["masks"]
+    check(ext_masks.get("label_extent") == f"../work/extents/{hid}_2021.parquet",
+          f"{hid}: the recipe reads work/extents/<id>.parquet, relative to datasets/: {ext_masks}")
+    check(ext_masks["presence_only"] is False, f"{hid}: label_extent, so not presence-only")
+    check(ext["stages"]["chips"]["drop_border_chips"] is False,
+          f"{hid}: sample areas keep border chips; outside the extent is unknown anyway")
+    check(ext_masks["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+          f"{hid}: semantic masks only, the ones that mark outside the extent unknown: "
+          f"{ext_masks['mask_types']}")
+check("label_extent" not in recipe["stages"]["masks"], "an ordinary dataset has no label extent")
+check("label_extent" not in derived["stages"]["masks"], "nor does a presence-only one")
+# LEM's fields are a sample: an ordinary presence-only recipe, no extent.
+lem_row = {**ROW, "dataset_id": "br_ba_lem_2020", "harmonized_id": "br_ba_lem", "year": "2020",
+           "filter": "", "wall_to_wall": new_dataset.PRESENCE_ONLY}
+lem = yaml.safe_load(new_dataset.recipe_text(
+    "br_ba_lem_2020", lem_row, COLLECTION, new_dataset.source_urls(lem_row), "9.9.9"))
+check("label_extent" not in lem["stages"]["masks"] and lem["stages"]["masks"]["presence_only"] is True
+      and lem["stages"]["chips"]["drop_border_chips"] is False
+      and lem["stages"]["masks"]["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+      f"br_ba_lem_2020 is a plain presence-only recipe: {lem['stages']}")
+try:
+    real_row = tracking.row
+    tracking.row = lambda d, rows=None: {**ROW, "dataset_id": d, "harmonized_id": "glocab",
+                                         "status": "include", "wall_to_wall": new_dataset.PRESENCE_ONLY}
+    new_dataset.scaffold("glocab_2021")
+    errors.append("a Presence-only row of a label-extent collection is scaffolded")
+except SystemExit as stop:
+    check("label extent" in str(stop), f"label extent and presence-only refused together: {stop}")
+finally:
+    tracking.row = real_row
+
+# The real tracking rows of the research sets scaffold the recipes decided for them
+# (2026-11-10): label extents with semantic masks, and LEM plain presence-only.
+from ftw_dataset_tools.api.config import DatasetConfig  # noqa: E402
+
+EXTENT_IDS = ["ai4sf_ml_2021", "glocab_2017", "glocab_2018", "glocab_2019", "glocab_2020",
+              "rw_rwanda_ml_2021", *(f"wri_trazo_{y}" for y in range(2020, 2025))]
+for real_id in [*EXTENT_IDS, "br_ba_lem_2020"]:
+    real = tracking.row(real_id)
+    check(new_dataset.row_problem(real) is None, f"{real_id}: {new_dataset.row_problem(real)}")
+    check("label-extent support" not in real["issues"], f"{real_id}: obsolete issue {real['issues']!r}")
+    text = new_dataset.recipe_text(real_id, real, COLLECTION, new_dataset.source_urls(real), "9.9.9")
+    real_recipe = yaml.safe_load(text)
+    masks, chips = real_recipe["stages"]["masks"], real_recipe["stages"]["chips"]
+    check(masks["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+          f"{real_id}: semantic masks only: {masks['mask_types']}")
+    check(chips["drop_border_chips"] is False, f"{real_id}: border chips kept")
+    if real_id in EXTENT_IDS:
+        check(masks.get("label_extent") == f"../work/extents/{real_id}.parquet"
+              and masks["presence_only"] is False, f"{real_id}: reads its label extent: {masks}")
+    else:
+        check("label_extent" not in masks and masks["presence_only"] is True,
+              f"{real_id}: presence-only, no extent: {masks}")
+    # ftwd's own validation (label_extent with presence_only, mask types); the extent file
+    # itself is checked when ftwd loads the recipe from disk, not here.
+    try:
+        DatasetConfig.from_dict(real_recipe)
+    except Exception as exc:  # noqa: BLE001 - any refusal is the failure
+        errors.append(f"{real_id}: ftwd refuses the recipe: {exc}")
+check(tracking.row("wri_trazo_2020")["issues"].startswith("waiting for fiboa/cli#354"),
+      "Trazo still waits for its converter and the harmonized publish")
+
 # Credits for a dataset drawn from several collections.
 cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [
     {"name": "Nat", "roles": ["producer"]}, {"name": "Fields of the World", "roles": ["host"]}]}
@@ -257,6 +325,34 @@ except SystemExit:
     pass
 (run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
  tracking.load, tracking.row) = _saved
+
+# --- run_batch.py checks the label extent before ftwd reads the recipe -----
+_saved_steps = (run_batch._run, run_batch.reads_extent, run_batch.LOGS)
+with tempfile.TemporaryDirectory() as tmp:
+    run_batch.LOGS = Path(tmp)
+    calls: list[str] = []
+    exit_codes: dict[str, int] = {}
+
+    def fake_run(argv, log):
+        script = Path(argv[1]).name
+        calls.append(script)
+        return exit_codes.get(script, 0)
+
+    run_batch._run = fake_run
+    steps = run_batch.IMAGERY_STEPS
+    run_batch.reads_extent = lambda d: d == "ext_2021"
+    check(run_batch.run_dataset("ext_2021", steps, scaffold=False) is None, "extent ok, steps run")
+    check(calls[:1] == ["label_extent.py"] and calls.count("build.py") == 2,
+          f"the extent is checked first, then the build: {calls}")
+    calls.clear()
+    check(run_batch.run_dataset("plain_2021", steps, scaffold=False) is None, "no extent, steps run")
+    check("label_extent.py" not in calls, f"a recipe without an extent skips the step: {calls}")
+    calls.clear()
+    exit_codes["label_extent.py"] = 1
+    check(run_batch.run_dataset("ext_2021", steps, scaffold=False) == "label_extent",
+          "a failed extent (missing source, sha256 mismatch) names the step")
+    check(calls == ["label_extent.py"], f"and nothing is built from the wrong extent: {calls}")
+run_batch._run, run_batch.reads_extent, run_batch.LOGS = _saved_steps
 
 # --- run_batch.py picks the right queue -----------------------------------
 queue = [

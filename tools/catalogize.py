@@ -738,6 +738,89 @@ def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     return changed
 
 
+# The repository's own top-level folders that ftwd reads files from (filters,
+# recipes, label extents), and the folder name a builder clones it under.
+_REPO_FOLDERS = ("datasets", "work")
+_REPO_NAME = "benchmark-data-catalog"
+
+
+def _repo_relative(value: str, root: Path = ROOT) -> str | None:
+    """A builder-local absolute path as a path inside the repository, or None.
+
+    ftwd records the files it read (``class_filter.source``, ``label_extent``) with
+    the builder's absolute path, e.g. ``/home/ubuntu/benchmark-data-catalog/...``,
+    which means nothing to a reader and names the build machine's home directory.
+    A path from another checkout (a worktree, another builder) is matched on the
+    repository's own folders, never on this checkout's folder name.
+    """
+    path = Path(value)
+    marker = f"/{_REPO_NAME}/"
+    if path.is_relative_to(root):
+        rel = path.relative_to(root).as_posix()
+    elif marker in value:
+        rel = value.split(marker, 1)[1]
+    else:
+        start = max(value.rfind(f"/{folder}/") for folder in _REPO_FOLDERS)
+        rel = value[start + 1:] if start > 0 else None
+    # Only a file this checkout has is a placement, not a guess (a cache or data
+    # folder that happens to be called datasets/ or work/ is not the repository).
+    if rel is None or ".." in Path(rel).parts or not (root / rel).is_file():
+        return None
+    return rel
+
+
+def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = None):
+    """``ftw:config`` with every absolute local path made repository-relative.
+
+    A path outside any checkout keeps only its file name and is appended to
+    ``unresolved``, so a caller can refuse rather than publish a guess.
+    """
+    if isinstance(config, dict):
+        return {k: strip_local_paths(v, root, unresolved) for k, v in config.items()}
+    if isinstance(config, list):
+        return [strip_local_paths(v, root, unresolved) for v in config]
+    if isinstance(config, str) and config.startswith("/"):
+        relative = _repo_relative(config, root)
+        if relative is not None:
+            return relative
+        if unresolved is not None:
+            unresolved.append(config)
+        return Path(config).name
+    return config
+
+
+def sanitize_config(
+    dataset_ids: list[str], *, catalog: Path = CATALOG, confirm: bool = False
+) -> list[Path]:
+    """The ``catalog/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
+
+    With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
+    same code a full catalogize run uses), so collections published before the fix
+    can be cleaned without a rebuild and republished as metadata only. Nothing else
+    in the file changes, ``updated`` included. A file holding a path that cannot be
+    placed in the repository is skipped with a warning, never rewritten to a guess.
+    """
+    changed = []
+    for dataset_id in dataset_ids:
+        path = catalog / dataset_id / "collection.json"
+        doc = read_json(path)
+        if "ftw:config" not in doc:
+            continue
+        unresolved: list[str] = []
+        clean = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
+        if unresolved:
+            print(f"warning  {dataset_id}: skipped, {unresolved} is not inside a "
+                  f"{_REPO_NAME} checkout; fix it by hand or rebuild")
+            continue
+        if clean == doc["ftw:config"]:
+            continue
+        if confirm:
+            doc["ftw:config"] = clean
+            write_json(path, doc)
+        changed.append(path)
+    return changed
+
+
 def enrich_collection(
     dataset_id: str,
     *,
@@ -754,13 +837,20 @@ def enrich_collection(
     appends the host provider once, fills in ``version`` and ``updated``,
     ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
     — for an "other" license — a ``license`` link exist, registers a
-    ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), and, when
+    ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), makes the
+    absolute builder paths in ``ftw:config`` repository-relative, and, when
     the manifest carries an ``ftw1`` block for this dataset, appends the FTW
     1.0 comparison to README.md.
     """
     collection_path = catalog / dataset_id / "collection.json"
     doc = read_json(collection_path)
     rewrite_root_links(doc, depth=1)
+    if "ftw:config" in doc:
+        unresolved: list[str] = []
+        doc["ftw:config"] = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
+        for value in unresolved:
+            print(f"warning  {dataset_id}: ftw:config path {value} is outside the repository; "
+                  f"published as its file name only")
     _ensure_parent_link(doc)
     _ensure_llms_link(doc)
     _append_host_provider(doc, manifest)
@@ -1690,7 +1780,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )
+    parser.add_argument(
+        "--sanitize-config", nargs="*", metavar="ID", default=None,
+        help="only make the local paths in catalog/<id>/collection.json's ftw:config "
+             "repository-relative (all built collections when no id is given); a dry run "
+             "unless --confirm",
+    )
+    parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
+    if args.sanitize_config is not None:
+        ids = args.sanitize_config or sorted(p.parent.name for p in CATALOG.glob("*/collection.json"))
+        changed = sanitize_config(ids, confirm=args.confirm)
+        for path in changed:
+            print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")
+        print(f"{len(changed)} of {len(ids)} collection(s) carry local paths in ftw:config"
+              + ("" if args.confirm else " (dry run; --confirm to write)"))
+        return 0
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")
 

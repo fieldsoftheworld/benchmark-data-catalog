@@ -182,6 +182,20 @@ fails if a copy drifts, so filter fixes go to ftwd first. The thumbnail
 defaults to the field `outline` style at zoom 13 on the densest cluster of
 fields; override in `datasets.yaml` only after looking at the render.
 
+Research sets labelled completely only inside their own sample tiles, chips or
+mapped regions (`LABEL_EXTENT_SOURCES` in `new_dataset.py`: GloCAB,
+AI4SmallFarms, Rwanda, Trazo) get `stages.masks.label_extent`: unlabelled
+pixels inside the extent are background, outside unknown. They build the
+semantic masks only, as presence-only sets do: ftwd's instance and DECODE masks
+cannot mark outside the extent unknown. The extent is a
+derived input, `work/extents/<id>.parquet`, built from public sources by
+`uv run python tools/label_extent.py <id>` (the repo's own environment: the
+locked DuckDB version is part of the file's bytes) and never committed; `run_batch.py` builds a
+missing one before the build. Its sha256 is committed in
+`datasets/extents.sha256`: ftwd ties the chips to the extent's sha256, so a
+rebuilt extent that differs is refused (`--accept` records a deliberate change,
+which means rebuilding that dataset from its chips).
+
 `run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
 logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the
 gates once for the batch, and records the outcome in `tracking.csv`. It never

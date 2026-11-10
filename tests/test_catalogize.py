@@ -50,6 +50,9 @@ import catalogize  # noqa: E402
 from common import public_url  # noqa: E402
 
 errors: list[str] = []
+# A filter file every checkout has, for the path-placement checks.
+REAL_FILTER = sorted(p.relative_to(catalogize.ROOT).as_posix()
+                     for p in (catalogize.ROOT / "datasets" / "filters").glob("*.yaml"))[0]
 
 
 def check(condition: bool, message: str) -> None:
@@ -1106,6 +1109,14 @@ with tempfile.TemporaryDirectory() as tmp:
             "license": "other",
             "links": [{"rel": "root", "href": "./collection.json", "type": "application/json"}],
             "providers": [],
+            "ftw:config": {"config": {
+                "class_filter": {"source": f"/home/ubuntu/benchmark-data-catalog/{REAL_FILTER}"},
+                "stages": {"masks": {"label_extent": str(catalogize.ROOT / "datasets/hr_2024.yaml"),
+                                     "class_filter": "filters/f.yaml"}},
+                "output_dir": "staging/hr_2024",
+                "fields_file": "https://data.source.coop/x/y.parquet",
+                "elsewhere": "/tmp/scratch/extent.parquet",
+            }},
         },
     )
     hr_2024_manifest = {
@@ -1124,6 +1135,58 @@ with tempfile.TemporaryDirectory() as tmp:
         len(license_links) == 1 and license_links[0]["href"] == recipe_hr_2024["metadata"]["license_url"],
         "a license link is added from the recipe's license_url when license is 'other'",
     )
+
+    cfg = hr_2024_collection["ftw:config"]["config"]
+    check(cfg["class_filter"]["source"] == REAL_FILTER,
+          f"another builder's absolute filter path is repository-relative: {cfg['class_filter']}")
+    check(cfg["stages"]["masks"]["label_extent"] == "datasets/hr_2024.yaml",
+          f"this checkout's absolute path is repository-relative: {cfg['stages']['masks']}")
+    check(cfg["elsewhere"] == "extent.parquet", f"a path outside any checkout keeps its name only: {cfg}")
+    check(cfg["stages"]["masks"]["class_filter"] == "filters/f.yaml"
+          and cfg["output_dir"] == "staging/hr_2024"
+          and cfg["fields_file"] == "https://data.source.coop/x/y.parquet",
+          "relative paths and URLs are left alone")
+    check("/home/" not in json.dumps(hr_2024_collection), "no builder home directory is published")
+
+    # --sanitize-config: only ftw:config's local paths change, in place, on --confirm
+    dirty = {"type": "Collection", "id": "x", "updated": "2026-01-01T00:00:00Z",
+             "ftw:config": {"config": {"class_filter": {
+                 "source": f"/home/ubuntu/benchmark-data-catalog/{REAL_FILTER}"}}}}
+    write_json(catalog / "x" / "collection.json", dirty)
+    clean_doc = {**dirty, "id": "y", "ftw:config": {"config": {"output_dir": "staging/y"}}}
+    write_json(catalog / "y" / "collection.json", clean_doc)
+    before = (catalog / "x" / "collection.json").read_text()
+    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [catalog / "x" / "collection.json"],
+          "the dry run names only the collection with a local path")
+    check((catalog / "x" / "collection.json").read_text() == before, "a dry run writes nothing")
+    catalogize.sanitize_config(["x", "y"], catalog=catalog, confirm=True)
+    after = json.loads((catalog / "x" / "collection.json").read_text())
+    check(after["ftw:config"]["config"]["class_filter"]["source"] == REAL_FILTER
+          and after["updated"] == dirty["updated"] and {**after, "ftw:config": None} == {**dirty, "ftw:config": None},
+          f"--confirm rewrites ftw:config and nothing else: {after}")
+    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [], "a second pass finds nothing")
+    # a path outside any checkout is skipped, not rewritten to a bare file name
+    stray = {**dirty, "id": "z", "ftw:config": {"config": {"class_filter": {"source": "/tmp/f.yaml"}}}}
+    write_json(catalog / "z" / "collection.json", stray)
+    stray_text = (catalog / "z" / "collection.json").read_text()
+    check(catalogize.sanitize_config(["z"], catalog=catalog, confirm=True) == []
+          and (catalog / "z" / "collection.json").read_text() == stray_text,
+          "an unplaceable path is skipped, the file left as it is")
+    # a checkout under another folder name (a git worktree) still finds the repository part
+    # only a file this checkout has counts as placed; anything else is unresolved
+    for other, expected in [
+        (f"/home/me/wt-extents/{REAL_FILTER}", REAL_FILTER),
+        (f"/home/me/work/wt/{REAL_FILTER}", REAL_FILTER),
+        (f"/home/ubuntu/benchmark-data-catalog/{REAL_FILTER}", REAL_FILTER),
+        ("/home/me/.cache/ftwd/datasets/x.parquet", None),
+        ("/mnt/data/work/raw/x.gpkg", None),
+        ("/home/me/wt/datasets/../other/f.yaml", None),
+        ("/home/ubuntu/benchmark-data-catalog/../other/datasets/f.yaml", None),
+        ("/datasets/", None),
+        ("/datasets/filters/missing.yaml", None),
+    ]:
+        got = catalogize._repo_relative(other, catalogize.ROOT)
+        check(got == expected, f"{other} -> {got!r}, expected {expected!r}")
 
     # idempotent: running again does not duplicate the license link
     catalogize.enrich_collection(
