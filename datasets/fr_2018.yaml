@@ -14,15 +14,11 @@ metadata:
   description: >
     Benchmark chips for France cut from the 2018 edition of the
     harmonized field boundary collection fr.
-  license: other
-  license_url: https://etalab.gouv.fr/licence-ouverte-open-licence
+  license: CC-BY-4.0
   version: 2.0.0-alpha.1
-  attribution: "IGN - Original data from https://geoservices.ign.fr/rpg"
+  attribution: "European Commission, Joint Research Centre — EuroCropsV2"
   keywords: [field-boundaries, benchmark, fr, 2018]
   providers:
-    - name: "Anstitut National de l'Information Géographique et Forestière"
-      roles: [producer, licensor]
-      url: https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/
     - name: "Joint Research Centre, European Commission"
       roles: [producer, licensor]
       url: https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3
@@ -33,6 +29,8 @@ metadata:
 stages:
   chips:
     min_coverage: 0.01
+    # Border chips may cut wall-to-wall labels short; in presence-only data unlabelled
+    # pixels are unknown anyway, and sparse samples would lose every chip.
     drop_border_chips: true
   splits:
     split_type: block3x3

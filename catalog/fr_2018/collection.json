@@ -10,11 +10,6 @@
       "type": "application/json"
     },
     {
-      "rel": "license",
-      "href": "https://etalab.gouv.fr/licence-ouverte-open-licence",
-      "title": "License"
-    },
-    {
       "rel": "via",
       "href": "https://source.coop/ftw/harmonized-field-data/fr",
       "type": "text/html",
@@ -895,7 +890,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-07T23:01:52Z",
+  "updated": "2026-11-10T04:27:29Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -920,7 +915,7 @@
     "ftwd_version": "0.1.0",
     "ftwd_git_commit": "48aa27ca520103cbc198ca1e4e0f11c26c52979e",
     "config_schema_version": 1,
-    "generated_at": "2026-11-05T23:16:59.911532+00:00",
+    "generated_at": "2026-11-10T02:21:20.773435+00:00",
     "source": {
       "href": "https://data.source.coop/ftw/harmonized-field-data/fr/year=2018/fr-2018.parquet",
       "via": "https://data.source.coop/ftw/harmonized-field-data/fr/collection.json",
@@ -1018,10 +1013,10 @@
       "metadata": {
         "title": "France \u2014 2018",
         "description": "Benchmark chips for France cut from the 2018 edition of the harmonized field boundary collection fr.\n",
-        "license": "other",
-        "license_url": "https://etalab.gouv.fr/licence-ouverte-open-licence",
+        "license": "CC-BY-4.0",
+        "license_url": null,
         "version": "2.0.0-alpha.1",
-        "attribution": "IGN - Original data from https://geoservices.ign.fr/rpg",
+        "attribution": "European Commission, Joint Research Centre \u2014 EuroCropsV2",
         "keywords": [
           "field-boundaries",
           "benchmark",
@@ -1029,14 +1024,6 @@
           "2018"
         ],
         "providers": [
-          {
-            "name": "Anstitut National de l'Information G\u00e9ographique et Foresti\u00e8re",
-            "roles": [
-              "producer",
-              "licensor"
-            ],
-            "url": "https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/"
-          },
           {
             "name": "Joint Research Centre, European Commission",
             "roles": [
@@ -1418,7 +1405,7 @@
       ]
     }
   },
-  "license": "other",
+  "license": "CC-BY-4.0",
   "keywords": [
     "field-boundaries",
     "benchmark",
@@ -1426,14 +1413,6 @@
     "2018"
   ],
   "providers": [
-    {
-      "name": "Anstitut National de l'Information G\u00e9ographique et Foresti\u00e8re",
-      "roles": [
-        "producer",
-        "licensor"
-      ],
-      "url": "https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/"
-    },
     {
       "name": "Joint Research Centre, European Commission",
       "roles": [
@@ -1669,11 +1648,11 @@
           "type": "varchar"
         },
         {
-          "name": "ftw:winter_harvest_day",
+          "name": "ftw:mosaic_year",
           "type": "bigint"
         },
         {
-          "name": "ftw:winter_planting_day",
+          "name": "ftw:mosaic_requested_year",
           "type": "bigint"
         },
         {
@@ -1733,12 +1712,28 @@
           "type": "struct"
         },
         {
+          "name": "portolan:render_order",
+          "type": "varchar[]"
+        },
+        {
           "name": "ftw:summer_planting_day",
           "type": "bigint"
         },
         {
           "name": "ftw:summer_harvest_day",
           "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:imagery_modes",
+          "type": "varchar[]"
         },
         {
           "name": "bbox",

@@ -63,10 +63,9 @@ Ready-made map styles ship with the collection:
 
 ## Provenance
 
-- [Anstitut National de l'Information Géographique et Forestière](https://www.data.gouv.fr/en/datasets/registre-parcellaire-graphique-rpg-contours-des-parcelles-et-ilots-culturaux-et-leur-groupe-de-cultures-majoritaire/): producer, licensor
 - [Joint Research Centre, European Commission](https://data.jrc.ec.europa.eu/dataset/b9fb9e67-78a9-4327-9d59-39a928d812d3): producer, licensor
 - [Fields of the World](https://fieldsofthe.world): processor
-- License: [License](https://etalab.gouv.fr/licence-ouverte-open-licence)
+- License: [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html)
 - Source data: [Registre Parcellaire Graphique; Crop Fields France](https://source.coop/ftw/harmonized-field-data/fr) (harmonized field boundaries; STAC [collection.json](https://data.source.coop/ftw/harmonized-field-data/fr/collection.json))
 - Chips are 2 km (2,000 m) on a side
 - Splits assigned with the `block3x3` strategy, random seed 42

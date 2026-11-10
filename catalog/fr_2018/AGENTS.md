@@ -7,7 +7,7 @@ Benchmark chips for France cut from the 2018 edition of the harmonized field bou
 
 It contains 121,841 chips and 7,803,055 field polygons. Chips are pre-assigned to benchmark splits (train 97,462, val 12,268, test 12,111).
 
-Licensed [License](https://etalab.gouv.fr/licence-ouverte-open-licence).
+Licensed [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html).
 
 ## Accessing the data
 
@@ -61,6 +61,14 @@ FTW properties on each STAC item:
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
+- `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
+- `ftw:imagery_year`: mosaic year used
+- `ftw:mosaic_requested_year`: mosaic year the selection asked for
+- `ftw:mosaic_tile`: quarterly mosaic tile the imagery came from
+- `ftw:mosaic_year`: mosaic year used
+- `ftw:nodata_pct`: share of the chip (0-100) the quarter's mosaic has no data for
+- `ftw:season`: which crop-calendar window (or mosaic quarter) a child imagery item covers
+- `ftw:source`: satellite mission the imagery came from
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
 - `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year
@@ -89,6 +97,7 @@ SELECT "ftw:split" AS split, count(*) AS chips FROM read_parquet('items.parquet'
 -- result: test | 12111
 -- result: train | 97462
 -- result: val | 12268
+-- result: ... 1 more rows
 ```
 
 ### Chips with the highest field coverage
