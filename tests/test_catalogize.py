@@ -1145,6 +1145,24 @@ with tempfile.TemporaryDirectory() as tmp:
           "relative paths and URLs are left alone")
     check("/home/" not in json.dumps(hr_2024_collection), "no builder home directory is published")
 
+    # --sanitize-config: only ftw:config's local paths change, in place, on --confirm
+    dirty = {"type": "Collection", "id": "x", "updated": "2026-01-01T00:00:00Z",
+             "ftw:config": {"config": {"class_filter": {
+                 "source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/f.yaml"}}}}
+    write_json(catalog / "x" / "collection.json", dirty)
+    clean_doc = {**dirty, "id": "y", "ftw:config": {"config": {"output_dir": "staging/y"}}}
+    write_json(catalog / "y" / "collection.json", clean_doc)
+    before = (catalog / "x" / "collection.json").read_text()
+    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [catalog / "x" / "collection.json"],
+          "the dry run names only the collection with a local path")
+    check((catalog / "x" / "collection.json").read_text() == before, "a dry run writes nothing")
+    catalogize.sanitize_config(["x", "y"], catalog=catalog, confirm=True)
+    after = json.loads((catalog / "x" / "collection.json").read_text())
+    check(after["ftw:config"]["config"]["class_filter"]["source"] == "datasets/filters/f.yaml"
+          and after["updated"] == dirty["updated"] and {**after, "ftw:config": None} == {**dirty, "ftw:config": None},
+          f"--confirm rewrites ftw:config and nothing else: {after}")
+    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [], "a second pass finds nothing")
+
     # idempotent: running again does not duplicate the license link
     catalogize.enrich_collection(
         "hr_2024", catalog=catalog, staging=staging, manifest=hr_2024_manifest, recipe=recipe_hr_2024, now=datetime(2026, 1, 1)

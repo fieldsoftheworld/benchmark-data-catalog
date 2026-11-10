@@ -765,6 +765,32 @@ def strip_local_paths(config, root: Path = ROOT):
     return config
 
 
+def sanitize_config(
+    dataset_ids: list[str], *, catalog: Path = CATALOG, confirm: bool = False
+) -> list[Path]:
+    """The ``catalog/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
+
+    With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
+    same code a full catalogize run uses), so collections published before the fix
+    can be cleaned without a rebuild and republished as metadata only. Nothing else
+    in the file changes, ``updated`` included.
+    """
+    changed = []
+    for dataset_id in dataset_ids:
+        path = catalog / dataset_id / "collection.json"
+        doc = read_json(path)
+        if "ftw:config" not in doc:
+            continue
+        clean = strip_local_paths(doc["ftw:config"])
+        if clean == doc["ftw:config"]:
+            continue
+        if confirm:
+            doc["ftw:config"] = clean
+            write_json(path, doc)
+        changed.append(path)
+    return changed
+
+
 def enrich_collection(
     dataset_id: str,
     *,
@@ -1720,7 +1746,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )
+    parser.add_argument(
+        "--sanitize-config", nargs="*", metavar="ID", default=None,
+        help="only make the local paths in catalog/<id>/collection.json's ftw:config "
+             "repository-relative (all built collections when no id is given); a dry run "
+             "unless --confirm",
+    )
+    parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
+    if args.sanitize_config is not None:
+        ids = args.sanitize_config or sorted(p.parent.name for p in CATALOG.glob("*/collection.json"))
+        changed = sanitize_config(ids, confirm=args.confirm)
+        for path in changed:
+            print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")
+        print(f"{len(changed)} of {len(ids)} collection(s) carry local paths in ftw:config"
+              + ("" if args.confirm else " (dry run; --confirm to write)"))
+        return 0
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")
 
