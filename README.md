@@ -189,7 +189,8 @@ pixels inside the extent are background, outside unknown. They build the
 semantic masks only, as presence-only sets do: ftwd's instance and DECODE masks
 cannot mark outside the extent unknown. The extent is a
 derived input, `work/extents/<id>.parquet`, built from public sources by
-`tools/label_extent.py <id>` and never committed; `run_batch.py` builds a
+`uv run python tools/label_extent.py <id>` (the repo's own environment: the
+locked DuckDB version is part of the file's bytes) and never committed; `run_batch.py` builds a
 missing one before the build. Its sha256 is committed in
 `datasets/extents.sha256`: ftwd ties the chips to the extent's sha256, so a
 rebuilt extent that differs is refused (`--accept` records a deliberate change,

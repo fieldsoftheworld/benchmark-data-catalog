@@ -13,6 +13,9 @@ outside it unknown (3), and chips wholly outside it are dropped.
 
 The files are derived inputs like ``work/es_2025.parquet``: gitignored and
 rebuilt from public sources by this script, in EPSG:4326 as ftwd requires.
+Run it in the catalog's own environment (``uv run``): the DuckDB, GEOS and PROJ
+versions locked in ``uv.lock`` are part of the output bytes, and so of the sha256s.
+``run_batch.py`` (itself started with ``uv run``) calls it with its own interpreter.
 ``run_batch.py`` runs this before ftwd reads the recipe (building a missing file,
 checking an existing one); run it yourself before a plain ``tools/build.py``. Each
 file is checked with ftwd's own ``load_label_extent`` after it is written, and its
@@ -234,9 +237,11 @@ def write_extent(con, query: str, out: Path) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp.parquet")
     con.execute(f"""
-        COPY (SELECT extent_id, ST_ReducePrecision(ST_Force2D(geometry), {GRID}) AS geometry
-              FROM ({query})
-              WHERE geometry IS NOT NULL AND NOT ST_IsEmpty(geometry) ORDER BY extent_id)
+        COPY (SELECT extent_id, snapped AS geometry FROM (
+                  SELECT extent_id, ST_ReducePrecision(ST_Force2D(geometry), {GRID}) AS snapped
+                  FROM ({query}) WHERE geometry IS NOT NULL)
+              -- filter after snapping: a polygon smaller than the grid collapses to nothing
+              WHERE NOT ST_IsEmpty(snapped) AND ST_IsValid(snapped) ORDER BY extent_id)
         TO {_sql_str(str(tmp))} (FORMAT parquet, COMPRESSION zstd)""")
     # The file carries no CRS, so ftwd reads it as lon/lat: refuse anything else
     # (a hull of fields stored in metres would otherwise pass every later check).

@@ -754,14 +754,19 @@ def _repo_relative(value: str, root: Path = ROOT) -> str | None:
     repository's own folders, never on this checkout's folder name.
     """
     path = Path(value)
-    if path.is_relative_to(root):
-        return path.relative_to(root).as_posix()
     marker = f"/{_REPO_NAME}/"
-    if marker in value:
-        return value.split(marker, 1)[1]
-    starts = [value.rfind(f"/{folder}/") for folder in _REPO_FOLDERS]
-    start = max(starts)
-    return value[start + 1:] if start >= 0 else None
+    if path.is_relative_to(root):
+        rel = path.relative_to(root).as_posix()
+    elif marker in value:
+        rel = value.split(marker, 1)[1]
+    else:
+        start = max(value.rfind(f"/{folder}/") for folder in _REPO_FOLDERS)
+        rel = value[start + 1:] if start > 0 else None
+    # Only a file this checkout has is a placement, not a guess (a cache or data
+    # folder that happens to be called datasets/ or work/ is not the repository).
+    if rel is None or ".." in Path(rel).parts or not (root / rel).is_file():
+        return None
+    return rel
 
 
 def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = None):

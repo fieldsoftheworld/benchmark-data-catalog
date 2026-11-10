@@ -111,6 +111,16 @@ with tempfile.TemporaryDirectory() as tmp:
     except SystemExit as stop:
         check("not lon/lat" in str(stop), f"metres refused: {stop}")
     check(not (tmp / "metres.parquet").exists(), "nothing written for a refused extent")
+    # --- a polygon smaller than the snapping grid is dropped, not written empty
+    con = label_extent._connect()
+    tiny = tmp / "tiny.parquet"
+    n = label_extent.write_extent(con, (
+        "SELECT 'big' AS extent_id, ST_MakeEnvelope(0, 0, 0.01, 0.01) AS geometry UNION ALL "
+        "SELECT 'tiny', ST_MakeEnvelope(1, 1, 1 + 1e-8, 1 + 1e-8)"), tiny)
+    con.close()
+    check(n == 1 and list(read_extent(tiny)) == ["big"],
+          f"a sub-grid polygon is filtered after snapping: {list(read_extent(tiny))}")
+
     # --- AI4SF: the tiles, from UTM 48N to lon/lat --------------------------
     gpkg = tmp / "sources" / "ai4sf" / "tiles_asia.gpkg"
     gpkg.parent.mkdir(parents=True)
