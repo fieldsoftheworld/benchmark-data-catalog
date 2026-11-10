@@ -39,8 +39,8 @@ Two exceptions, both explicit:
   completely only inside its sample areas. Its recipe sets
   ``stages.masks.label_extent`` to ``work/extents/<id>.parquet``, which
   ``tools/label_extent.py`` builds (``run_batch.py`` runs it when the file is
-  missing): unlabelled pixels inside are background, outside unknown (3). All mask
-  types are built; outside the extent only the semantic masks can say unknown.
+  missing): unlabelled pixels inside are background, outside unknown (3). Its mask
+  types are ``LABEL_EXTENT_MASK_TYPES``.
 """
 from __future__ import annotations
 
@@ -79,11 +79,20 @@ LABEL_EXTENT_SOURCES = ("ai4sf_ml", "br_ba_lem", "glocab", "rw_rwanda_ml", "wri_
 MASK_TYPES = ["instance", "semantic_2_class", "semantic_3_class", "decode_boundary", "decode_distance"]
 # Only these can mark a pixel unknown; the others would call unlabelled fields not-field.
 PRESENCE_ONLY_MASK_TYPES = ["semantic_2_class", "semantic_3_class"]
+# The masks a label-extent dataset builds. ftwd's instance and DECODE masks fill 0
+# outside the extent (only the semantic masks get unknown, 3), so a chip straddling the
+# extent calls unlabelled fields there not-field. Undecided (2026-11-10): switch this to
+# PRESENCE_ONLY_MASK_TYPES, or fix ftwd. The manifest gate follows this constant.
+LABEL_EXTENT_MASK_TYPES = MASK_TYPES
 
 
-def mask_types(presence_only: bool) -> str:
+def mask_types(presence_only: bool, extent: bool = False) -> str:
     """The recipe's ``mask_types`` list, as YAML flow text."""
-    return "[" + ", ".join(PRESENCE_ONLY_MASK_TYPES if presence_only else MASK_TYPES) + "]"
+    if presence_only:
+        types = PRESENCE_ONLY_MASK_TYPES
+    else:
+        types = LABEL_EXTENT_MASK_TYPES if extent else MASK_TYPES
+    return "[" + ", ".join(types) + "]"
 
 
 def fields_file(dataset_id: str, urls: dict[str, str]) -> str:
@@ -348,7 +357,7 @@ stages:
     split_percents: [80, 10, 10]
     random_seed: 42
   masks:
-    mask_types: {mask_types(presence_only)}
+    mask_types: {mask_types(presence_only, extent)}
     resolution: 10.0
     workers: null
     presence_only: {"true" if presence_only else "false"}

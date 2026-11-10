@@ -284,6 +284,34 @@ except SystemExit:
 (run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
  tracking.load, tracking.row) = _saved
 
+# --- run_batch.py checks the label extent before ftwd reads the recipe -----
+_saved_steps = (run_batch._run, run_batch.reads_extent, run_batch.LOGS)
+with tempfile.TemporaryDirectory() as tmp:
+    run_batch.LOGS = Path(tmp)
+    calls: list[str] = []
+    exit_codes: dict[str, int] = {}
+
+    def fake_run(argv, log):
+        script = Path(argv[1]).name
+        calls.append(script)
+        return exit_codes.get(script, 0)
+
+    run_batch._run = fake_run
+    steps = run_batch.IMAGERY_STEPS
+    run_batch.reads_extent = lambda d: d == "ext_2021"
+    check(run_batch.run_dataset("ext_2021", steps, scaffold=False) is None, "extent ok, steps run")
+    check(calls[:1] == ["label_extent.py"] and calls.count("build.py") == 2,
+          f"the extent is checked first, then the build: {calls}")
+    calls.clear()
+    check(run_batch.run_dataset("plain_2021", steps, scaffold=False) is None, "no extent, steps run")
+    check("label_extent.py" not in calls, f"a recipe without an extent skips the step: {calls}")
+    calls.clear()
+    exit_codes["label_extent.py"] = 1
+    check(run_batch.run_dataset("ext_2021", steps, scaffold=False) == "label_extent",
+          "a failed extent (missing source, sha256 mismatch) names the step")
+    check(calls == ["label_extent.py"], f"and nothing is built from the wrong extent: {calls}")
+run_batch._run, run_batch.reads_extent, run_batch.LOGS = _saved_steps
+
 # --- run_batch.py picks the right queue -----------------------------------
 queue = [
     {"dataset_id": "a", "status": "include", "built": "", "imagery_done": ""},

@@ -31,6 +31,7 @@ from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manif
 from new_dataset import (  # noqa: E402
     DERIVED,
     HARMONIZED,
+    LABEL_EXTENT_MASK_TYPES,
     LABEL_EXTENT_SOURCES,
     PRESENCE_ONLY_MASK_TYPES,
     label_extent_ref,
@@ -54,6 +55,69 @@ REQUIRED_MASK_TYPES = (
 
 def err(msg: str) -> None:
     errors.append(msg)
+
+
+def label_extent_problems(dataset_id: str, recipe: dict) -> list[str]:
+    """What is wrong with a recipe's label extent settings (none for an ordinary recipe).
+
+    A collection labelled only inside its sample areas reads the extent
+    tools/label_extent.py builds, keeps border chips (outside the extent is unknown
+    anyway) and builds exactly ``LABEL_EXTENT_MASK_TYPES``; ftwd refuses
+    label_extent together with presence_only.
+    """
+    stages = recipe.get("stages") or {}
+    masks = stages.get("masks") or {}
+    source = str(recipe.get("source_via") or "")
+    harmonized_id = source.removeprefix(f"{HARMONIZED}/").split("/")[0] if source.startswith(HARMONIZED) else ""
+    extent = masks.get("label_extent")
+    where = f"datasets/{dataset_id}.yaml"
+    problems = []
+    if harmonized_id in LABEL_EXTENT_SOURCES and extent != label_extent_ref(dataset_id):
+        problems.append(f"{where}: {harmonized_id} is labelled only inside its sample areas, so "
+                        f"stages.masks.label_extent must be {label_extent_ref(dataset_id)!r}, got {extent!r}")
+    if not extent:
+        return problems
+    if harmonized_id not in LABEL_EXTENT_SOURCES:
+        problems.append(f"{where}: label_extent set, but tools/label_extent.py has no builder "
+                        f"for {harmonized_id or source!r}")
+    if masks.get("presence_only"):
+        problems.append(f"{where}: label_extent and presence_only are alternatives")
+    if (stages.get("chips") or {}).get("drop_border_chips") is not False:
+        problems.append(f"{where}: a label-extent dataset keeps border chips (drop_border_chips: false)")
+    if sorted(masks.get("mask_types") or []) != sorted(LABEL_EXTENT_MASK_TYPES):
+        problems.append(f"{where}: a label-extent dataset builds {LABEL_EXTENT_MASK_TYPES}, "
+                        f"got {masks.get('mask_types')}")
+    return problems
+
+
+# Self-test on fixtures, so the label extent rules are exercised even before any
+# label-extent recipe is committed.
+_good = {
+    "source_via": f"{HARMONIZED}/glocab/collection.json",
+    "stages": {"chips": {"drop_border_chips": False},
+               "masks": {"label_extent": label_extent_ref("glocab_2020"), "presence_only": False,
+                         "mask_types": list(LABEL_EXTENT_MASK_TYPES)}},
+}
+_cases = {
+    "a correct recipe": (_good, []),
+    "a missing extent": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "label_extent": None}}}, ["must be"]),
+    "border chips dropped": ({**_good, "stages": {**_good["stages"], "chips": {
+        "drop_border_chips": True}}}, ["keeps border chips"]),
+    "the wrong mask types": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "mask_types": ["semantic_3_class"]
+        if list(LABEL_EXTENT_MASK_TYPES) != ["semantic_3_class"] else ["instance"]}}}, ["builds"]),
+    "presence_only too": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "presence_only": True}}}, ["alternatives"]),
+    "an extent on another collection": ({**_good, "source_via": f"{HARMONIZED}/nl/collection.json"},
+                                        ["no builder"]),
+    "an ordinary recipe": ({"source_via": f"{HARMONIZED}/nl/collection.json",
+                            "stages": {"masks": {"presence_only": False}}}, []),
+}
+for _name, (_recipe, _expect) in _cases.items():
+    _found = label_extent_problems("glocab_2020", _recipe)
+    if len(_found) != len(_expect) or not all(e in f for e, f in zip(_expect, _found)):
+        err(f"label_extent_problems self-test, {_name}: expected {_expect}, got {_found}")
 
 
 def check_built_collection(dataset_id: str) -> None:
@@ -162,21 +226,12 @@ for dataset_id in sorted(declared & recipes):
     # Presence-only collections are the exception: only the semantic masks can
     # mark a pixel unknown, so they publish those and nothing else.
     masks = (recipe.get("stages") or {}).get("masks") or {}
-    # A collection labelled only inside its sample areas reads the extent
-    # tools/label_extent.py builds; ftwd refuses it together with presence_only.
-    source = str(recipe.get("source_via") or "")
-    harmonized_id = source.removeprefix(f"{HARMONIZED}/").split("/")[0] if source.startswith(HARMONIZED) else ""
-    extent = masks.get("label_extent")
-    if harmonized_id in LABEL_EXTENT_SOURCES and extent != label_extent_ref(dataset_id):
-        err(f"datasets/{dataset_id}.yaml: {harmonized_id} is labelled only inside its sample areas, "
-            f"so stages.masks.label_extent must be {label_extent_ref(dataset_id)!r}, got {extent!r}")
-    if extent and harmonized_id not in LABEL_EXTENT_SOURCES:
-        err(f"datasets/{dataset_id}.yaml: label_extent set, but tools/label_extent.py has no "
-            f"builder for {harmonized_id or source!r}")
-    if extent and masks.get("presence_only"):
-        err(f"datasets/{dataset_id}.yaml: label_extent and presence_only are alternatives")
+    for problem in label_extent_problems(dataset_id, recipe):
+        err(problem)
     mask_types = masks.get("mask_types") or []
     required_types = REQUIRED_MASK_TYPES
+    if masks.get("label_extent"):
+        required_types = tuple(LABEL_EXTENT_MASK_TYPES)
     if masks.get("presence_only"):
         required_types = tuple(PRESENCE_ONLY_MASK_TYPES)
         extra = sorted(set(mask_types) - set(required_types))

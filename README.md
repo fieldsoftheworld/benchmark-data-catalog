@@ -188,7 +188,10 @@ AI4SmallFarms, Rwanda, Trazo) get `stages.masks.label_extent`: unlabelled
 pixels inside the extent are background, outside unknown. The extent is a
 derived input, `work/extents/<id>.parquet`, built from public sources by
 `tools/label_extent.py <id>` and never committed; `run_batch.py` builds a
-missing one before the build.
+missing one before the build. Its sha256 is committed in
+`datasets/extents.sha256`: ftwd ties the chips to the extent's sha256, so a
+rebuilt extent that differs is refused (`--accept` records a deliberate change,
+which means rebuilding that dataset from its chips).
 
 `run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
 logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the

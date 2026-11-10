@@ -5,8 +5,8 @@ Runs every builder on small local stand-ins for its source (no network): GloCAB
 region hulls with their no_area outlines cut out, the fields' hull, the AI4SF tiles
 from UTM, raster footprints from Web Mercator and lon/lat, and WRI's chips read
 from their label masks, not from the chips parquet's geometry. Every file written
-must pass ftwd's own ``load_label_extent``. Also checks ``needs_build`` (what
-run_batch.py asks before a build) and that the builders match
+must pass ftwd's own ``load_label_extent``. Also checks ``reads_extent`` (what
+run_batch.py asks before a build), the sha256 manifest and that the builders match
 ``new_dataset.LABEL_EXTENT_SOURCES``.
 
 Run: python3 tests/test_label_extent.py
@@ -177,22 +177,54 @@ with tempfile.TemporaryDirectory() as tmp:
     check(abs(chips.get("acre/tile_1", shapely.Polygon()).area - 0.02 * 0.02) < 1e-12,
           "a chip's extent is its label mask's footprint, not the fields in the parquet")
 
-    # --- needs_build: only for a recipe that reads this script's missing file --
+    # --- reads_extent: only a recipe that reads this script's extent file -----
     label_extent.ROOT = tmp
     (tmp / "datasets").mkdir()
     recipe = tmp / "datasets" / "rw_rwanda_ml_2021.yaml"
-    check(not label_extent.needs_build("rw_rwanda_ml_2021"), "no recipe, nothing to build")
+    check(not label_extent.reads_extent("rw_rwanda_ml_2021"), "no recipe, nothing to build")
     recipe.write_text("stages:\n  masks:\n    presence_only: false\n")
-    check(not label_extent.needs_build("rw_rwanda_ml_2021"), "a recipe without label_extent")
+    check(not label_extent.reads_extent("rw_rwanda_ml_2021"), "a recipe without label_extent")
     recipe.write_text("stages:\n  masks:\n    label_extent: "
                       f"{new_dataset.label_extent_ref('rw_rwanda_ml_2021')}\n")
-    check(label_extent.needs_build("rw_rwanda_ml_2021"), "a recipe reading a missing extent")
-    target = tmp / new_dataset.label_extent_file("rw_rwanda_ml_2021")
-    target.parent.mkdir(parents=True)
-    target.write_bytes(b"x")
-    check(not label_extent.needs_build("rw_rwanda_ml_2021"), "an existing extent is reused")
+    check(label_extent.reads_extent("rw_rwanda_ml_2021"), "a recipe reading the extent file")
     recipe.write_text("stages:\n  masks:\n    label_extent: elsewhere.parquet\n")
-    check(not label_extent.needs_build("rw_rwanda_ml_2021"), "someone else's extent file")
+    check(not label_extent.reads_extent("rw_rwanda_ml_2021"), "someone else's extent file")
+
+    # --- build(): the sha256 manifest keeps a rebuilt extent byte-identical ----
+    box = {"x": 1.0}
+    label_extent.BUILDERS["fake"] = lambda con, row: (
+        f"SELECT 'a' AS extent_id, ST_MakeEnvelope(0, 0, {box['x']}, 1) AS geometry")
+    label_extent.tracking.row = lambda d, rows=None: {"dataset_id": d, "harmonized_id": "fake",
+                                                      "year": "2021"}
+    manifest = tmp / label_extent.SHA_MANIFEST
+    out = label_extent.build("fake_2021")
+    first = label_extent._sha256(out)
+    check(label_extent.recorded().get("fake_2021") == first, "a new extent's sha256 is recorded")
+    check(manifest.read_text() == f"{first}  work/extents/fake_2021.parquet\n",
+          f"the manifest reads like sha256sum output: {manifest.read_text()!r}")
+    label_extent.build("fake_2021", force=True)
+    check(label_extent._sha256(out) == first, "a rebuild from the same source is byte-identical")
+
+    def refused(call) -> str:
+        try:
+            call()
+        except SystemExit as stop:
+            return str(stop)
+        return ""
+
+    box["x"] = 2.0  # the source changed
+    message = refused(lambda: label_extent.build("fake_2021", force=True))
+    check("records" in message and "--accept" in message, f"a different rebuild is refused: {message}")
+    check(label_extent._sha256(out) == first, "the refused rebuild leaves the recorded file in place")
+    check(not list(out.parent.glob("*.new*")), "and leaves no half-written file behind")
+    check(label_extent.recorded()["fake_2021"] == first, "and the manifest unchanged")
+    label_extent.build("fake_2021", force=True, accept=True)
+    second = label_extent._sha256(out)
+    check(second != first and label_extent.recorded()["fake_2021"] == second,
+          "--accept records the new file")
+    out.write_bytes(b"not the recorded file")
+    message = refused(lambda: label_extent.build("fake_2021"))
+    check("existing" in message, f"an existing file that differs is refused: {message}")
 
 if errors:
     for e in errors:

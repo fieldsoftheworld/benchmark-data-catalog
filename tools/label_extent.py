@@ -13,9 +13,12 @@ outside it unknown (3), and chips wholly outside it are dropped.
 
 The files are derived inputs like ``work/es_2025.parquet``: gitignored and
 rebuilt from public sources by this script, in EPSG:4326 as ftwd requires.
-``run_batch.py`` builds a missing one before ftwd reads the recipe; run this
-yourself before a plain ``tools/build.py``. Each file is checked with ftwd's own
-``load_label_extent`` after it is written.
+``run_batch.py`` runs this before ftwd reads the recipe (building a missing file,
+checking an existing one); run it yourself before a plain ``tools/build.py``. Each
+file is checked with ftwd's own ``load_label_extent`` after it is written, and its
+sha256 against the committed ``datasets/extents.sha256``: ftwd ties the chips to
+the extent's sha256, so a rebuild must reproduce the recorded file exactly
+(``--accept`` records a deliberate change).
 
 The extent per harmonized collection (``BUILDERS``; the keys must match
 ``new_dataset.LABEL_EXTENT_SOURCES``):
@@ -67,6 +70,8 @@ TRAZO_REGIONS = {
     "uruguayansavannah": 2020,
 }
 SOURCES = ROOT / "work" / "extents" / "sources"
+# The committed sha256 of every extent file; see build().
+SHA_MANIFEST = "datasets/extents.sha256"
 
 
 def _connect():
@@ -252,8 +257,51 @@ def write_extent(con, query: str, out: Path) -> int:
     return con.execute(f"SELECT count(*) FROM read_parquet({_sql_str(str(out))})").fetchone()[0]
 
 
-def build(dataset_id: str, *, force: bool = False) -> Path:
-    """Write ``work/extents/<id>.parquet`` for ``dataset_id`` and validate it with ftwd."""
+def _sha256(path: Path) -> str:
+    from ftw_dataset_tools.api.label_extent import extent_fingerprint
+
+    return extent_fingerprint(path)
+
+
+def recorded(manifest: Path | None = None) -> dict[str, str]:
+    """``{dataset_id: sha256}`` from the committed ``datasets/extents.sha256``."""
+    manifest = manifest or ROOT / SHA_MANIFEST
+    if not manifest.exists():
+        return {}
+    out = {}
+    for line in manifest.read_text().splitlines():
+        if line.strip():
+            sha, rel = line.split(maxsplit=1)
+            out[Path(rel).stem] = sha
+    return out
+
+
+def record(dataset_id: str, sha: str, manifest: Path | None = None) -> None:
+    """Write ``dataset_id``'s sha256 into the manifest, in ``sha256sum -c`` form."""
+    manifest = manifest or ROOT / SHA_MANIFEST
+    shas = {**recorded(manifest), dataset_id: sha}
+    manifest.write_text("".join(f"{s}  {label_extent_file(d)}\n" for d, s in sorted(shas.items())))
+
+
+def _mismatch(dataset_id: str, expected: str, got: str, what: str) -> str:
+    return (
+        f"{dataset_id}: {what} has sha256 {got[:12]}, but {SHA_MANIFEST} records {expected[:12]}. "
+        f"Chips built from the recorded file fail ftwd's stac stage against any other, so it is "
+        f"not used. If the source or this script changed on purpose, rerun with --accept to "
+        f"record the new file, commit {SHA_MANIFEST}, and rebuild the dataset from its chips."
+    )
+
+
+def build(dataset_id: str, *, force: bool = False, accept: bool = False) -> Path:
+    """Write ``work/extents/<id>.parquet``, validate it with ftwd and check its sha256.
+
+    The committed ``datasets/extents.sha256`` records each extent's sha256. ftwd
+    stores it in the chips and refuses a later stage (``stac``, in the imagery pass)
+    run against a different file, so a rebuilt extent (a fresh builder, a republished
+    source, a WRI chip that went missing) must be byte-identical. An existing file is
+    checked; a rebuilt one replaces it only when it matches, or with ``accept``. An
+    extent with no recorded sha256 yet is recorded.
+    """
     from ftw_dataset_tools.api.label_extent import load_label_extent
 
     row = tracking.row(dataset_id)
@@ -261,22 +309,38 @@ def build(dataset_id: str, *, force: bool = False) -> Path:
     if builder is None:
         sys.exit(f"{dataset_id}: {row['harmonized_id']} has no label extent (see BUILDERS)")
     out = extent_path(dataset_id)
+    expected = recorded().get(dataset_id)
     if out.exists() and not force:
+        got = _sha256(out)
+        if expected is None:
+            record(dataset_id, got)
+        elif got != expected and not accept:
+            sys.exit(_mismatch(dataset_id, expected, got, f"the existing {label_extent_file(dataset_id)}"))
+        elif got != expected:
+            record(dataset_id, got)
         return out
+    new = out.with_name(f"{out.stem}.new.parquet")
     con = _connect()
     try:
-        count = write_extent(con, builder(con, row), out)
+        count = write_extent(con, builder(con, row), new)
     finally:
         con.close()
     if count == 0:
-        out.unlink()
+        new.unlink()
         sys.exit(f"{dataset_id}: the label extent came out empty")
-    load_label_extent(out)
+    load_label_extent(new)
+    got = _sha256(new)
+    if expected is not None and got != expected and not accept:
+        new.unlink()
+        sys.exit(_mismatch(dataset_id, expected, got, "the rebuilt extent"))
+    new.replace(out)
+    if got != expected:
+        record(dataset_id, got)
     return out
 
 
-def needs_build(dataset_id: str) -> bool:
-    """True when the dataset's recipe reads this script's extent file and it is missing."""
+def reads_extent(dataset_id: str) -> bool:
+    """True when the dataset's recipe reads this script's extent file."""
     import yaml
 
     recipe = ROOT / "datasets" / f"{dataset_id}.yaml"
@@ -286,8 +350,7 @@ def needs_build(dataset_id: str) -> bool:
     ref = masks.get("label_extent")
     if not ref:
         return False
-    target = (recipe.parent / ref).resolve()
-    return target == extent_path(dataset_id).resolve() and not target.exists()
+    return (recipe.parent / ref).resolve() == extent_path(dataset_id).resolve()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -295,6 +358,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("dataset_ids", nargs="*", help="region-year ids from tracking.csv")
     parser.add_argument("--all", action="store_true", help="every 'include' row with an extent")
     parser.add_argument("--force", action="store_true", help="rebuild existing files")
+    parser.add_argument("--accept", action="store_true",
+                        help=f"record a file whose sha256 differs from {SHA_MANIFEST}")
     args = parser.parse_args(argv)
     ids = list(args.dataset_ids)
     if args.all:
@@ -304,8 +369,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("name dataset ids or pass --all")
     for dataset_id in dict.fromkeys(ids):
         existed = extent_path(dataset_id).exists() and not args.force
-        path = build(dataset_id, force=args.force)
-        print(f"{'kept ' if existed else 'wrote'}  {path.relative_to(ROOT)}")
+        path = build(dataset_id, force=args.force, accept=args.accept)
+        print(f"{'ok   ' if existed else 'wrote'}  {path.relative_to(ROOT)}  {_sha256(path)[:12]}")
     return 0
 
 
