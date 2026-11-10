@@ -56,7 +56,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
-**155 collections · 2,977,916 chips · 294,543,512 field polygons**
+**157 collections · 2,980,565 chips**
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -142,7 +142,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Finland — 2024](https://source.coop/ftw/benchmark-data/fi_2024) | 35,929 | 28,840/3,547/3,542 | 35,928 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/fi](https://source.coop/ftw/harmonized-field-data/fi) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fi_2024/collection.json) |
 | [Finland — 2025](https://source.coop/ftw/benchmark-data/fi_2025) | 35,540 | 28,609/3,445/3,486 | 35,540 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/fi](https://source.coop/ftw/harmonized-field-data/fi) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fi_2025/collection.json) |
 | [France — 2017](https://source.coop/ftw/benchmark-data/fr_2017) | 121,892 | 97,615/12,086/12,191 | 121,701 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2017/collection.json) |
-| [France — 2018](https://source.coop/ftw/benchmark-data/fr_2018) | 121,841 | 97,462/12,268/12,111 | 121,649 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2018/collection.json) |
+| [France — 2018](https://source.coop/ftw/benchmark-data/fr_2018) | 121,841 | 97,462/12,268/12,111 | 121,649 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2018/collection.json) |
 | [France — 2019](https://source.coop/ftw/benchmark-data/fr_2019) | 121,933 | 97,413/12,283/12,237 | 121,741 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2019/collection.json) |
 | [France — 2020](https://source.coop/ftw/benchmark-data/fr_2020) | 121,954 | 97,501/12,211/12,242 | 121,762 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2020/collection.json) |
 | [France — 2021](https://source.coop/ftw/benchmark-data/fr_2021) | 122,031 | 97,587/12,306/12,138 | 121,840 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2021/collection.json) |
@@ -160,6 +160,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Ireland — 2022](https://source.coop/ftw/benchmark-data/ie_2022) | 16,734 | 13,374/1,653/1,707 | 16,734 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ie](https://source.coop/ftw/harmonized-field-data/ie) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ie_2022/collection.json) |
 | [Ireland — 2023](https://source.coop/ftw/benchmark-data/ie_2023) | 16,762 | 13,469/1,651/1,642 | 16,762 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ie](https://source.coop/ftw/harmonized-field-data/ie) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ie_2023/collection.json) |
 | [Ireland — 2024](https://source.coop/ftw/benchmark-data/ie_2024) | 16,757 | 13,383/1,663/1,711 | 16,757 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ie](https://source.coop/ftw/harmonized-field-data/ie) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ie_2024/collection.json) |
+| [India 10k with splits — 2020](https://source.coop/ftw/benchmark-data/in_10k_ml_2020) | 2,410 | 1,926/246/238 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/in_10k_ml](https://source.coop/ftw/harmonized-field-data/in_10k_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/in_10k_ml_2020/collection.json) |
 | [Japan — 2021](https://source.coop/ftw/benchmark-data/jp_2021) | 61,016 | 48,849/6,093/6,074 | 61,000 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2021/collection.json) |
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 48,799/6,146/6,016 | 60,945 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2022/collection.json) |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 48,800/6,146/6,011 | 60,941 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2023/collection.json) |
@@ -215,6 +216,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Slovakia — 2023](https://source.coop/ftw/benchmark-data/sk_2023) | 9,571 | 7,624/946/1,001 | 9,552 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2023/collection.json) |
 | [Slovakia — 2024](https://source.coop/ftw/benchmark-data/sk_2024) | 9,986 | 7,975/999/1,012 | 9,965 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2024/collection.json) |
 | [Slovakia — 2025](https://source.coop/ftw/benchmark-data/sk_2025) | 9,985 | 7,991/975/1,019 | 9,964 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2025/collection.json) |
+| [South Africa (Fusion) with splits — 2017](https://source.coop/ftw/benchmark-data/za_fusion_ml_2017) | 239 | 182/23/34 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/za_fusion_ml](https://source.coop/ftw/harmonized-field-data/za_fusion_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/za_fusion_ml_2017/collection.json) |
 
 ### What each collection carries
 
@@ -320,6 +322,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Ireland — 2022](https://source.coop/ftw/benchmark-data/ie_2022) | 16,734 | 16,734 stored | 16,734 |
 | [Ireland — 2023](https://source.coop/ftw/benchmark-data/ie_2023) | 16,762 | 16,762 stored | 16,762 |
 | [Ireland — 2024](https://source.coop/ftw/benchmark-data/ie_2024) | 16,757 | 16,757 stored | 16,757 |
+| [India 10k with splits — 2020](https://source.coop/ftw/benchmark-data/in_10k_ml_2020) | 2,410 | — | — |
 | [Japan — 2021](https://source.coop/ftw/benchmark-data/jp_2021) | 61,016 | 61,000 stored | none |
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 60,945 stored | none |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 60,941 stored | none |
@@ -375,6 +378,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Slovakia — 2023](https://source.coop/ftw/benchmark-data/sk_2023) | 9,571 | 9,552 stored | 9,571 |
 | [Slovakia — 2024](https://source.coop/ftw/benchmark-data/sk_2024) | 9,986 | 9,965 stored | 9,986 |
 | [Slovakia — 2025](https://source.coop/ftw/benchmark-data/sk_2025) | 9,985 | 9,964 stored | 9,985 |
+| [South Africa (Fusion) with splits — 2017](https://source.coop/ftw/benchmark-data/za_fusion_ml_2017) | 239 | — | — |
 
 `stored` means four-band GeoTIFFs (red, green, blue, NIR at 10 m) clipped to the chip's mask grid and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless mosaics of the collection's year (and planting/harvest scenes, where a collection has them). `linked` means the chip's imagery items point at whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with no imagery still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
 <!-- collections:end -->
