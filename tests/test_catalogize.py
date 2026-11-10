@@ -1162,6 +1162,21 @@ with tempfile.TemporaryDirectory() as tmp:
           and after["updated"] == dirty["updated"] and {**after, "ftw:config": None} == {**dirty, "ftw:config": None},
           f"--confirm rewrites ftw:config and nothing else: {after}")
     check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [], "a second pass finds nothing")
+    # a path outside any checkout is skipped, not rewritten to a bare file name
+    stray = {**dirty, "id": "z", "ftw:config": {"config": {"class_filter": {"source": "/tmp/f.yaml"}}}}
+    write_json(catalog / "z" / "collection.json", stray)
+    stray_text = (catalog / "z" / "collection.json").read_text()
+    check(catalogize.sanitize_config(["z"], catalog=catalog, confirm=True) == []
+          and (catalog / "z" / "collection.json").read_text() == stray_text,
+          "an unplaceable path is skipped, the file left as it is")
+    # a checkout under another folder name (a git worktree) still finds the repository part
+    for other, expected in [
+        ("/home/me/wt-extents/datasets/filters/f.yaml", "datasets/filters/f.yaml"),
+        ("/home/me/work/wt/work/extents/x.parquet", "work/extents/x.parquet"),
+        ("/home/ubuntu/benchmark-data-catalog/datasets/filters/f.yaml", "datasets/filters/f.yaml"),
+    ]:
+        got = catalogize._repo_relative(other, Path("/elsewhere/some-worktree"))
+        check(got == expected, f"{other} -> {got!r}, expected {expected!r}")
 
     # idempotent: running again does not duplicate the license link
     catalogize.enrich_collection(

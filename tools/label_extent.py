@@ -71,6 +71,10 @@ TRAZO_REGIONS = {
 SOURCES = ROOT / "work" / "extents" / "sources"
 # The committed sha256 of every extent file; see build().
 SHA_MANIFEST = "datasets/extents.sha256"
+# Coordinates are snapped to this grid (degrees, about 1 cm) so the file is byte-identical
+# across platforms: PROJ's transforms differ in the last bit between macOS arm64 and
+# Ubuntu x86 (2026-11-10), and ftwd ties the chips to the extent's sha256.
+GRID = 1e-7
 
 
 def _connect():
@@ -230,7 +234,8 @@ def write_extent(con, query: str, out: Path) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp.parquet")
     con.execute(f"""
-        COPY (SELECT extent_id, ST_Force2D(geometry) AS geometry FROM ({query})
+        COPY (SELECT extent_id, ST_ReducePrecision(ST_Force2D(geometry), {GRID}) AS geometry
+              FROM ({query})
               WHERE geometry IS NOT NULL AND NOT ST_IsEmpty(geometry) ORDER BY extent_id)
         TO {_sql_str(str(tmp))} (FORMAT parquet, COMPRESSION zstd)""")
     # The file carries no CRS, so ftwd reads it as lon/lat: refuse anything else
@@ -267,10 +272,19 @@ def recorded(manifest: Path | None = None) -> dict[str, str]:
 
 
 def record(dataset_id: str, sha: str, manifest: Path | None = None) -> None:
-    """Write ``dataset_id``'s sha256 into the manifest, in ``sha256sum -c`` form."""
+    """Write ``dataset_id``'s sha256 into the manifest, in ``sha256sum -c`` form.
+
+    run_batch.py builds datasets concurrently, so the read-modify-write holds a lock.
+    """
+    import fcntl
+
     manifest = manifest or ROOT / SHA_MANIFEST
-    shas = {**recorded(manifest), dataset_id: sha}
-    manifest.write_text("".join(f"{s}  {label_extent_file(d)}\n" for d, s in sorted(shas.items())))
+    with manifest.with_name(manifest.name + ".lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        shas = {**recorded(manifest), dataset_id: sha}
+        tmp = manifest.with_name(manifest.name + ".tmp")
+        tmp.write_text("".join(f"{s}  {label_extent_file(d)}\n" for d, s in sorted(shas.items())))
+        tmp.replace(manifest)
 
 
 def _mismatch(dataset_id: str, expected: str, got: str, what: str) -> str:
@@ -310,20 +324,22 @@ def build(dataset_id: str, *, force: bool = False, accept: bool = False) -> Path
             record(dataset_id, got)
         return out
     new = out.with_name(f"{out.stem}.new.parquet")
-    con = _connect()
     try:
-        count = write_extent(con, builder(con, row), new)
+        con = _connect()
+        try:
+            count = write_extent(con, builder(con, row), new)
+        finally:
+            con.close()
+        if count == 0:
+            sys.exit(f"{dataset_id}: the label extent came out empty")
+        load_label_extent(new)
+        got = _sha256(new)
+        if expected is not None and got != expected and not accept:
+            sys.exit(_mismatch(dataset_id, expected, got, "the rebuilt extent"))
+        new.replace(out)
     finally:
-        con.close()
-    if count == 0:
-        new.unlink()
-        sys.exit(f"{dataset_id}: the label extent came out empty")
-    load_label_extent(new)
-    got = _sha256(new)
-    if expected is not None and got != expected and not accept:
-        new.unlink()
-        sys.exit(_mismatch(dataset_id, expected, got, "the rebuilt extent"))
-    new.replace(out)
+        new.unlink(missing_ok=True)
+        new.with_suffix(".tmp.parquet").unlink(missing_ok=True)
     if got != expected:
         record(dataset_id, got)
     return out

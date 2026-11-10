@@ -738,30 +738,49 @@ def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     return changed
 
 
-def _repo_relative(value: str, root: Path = ROOT) -> str:
-    """A builder-local absolute path as a path inside the repository, else its file name.
+# The repository's own top-level folders that ftwd reads files from (filters,
+# recipes, label extents), and the folder name a builder clones it under.
+_REPO_FOLDERS = ("datasets", "work")
+_REPO_NAME = "benchmark-data-catalog"
+
+
+def _repo_relative(value: str, root: Path = ROOT) -> str | None:
+    """A builder-local absolute path as a path inside the repository, or None.
 
     ftwd records the files it read (``class_filter.source``, ``label_extent``) with
     the builder's absolute path, e.g. ``/home/ubuntu/benchmark-data-catalog/...``,
     which means nothing to a reader and names the build machine's home directory.
+    A path from another checkout (a worktree, another builder) is matched on the
+    repository's own folders, never on this checkout's folder name.
     """
     path = Path(value)
     if path.is_relative_to(root):
         return path.relative_to(root).as_posix()
-    marker = f"/{root.name}/"
+    marker = f"/{_REPO_NAME}/"
     if marker in value:
         return value.split(marker, 1)[1]
-    return path.name
+    starts = [value.rfind(f"/{folder}/") for folder in _REPO_FOLDERS]
+    start = max(starts)
+    return value[start + 1:] if start >= 0 else None
 
 
-def strip_local_paths(config, root: Path = ROOT):
-    """``ftw:config`` with every absolute local path made repository-relative."""
+def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = None):
+    """``ftw:config`` with every absolute local path made repository-relative.
+
+    A path outside any checkout keeps only its file name and is appended to
+    ``unresolved``, so a caller can refuse rather than publish a guess.
+    """
     if isinstance(config, dict):
-        return {k: strip_local_paths(v, root) for k, v in config.items()}
+        return {k: strip_local_paths(v, root, unresolved) for k, v in config.items()}
     if isinstance(config, list):
-        return [strip_local_paths(v, root) for v in config]
+        return [strip_local_paths(v, root, unresolved) for v in config]
     if isinstance(config, str) and config.startswith("/"):
-        return _repo_relative(config, root)
+        relative = _repo_relative(config, root)
+        if relative is not None:
+            return relative
+        if unresolved is not None:
+            unresolved.append(config)
+        return Path(config).name
     return config
 
 
@@ -773,7 +792,8 @@ def sanitize_config(
     With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
     same code a full catalogize run uses), so collections published before the fix
     can be cleaned without a rebuild and republished as metadata only. Nothing else
-    in the file changes, ``updated`` included.
+    in the file changes, ``updated`` included. A file holding a path that cannot be
+    placed in the repository is skipped with a warning, never rewritten to a guess.
     """
     changed = []
     for dataset_id in dataset_ids:
@@ -781,7 +801,12 @@ def sanitize_config(
         doc = read_json(path)
         if "ftw:config" not in doc:
             continue
-        clean = strip_local_paths(doc["ftw:config"])
+        unresolved: list[str] = []
+        clean = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
+        if unresolved:
+            print(f"warning  {dataset_id}: skipped, {unresolved} is not inside a "
+                  f"{_REPO_NAME} checkout; fix it by hand or rebuild")
+            continue
         if clean == doc["ftw:config"]:
             continue
         if confirm:
@@ -816,7 +841,11 @@ def enrich_collection(
     doc = read_json(collection_path)
     rewrite_root_links(doc, depth=1)
     if "ftw:config" in doc:
-        doc["ftw:config"] = strip_local_paths(doc["ftw:config"])
+        unresolved: list[str] = []
+        doc["ftw:config"] = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
+        for value in unresolved:
+            print(f"warning  {dataset_id}: ftw:config path {value} is outside the repository; "
+                  f"published as its file name only")
     _ensure_parent_link(doc)
     _ensure_llms_link(doc)
     _append_host_provider(doc, manifest)

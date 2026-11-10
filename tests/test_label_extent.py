@@ -209,6 +209,16 @@ with tempfile.TemporaryDirectory() as tmp:
     second = label_extent._sha256(out)
     check(second != first and label_extent.recorded()["fake_2021"] == second,
           "--accept records the new file")
+    check(not list(out.parent.glob("*.new*")) and not list(out.parent.glob("*.tmp*")),
+          "no temporary file is left behind")
+
+    # concurrent first-time records (run_batch --jobs) keep every line
+    from concurrent.futures import ThreadPoolExecutor
+    many = tmp / "many.sha256"
+    with ThreadPoolExecutor(16) as pool:
+        list(pool.map(lambda i: label_extent.record(f"d{i:02d}_2021", f"{i:064x}", many), range(40)))
+    check(len(label_extent.recorded(many)) == 40,
+          f"40 concurrent records keep 40 lines: {len(label_extent.recorded(many))}")
     out.write_bytes(b"not the recorded file")
     message = refused(lambda: label_extent.build("fake_2021"))
     check("existing" in message, f"an existing file that differs is refused: {message}")
