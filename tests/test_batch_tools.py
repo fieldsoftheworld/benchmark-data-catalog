@@ -171,9 +171,20 @@ for hid in new_dataset.LABEL_EXTENT_SOURCES:
     check(ext_masks["presence_only"] is False, f"{hid}: label_extent, so not presence-only")
     check(ext["stages"]["chips"]["drop_border_chips"] is False,
           f"{hid}: sample areas keep border chips; outside the extent is unknown anyway")
-    check(len(ext_masks["mask_types"]) == 5, f"{hid}: every mask type: {ext_masks['mask_types']}")
+    check(ext_masks["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+          f"{hid}: semantic masks only, the ones that mark outside the extent unknown: "
+          f"{ext_masks['mask_types']}")
 check("label_extent" not in recipe["stages"]["masks"], "an ordinary dataset has no label extent")
 check("label_extent" not in derived["stages"]["masks"], "nor does a presence-only one")
+# LEM's fields are a sample: an ordinary presence-only recipe, no extent.
+lem_row = {**ROW, "dataset_id": "br_ba_lem_2020", "harmonized_id": "br_ba_lem", "year": "2020",
+           "filter": "", "wall_to_wall": new_dataset.PRESENCE_ONLY}
+lem = yaml.safe_load(new_dataset.recipe_text(
+    "br_ba_lem_2020", lem_row, COLLECTION, new_dataset.source_urls(lem_row), "9.9.9"))
+check("label_extent" not in lem["stages"]["masks"] and lem["stages"]["masks"]["presence_only"] is True
+      and lem["stages"]["chips"]["drop_border_chips"] is False
+      and lem["stages"]["masks"]["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
+      f"br_ba_lem_2020 is a plain presence-only recipe: {lem['stages']}")
 try:
     real_row = tracking.row
     tracking.row = lambda d, rows=None: {**ROW, "dataset_id": d, "harmonized_id": "glocab",

@@ -2,7 +2,7 @@
 """Label extents: tools/label_extent.py builds files ftwd accepts, from the right areas.
 
 Runs every builder on small local stand-ins for its source (no network): GloCAB
-region hulls with their no_area outlines cut out, the fields' hull, the AI4SF tiles
+region hulls with their no_area outlines cut out, the AI4SF tiles
 from UTM, raster footprints from Web Mercator and lon/lat, and WRI's chips read
 from their label masks, not from the chips parquet's geometry. Every file written
 must pass ftwd's own ``load_label_extent``. Also checks ``reads_extent`` (what
@@ -106,24 +106,11 @@ with tempfile.TemporaryDirectory() as tmp:
     write_fields(fields, [{"region": "A", "no_area": False,
                            "geometry": shapely.box(480000, 1198000, 481000, 1199000)}])
     try:
-        build({"dataset_id": "br_ba_lem_2020", "harmonized_id": "br_ba_lem", "year": "2020"},
-              label_extent.fields_hull, tmp / "metres.parquet")
+        build(glocab, label_extent.glocab_regions, tmp / "metres.parquet")
         errors.append("a hull in metres was written as a lon/lat extent")
     except SystemExit as stop:
         check("not lon/lat" in str(stop), f"metres refused: {stop}")
     check(not (tmp / "metres.parquet").exists(), "nothing written for a refused extent")
-    write_fields(fields, [
-        {"region": "A", "no_area": False, "geometry": shapely.box(0, 0, 0.01, 0.01)},
-        {"region": "A", "no_area": False, "geometry": shapely.box(0.09, 0.09, 0.1, 0.1)},
-        {"region": "A", "no_area": True, "geometry": shapely.box(0.04, 0.04, 0.05, 0.05)},
-    ])
-
-    # --- the fields' hull ---------------------------------------------------
-    hull = build({"dataset_id": "br_ba_lem_2020", "harmonized_id": "br_ba_lem", "year": "2020"},
-                 label_extent.fields_hull, tmp / "lem.parquet")
-    check(list(hull) == ["br_ba_lem"], f"one hull: {list(hull)}")
-    check(hull["br_ba_lem"].contains(shapely.Point(0.045, 0.045)), "the plain hull has no holes")
-
     # --- AI4SF: the tiles, from UTM 48N to lon/lat --------------------------
     gpkg = tmp / "sources" / "ai4sf" / "tiles_asia.gpkg"
     gpkg.parent.mkdir(parents=True)

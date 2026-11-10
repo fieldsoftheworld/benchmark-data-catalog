@@ -27,7 +27,6 @@ The extent per harmonized collection (``BUILDERS``; the keys must match
   the ``no_area`` outlines. Those outlines were drawn around several fields too
   small to digitise one by one; the class filter drops them, so without the hole
   their fields would read as background instead of unknown.
-- ``br_ba_lem``: the convex hull of all fields (the whole municipality is mapped).
 - ``ai4sf_ml``: the 62 AI4SmallFarms tiles of about 5x5 km (``tiles_asia.gpkg``
   from DANS, the file the converter takes the split from), from UTM 48N.
 - ``rw_rwanda_ml``: the NASA Harvest competition's 57 train and 13 test tiles,
@@ -122,14 +121,6 @@ def glocab_regions(con, row: dict[str, str]) -> str:
         FROM hulls h LEFT JOIN holes o USING (region)"""
 
 
-def fields_hull(con, row: dict[str, str]) -> str:
-    fields = _sql_str(source_urls(row)["parquet"])
-    return f"""
-        SELECT {_sql_str(row['harmonized_id'])} AS extent_id,
-               ST_ConvexHull(ST_Collect(list(geometry))) AS geometry
-        FROM read_parquet({fields})"""
-
-
 def ai4sf_tiles(con, row: dict[str, str]) -> str:
     path = _download(AI4SF_TILES, SOURCES / "ai4sf" / "tiles_asia.gpkg")
     return f"""
@@ -222,7 +213,6 @@ def trazo_chips(con, row: dict[str, str]) -> str:
 
 BUILDERS: dict[str, Callable] = {
     "ai4sf_ml": ai4sf_tiles,
-    "br_ba_lem": fields_hull,
     "glocab": glocab_regions,
     "rw_rwanda_ml": rwanda_tiles,
     "wri_trazo": trazo_chips,

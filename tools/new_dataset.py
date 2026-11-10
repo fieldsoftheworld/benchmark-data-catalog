@@ -75,15 +75,17 @@ DERIVED = {
 PRESENCE_ONLY = "Presence-only"
 # Harmonized collections labelled completely only inside their sample tiles, chips or
 # mapped regions; tools/label_extent.py builds each one's extent (BUILDERS there).
-LABEL_EXTENT_SOURCES = ("ai4sf_ml", "br_ba_lem", "glocab", "rw_rwanda_ml", "wri_trazo")
+# br_ba_lem is not one: its fields are a sample, so it is presence-only (2026-11-10).
+LABEL_EXTENT_SOURCES = ("ai4sf_ml", "glocab", "rw_rwanda_ml", "wri_trazo")
 MASK_TYPES = ["instance", "semantic_2_class", "semantic_3_class", "decode_boundary", "decode_distance"]
 # Only these can mark a pixel unknown; the others would call unlabelled fields not-field.
 PRESENCE_ONLY_MASK_TYPES = ["semantic_2_class", "semantic_3_class"]
 # The masks a label-extent dataset builds. ftwd's instance and DECODE masks fill 0
 # outside the extent (only the semantic masks get unknown, 3), so a chip straddling the
-# extent calls unlabelled fields there not-field. Undecided (2026-11-10): switch this to
-# PRESENCE_ONLY_MASK_TYPES, or fix ftwd. The manifest gate follows this constant.
-LABEL_EXTENT_MASK_TYPES = MASK_TYPES
+# extent would call unlabelled fields there not-field. The maintainer's call
+# (2026-11-10): semantic masks only, like presence-only, until ftwd marks those too.
+# The manifest gate follows this constant.
+LABEL_EXTENT_MASK_TYPES = PRESENCE_ONLY_MASK_TYPES
 
 
 def mask_types(presence_only: bool, extent: bool = False) -> str:
