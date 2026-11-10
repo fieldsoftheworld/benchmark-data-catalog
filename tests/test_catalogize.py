@@ -1106,6 +1106,14 @@ with tempfile.TemporaryDirectory() as tmp:
             "license": "other",
             "links": [{"rel": "root", "href": "./collection.json", "type": "application/json"}],
             "providers": [],
+            "ftw:config": {"config": {
+                "class_filter": {"source": "/home/ubuntu/benchmark-data-catalog/datasets/filters/f.yaml"},
+                "stages": {"masks": {"label_extent": str(catalogize.ROOT / "work/extents/hr_2024.parquet"),
+                                     "class_filter": "filters/f.yaml"}},
+                "output_dir": "staging/hr_2024",
+                "fields_file": "https://data.source.coop/x/y.parquet",
+                "elsewhere": "/tmp/scratch/extent.parquet",
+            }},
         },
     )
     hr_2024_manifest = {
@@ -1124,6 +1132,18 @@ with tempfile.TemporaryDirectory() as tmp:
         len(license_links) == 1 and license_links[0]["href"] == recipe_hr_2024["metadata"]["license_url"],
         "a license link is added from the recipe's license_url when license is 'other'",
     )
+
+    cfg = hr_2024_collection["ftw:config"]["config"]
+    check(cfg["class_filter"]["source"] == "datasets/filters/f.yaml",
+          f"another builder's absolute filter path is repository-relative: {cfg['class_filter']}")
+    check(cfg["stages"]["masks"]["label_extent"] == "work/extents/hr_2024.parquet",
+          f"this checkout's absolute extent path is repository-relative: {cfg['stages']['masks']}")
+    check(cfg["elsewhere"] == "extent.parquet", f"a path outside any checkout keeps its name only: {cfg}")
+    check(cfg["stages"]["masks"]["class_filter"] == "filters/f.yaml"
+          and cfg["output_dir"] == "staging/hr_2024"
+          and cfg["fields_file"] == "https://data.source.coop/x/y.parquet",
+          "relative paths and URLs are left alone")
+    check("/home/" not in json.dumps(hr_2024_collection), "no builder home directory is published")
 
     # idempotent: running again does not duplicate the license link
     catalogize.enrich_collection(

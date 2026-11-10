@@ -738,6 +738,33 @@ def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     return changed
 
 
+def _repo_relative(value: str, root: Path = ROOT) -> str:
+    """A builder-local absolute path as a path inside the repository, else its file name.
+
+    ftwd records the files it read (``class_filter.source``, ``label_extent``) with
+    the builder's absolute path, e.g. ``/home/ubuntu/benchmark-data-catalog/...``,
+    which means nothing to a reader and names the build machine's home directory.
+    """
+    path = Path(value)
+    if path.is_relative_to(root):
+        return path.relative_to(root).as_posix()
+    marker = f"/{root.name}/"
+    if marker in value:
+        return value.split(marker, 1)[1]
+    return path.name
+
+
+def strip_local_paths(config, root: Path = ROOT):
+    """``ftw:config`` with every absolute local path made repository-relative."""
+    if isinstance(config, dict):
+        return {k: strip_local_paths(v, root) for k, v in config.items()}
+    if isinstance(config, list):
+        return [strip_local_paths(v, root) for v in config]
+    if isinstance(config, str) and config.startswith("/"):
+        return _repo_relative(config, root)
+    return config
+
+
 def enrich_collection(
     dataset_id: str,
     *,
@@ -754,13 +781,16 @@ def enrich_collection(
     appends the host provider once, fills in ``version`` and ``updated``,
     ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
     — for an "other" license — a ``license`` link exist, registers a
-    ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), and, when
+    ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), makes the
+    absolute builder paths in ``ftw:config`` repository-relative, and, when
     the manifest carries an ``ftw1`` block for this dataset, appends the FTW
     1.0 comparison to README.md.
     """
     collection_path = catalog / dataset_id / "collection.json"
     doc = read_json(collection_path)
     rewrite_root_links(doc, depth=1)
+    if "ftw:config" in doc:
+        doc["ftw:config"] = strip_local_paths(doc["ftw:config"])
     _ensure_parent_link(doc)
     _ensure_llms_link(doc)
     _append_host_provider(doc, manifest)
