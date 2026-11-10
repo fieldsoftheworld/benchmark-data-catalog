@@ -27,6 +27,7 @@ TESTS = [
     "test_upload_data.py",
     "test_prune_bucket.py",
     "test_merge_es_2025.py",
+    "test_label_extent.py",
     "test_stac_valid.py",
     "test_conformance.py",
 ]

@@ -159,6 +159,32 @@ check(derived["stages"]["chips"]["drop_border_chips"] is False,
 check(derived["stages"]["masks"]["mask_types"] == ["semantic_2_class", "semantic_3_class"],
       f"presence-only builds the semantic masks only: {derived['stages']['masks']['mask_types']}")
 
+# A collection labelled only inside its sample areas reads its label extent instead.
+for hid in new_dataset.LABEL_EXTENT_SOURCES:
+    ext_row = {**ROW, "dataset_id": f"{hid}_2021", "harmonized_id": hid, "year": "2021",
+               "wall_to_wall": "Yes (inside labelled tiles)"}
+    ext = yaml.safe_load(new_dataset.recipe_text(
+        f"{hid}_2021", ext_row, COLLECTION, new_dataset.source_urls(ext_row), "9.9.9"))
+    ext_masks = ext["stages"]["masks"]
+    check(ext_masks.get("label_extent") == f"../work/extents/{hid}_2021.parquet",
+          f"{hid}: the recipe reads work/extents/<id>.parquet, relative to datasets/: {ext_masks}")
+    check(ext_masks["presence_only"] is False, f"{hid}: label_extent, so not presence-only")
+    check(ext["stages"]["chips"]["drop_border_chips"] is False,
+          f"{hid}: sample areas keep border chips; outside the extent is unknown anyway")
+    check(len(ext_masks["mask_types"]) == 5, f"{hid}: every mask type: {ext_masks['mask_types']}")
+check("label_extent" not in recipe["stages"]["masks"], "an ordinary dataset has no label extent")
+check("label_extent" not in derived["stages"]["masks"], "nor does a presence-only one")
+try:
+    real_row = tracking.row
+    tracking.row = lambda d, rows=None: {**ROW, "dataset_id": d, "harmonized_id": "glocab",
+                                         "status": "include", "wall_to_wall": new_dataset.PRESENCE_ONLY}
+    new_dataset.scaffold("glocab_2021")
+    errors.append("a Presence-only row of a label-extent collection is scaffolded")
+except SystemExit as stop:
+    check("label extent" in str(stop), f"label extent and presence-only refused together: {stop}")
+finally:
+    tracking.row = real_row
+
 # Credits for a dataset drawn from several collections.
 cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [
     {"name": "Nat", "roles": ["producer"]}, {"name": "Fields of the World", "roles": ["host"]}]}

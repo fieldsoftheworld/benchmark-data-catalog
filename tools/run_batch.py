@@ -8,7 +8,9 @@
 
 The metadata pass runs, per dataset, the steps in README's "Adding a
 dataset": scaffold the recipe when missing (``tools/new_dataset.py``), build
-``--through stac``, build ``--only docs``, ``catalogize.py <id>``. Datasets run
+the label extent when the recipe reads a missing one (``tools/label_extent.py``,
+in both passes), build ``--through stac``, build ``--only docs``,
+``catalogize.py <id>``. Datasets run
 concurrently (``--jobs``), each logging to ``logs/<id>.log``. Then, once for
 the whole batch: ``catalogize.py --root``, thumbnails one at a time through a
 single chiitiler (started here if none is running), and the gates.
@@ -45,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import tracking  # noqa: E402
 from build import subprocess_env  # noqa: E402
 from common import ROOT, installed_ftwd  # noqa: E402
+from label_extent import needs_build as needs_label_extent  # noqa: E402
 
 LOGS = ROOT / "logs"
 CHIITILER_HEALTH = "http://localhost:13579/health"
@@ -98,6 +101,10 @@ def run_dataset(dataset_id: str, steps, *, scaffold: bool) -> str | None:
         if scaffold and not (ROOT / "datasets" / f"{dataset_id}.yaml").exists():
             if _run(tool_argv(["new_dataset.py", "{id}"], dataset_id), log) != 0:
                 return "new_dataset"
+        # ftwd checks the extent file when it loads the recipe, in either pass.
+        if needs_label_extent(dataset_id):
+            if _run(tool_argv(["label_extent.py", "{id}"], dataset_id), log) != 0:
+                return "label_extent"
         for name, template in steps:
             started = time.monotonic()
             code = _run(tool_argv(template, dataset_id), log)

@@ -28,7 +28,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
-from new_dataset import DERIVED, PRESENCE_ONLY_MASK_TYPES  # noqa: E402
+from new_dataset import (  # noqa: E402
+    DERIVED,
+    HARMONIZED,
+    LABEL_EXTENT_SOURCES,
+    PRESENCE_ONLY_MASK_TYPES,
+    label_extent_ref,
+)
 
 MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
@@ -156,6 +162,19 @@ for dataset_id in sorted(declared & recipes):
     # Presence-only collections are the exception: only the semantic masks can
     # mark a pixel unknown, so they publish those and nothing else.
     masks = (recipe.get("stages") or {}).get("masks") or {}
+    # A collection labelled only inside its sample areas reads the extent
+    # tools/label_extent.py builds; ftwd refuses it together with presence_only.
+    source = str(recipe.get("source_via") or "")
+    harmonized_id = source.removeprefix(f"{HARMONIZED}/").split("/")[0] if source.startswith(HARMONIZED) else ""
+    extent = masks.get("label_extent")
+    if harmonized_id in LABEL_EXTENT_SOURCES and extent != label_extent_ref(dataset_id):
+        err(f"datasets/{dataset_id}.yaml: {harmonized_id} is labelled only inside its sample areas, "
+            f"so stages.masks.label_extent must be {label_extent_ref(dataset_id)!r}, got {extent!r}")
+    if extent and harmonized_id not in LABEL_EXTENT_SOURCES:
+        err(f"datasets/{dataset_id}.yaml: label_extent set, but tools/label_extent.py has no "
+            f"builder for {harmonized_id or source!r}")
+    if extent and masks.get("presence_only"):
+        err(f"datasets/{dataset_id}.yaml: label_extent and presence_only are alternatives")
     mask_types = masks.get("mask_types") or []
     required_types = REQUIRED_MASK_TYPES
     if masks.get("presence_only"):
