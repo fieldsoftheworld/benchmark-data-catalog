@@ -56,7 +56,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
-**157 collections · 2,980,565 chips**
+**161 collections · 2,999,145 chips**
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -161,6 +161,10 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Ireland — 2023](https://source.coop/ftw/benchmark-data/ie_2023) | 16,762 | 13,469/1,651/1,642 | 16,762 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ie](https://source.coop/ftw/harmonized-field-data/ie) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ie_2023/collection.json) |
 | [Ireland — 2024](https://source.coop/ftw/benchmark-data/ie_2024) | 16,757 | 13,383/1,663/1,711 | 16,757 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ie](https://source.coop/ftw/harmonized-field-data/ie) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ie_2024/collection.json) |
 | [India 10k with splits — 2020](https://source.coop/ftw/benchmark-data/in_10k_ml_2020) | 2,410 | 1,926/246/238 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/in_10k_ml](https://source.coop/ftw/harmonized-field-data/in_10k_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/in_10k_ml_2020/collection.json) |
+| [Italy, Tuscany — 2018](https://source.coop/ftw/benchmark-data/it_1_2018) | 4,515 | 3,596/459/460 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/it_1](https://source.coop/ftw/harmonized-field-data/it_1) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/it_1_2018/collection.json) |
+| [Italy, Tuscany — 2019](https://source.coop/ftw/benchmark-data/it_1_2019) | 4,713 | 3,782/429/502 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/it_1](https://source.coop/ftw/harmonized-field-data/it_1) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/it_1_2019/collection.json) |
+| [Italy, Tuscany — 2020](https://source.coop/ftw/benchmark-data/it_1_2020) | 4,673 | 3,729/439/505 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/it_1](https://source.coop/ftw/harmonized-field-data/it_1) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/it_1_2020/collection.json) |
+| [Italy, Tuscany — 2022](https://source.coop/ftw/benchmark-data/it_1_2022) | 4,679 | 3,763/422/494 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/it_1](https://source.coop/ftw/harmonized-field-data/it_1) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/it_1_2022/collection.json) |
 | [Japan — 2021](https://source.coop/ftw/benchmark-data/jp_2021) | 61,016 | 48,849/6,093/6,074 | 61,000 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2021/collection.json) |
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 48,799/6,146/6,016 | 60,945 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2022/collection.json) |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 48,800/6,146/6,011 | 60,941 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2023/collection.json) |
@@ -323,6 +327,10 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Ireland — 2023](https://source.coop/ftw/benchmark-data/ie_2023) | 16,762 | 16,762 stored | 16,762 |
 | [Ireland — 2024](https://source.coop/ftw/benchmark-data/ie_2024) | 16,757 | 16,757 stored | 16,757 |
 | [India 10k with splits — 2020](https://source.coop/ftw/benchmark-data/in_10k_ml_2020) | 2,410 | — | — |
+| [Italy, Tuscany — 2018](https://source.coop/ftw/benchmark-data/it_1_2018) | 4,515 | — | — |
+| [Italy, Tuscany — 2019](https://source.coop/ftw/benchmark-data/it_1_2019) | 4,713 | — | — |
+| [Italy, Tuscany — 2020](https://source.coop/ftw/benchmark-data/it_1_2020) | 4,673 | — | — |
+| [Italy, Tuscany — 2022](https://source.coop/ftw/benchmark-data/it_1_2022) | 4,679 | — | — |
 | [Japan — 2021](https://source.coop/ftw/benchmark-data/jp_2021) | 61,016 | 61,000 stored | none |
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 60,945 stored | none |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 60,941 stored | none |
