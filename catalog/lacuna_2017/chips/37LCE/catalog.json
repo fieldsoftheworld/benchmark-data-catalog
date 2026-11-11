@@ -1,0 +1,65 @@
+{
+  "type": "Catalog",
+  "id": "37LCE",
+  "stac_version": "1.1.0",
+  "description": "Chips in MGRS 100 km square 37LCE",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-37LCE0666_2017/ftw-37LCE0666_2017.json",
+      "type": "application/geo+json",
+      "title": "ftw-37LCE0666_2017"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-37LCE0666_2017/ftw-37LCE0666_2017_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-37LCE0666_2017_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-37LCE0666_2017/ftw-37LCE0666_2017_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-37LCE0666_2017_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-37LCE0666_2017/ftw-37LCE0666_2017_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-37LCE0666_2017_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-37LCE0666_2017/ftw-37LCE0666_2017_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-37LCE0666_2017_q4_s2"
+    },
+    {
+      "rel": "parent",
+      "href": "../../collection.json",
+      "type": "application/json",
+      "title": "Mapping Africa \u2014 2017"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Square README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Square agent guide"
+    }
+  ],
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json"
+  ],
+  "title": "37LCE"
+}

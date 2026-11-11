@@ -56,7 +56,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
-**161 collections · 2,999,145 chips**
+**168 collections · 3,049,806 chips**
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -169,6 +169,13 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 48,799/6,146/6,016 | 60,945 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2022/collection.json) |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 48,800/6,146/6,011 | 60,941 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2023/collection.json) |
 | [Japan — 2024](https://source.coop/ftw/benchmark-data/jp_2024) | 60,943 | 48,789/6,143/6,011 | 60,927 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/jp](https://source.coop/ftw/harmonized-field-data/jp) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/jp_2024/collection.json) |
+| [Mapping Africa — 2017](https://source.coop/ftw/benchmark-data/lacuna_2017) | 6,972 | 5,561/696/715 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2017/collection.json) |
+| [Mapping Africa — 2018](https://source.coop/ftw/benchmark-data/lacuna_2018) | 7,215 | 5,759/720/736 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2018/collection.json) |
+| [Mapping Africa — 2019](https://source.coop/ftw/benchmark-data/lacuna_2019) | 7,343 | 5,873/762/708 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2019/collection.json) |
+| [Mapping Africa — 2020](https://source.coop/ftw/benchmark-data/lacuna_2020) | 7,762 | 6,171/807/784 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2020/collection.json) |
+| [Mapping Africa — 2021](https://source.coop/ftw/benchmark-data/lacuna_2021) | 7,141 | 5,692/734/715 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2021/collection.json) |
+| [Mapping Africa — 2022](https://source.coop/ftw/benchmark-data/lacuna_2022) | 7,262 | 5,835/710/717 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2022/collection.json) |
+| [Mapping Africa — 2023](https://source.coop/ftw/benchmark-data/lacuna_2023) | 6,966 | 5,598/691/677 | — | [License](https://go.planet.com/nicfi-pla-2024) | [harmonized/lacuna](https://source.coop/ftw/harmonized-field-data/lacuna) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lacuna_2023/collection.json) |
 | [Lithuania — 2024](https://source.coop/ftw/benchmark-data/lt_2024) | 14,123 | 11,297/1,399/1,427 | 14,123 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lt](https://source.coop/ftw/harmonized-field-data/lt) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lt_2024/collection.json) |
 | [Lithuania — 2025](https://source.coop/ftw/benchmark-data/lt_2025) | 14,140 | 11,323/1,388/1,429 | 14,140 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/lt](https://source.coop/ftw/harmonized-field-data/lt) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lt_2025/collection.json) |
 | [Latvia — 2017](https://source.coop/ftw/benchmark-data/lv_2017) | 13,016 | 10,383/1,308/1,325 | 13,016 stored | [CC-BY-SA-4.0](https://spdx.org/licenses/CC-BY-SA-4.0.html) | [harmonized/lv](https://source.coop/ftw/harmonized-field-data/lv) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/lv_2017/collection.json) |
@@ -335,6 +342,13 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Japan — 2022](https://source.coop/ftw/benchmark-data/jp_2022) | 60,961 | 60,945 stored | none |
 | [Japan — 2023](https://source.coop/ftw/benchmark-data/jp_2023) | 60,957 | 60,941 stored | none |
 | [Japan — 2024](https://source.coop/ftw/benchmark-data/jp_2024) | 60,943 | 60,927 stored | none |
+| [Mapping Africa — 2017](https://source.coop/ftw/benchmark-data/lacuna_2017) | 6,972 | — | — |
+| [Mapping Africa — 2018](https://source.coop/ftw/benchmark-data/lacuna_2018) | 7,215 | — | — |
+| [Mapping Africa — 2019](https://source.coop/ftw/benchmark-data/lacuna_2019) | 7,343 | — | — |
+| [Mapping Africa — 2020](https://source.coop/ftw/benchmark-data/lacuna_2020) | 7,762 | — | — |
+| [Mapping Africa — 2021](https://source.coop/ftw/benchmark-data/lacuna_2021) | 7,141 | — | — |
+| [Mapping Africa — 2022](https://source.coop/ftw/benchmark-data/lacuna_2022) | 7,262 | — | — |
+| [Mapping Africa — 2023](https://source.coop/ftw/benchmark-data/lacuna_2023) | 6,966 | — | — |
 | [Lithuania — 2024](https://source.coop/ftw/benchmark-data/lt_2024) | 14,123 | 14,123 stored | 14,123 |
 | [Lithuania — 2025](https://source.coop/ftw/benchmark-data/lt_2025) | 14,140 | 14,140 stored | 14,140 |
 | [Latvia — 2017](https://source.coop/ftw/benchmark-data/lv_2017) | 13,016 | 13,016 stored | 13,016 |

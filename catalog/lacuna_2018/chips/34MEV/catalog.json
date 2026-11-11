@@ -1,0 +1,125 @@
+{
+  "type": "Catalog",
+  "id": "34MEV",
+  "stac_version": "1.1.0",
+  "description": "Chips in MGRS 100 km square 34MEV",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV4080_2018/ftw-34MEV4080_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV4080_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6478_2018/ftw-34MEV6478_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6478_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6678_2018/ftw-34MEV6678_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6678_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV4080_2018/ftw-34MEV4080_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV4080_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV4080_2018/ftw-34MEV4080_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV4080_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV4080_2018/ftw-34MEV4080_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV4080_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV4080_2018/ftw-34MEV4080_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV4080_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6478_2018/ftw-34MEV6478_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6478_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6478_2018/ftw-34MEV6478_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6478_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6478_2018/ftw-34MEV6478_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6478_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6478_2018/ftw-34MEV6478_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6478_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6678_2018/ftw-34MEV6678_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6678_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6678_2018/ftw-34MEV6678_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6678_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6678_2018/ftw-34MEV6678_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6678_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-34MEV6678_2018/ftw-34MEV6678_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-34MEV6678_2018_q4_s2"
+    },
+    {
+      "rel": "parent",
+      "href": "../../collection.json",
+      "type": "application/json",
+      "title": "Mapping Africa \u2014 2018"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Square README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Square agent guide"
+    }
+  ],
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json"
+  ],
+  "title": "34MEV"
+}

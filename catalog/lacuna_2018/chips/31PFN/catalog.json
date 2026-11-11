@@ -1,0 +1,695 @@
+{
+  "type": "Catalog",
+  "id": "31PFN",
+  "stac_version": "1.1.0",
+  "description": "Chips in MGRS 100 km square 31PFN",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1010_2018/ftw-31PFN1010_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1010_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1476_2018/ftw-31PFN1476_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1476_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1478_2018/ftw-31PFN1478_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1478_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN2078_2018/ftw-31PFN2078_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN2078_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3230_2018/ftw-31PFN3230_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3230_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3430_2018/ftw-31PFN3430_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3430_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3872_2018/ftw-31PFN3872_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3872_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3886_2018/ftw-31PFN3886_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3886_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3888_2018/ftw-31PFN3888_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3888_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3890_2018/ftw-31PFN3890_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3890_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4048_2018/ftw-31PFN4048_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4048_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4072_2018/ftw-31PFN4072_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4072_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4088_2018/ftw-31PFN4088_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4088_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4090_2018/ftw-31PFN4090_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4090_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4828_2018/ftw-31PFN4828_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4828_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4830_2018/ftw-31PFN4830_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4830_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7016_2018/ftw-31PFN7016_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7016_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7018_2018/ftw-31PFN7018_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7018_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7216_2018/ftw-31PFN7216_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7216_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7218_2018/ftw-31PFN7218_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7218_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7456_2018/ftw-31PFN7456_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7456_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7656_2018/ftw-31PFN7656_2018.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7656_2018"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1010_2018/ftw-31PFN1010_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1010_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1010_2018/ftw-31PFN1010_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1010_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1010_2018/ftw-31PFN1010_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1010_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1010_2018/ftw-31PFN1010_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1010_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1476_2018/ftw-31PFN1476_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1476_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1476_2018/ftw-31PFN1476_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1476_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1476_2018/ftw-31PFN1476_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1476_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1476_2018/ftw-31PFN1476_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1476_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1478_2018/ftw-31PFN1478_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1478_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1478_2018/ftw-31PFN1478_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1478_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1478_2018/ftw-31PFN1478_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1478_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN1478_2018/ftw-31PFN1478_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN1478_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN2078_2018/ftw-31PFN2078_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN2078_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN2078_2018/ftw-31PFN2078_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN2078_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN2078_2018/ftw-31PFN2078_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN2078_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN2078_2018/ftw-31PFN2078_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN2078_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3230_2018/ftw-31PFN3230_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3230_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3230_2018/ftw-31PFN3230_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3230_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3230_2018/ftw-31PFN3230_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3230_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3230_2018/ftw-31PFN3230_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3230_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3430_2018/ftw-31PFN3430_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3430_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3430_2018/ftw-31PFN3430_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3430_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3430_2018/ftw-31PFN3430_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3430_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3430_2018/ftw-31PFN3430_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3430_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3872_2018/ftw-31PFN3872_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3872_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3872_2018/ftw-31PFN3872_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3872_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3872_2018/ftw-31PFN3872_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3872_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3872_2018/ftw-31PFN3872_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3872_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3886_2018/ftw-31PFN3886_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3886_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3886_2018/ftw-31PFN3886_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3886_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3886_2018/ftw-31PFN3886_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3886_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3886_2018/ftw-31PFN3886_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3886_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3888_2018/ftw-31PFN3888_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3888_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3888_2018/ftw-31PFN3888_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3888_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3888_2018/ftw-31PFN3888_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3888_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3888_2018/ftw-31PFN3888_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3888_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3890_2018/ftw-31PFN3890_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3890_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3890_2018/ftw-31PFN3890_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3890_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3890_2018/ftw-31PFN3890_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3890_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN3890_2018/ftw-31PFN3890_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN3890_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4048_2018/ftw-31PFN4048_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4048_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4048_2018/ftw-31PFN4048_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4048_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4048_2018/ftw-31PFN4048_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4048_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4048_2018/ftw-31PFN4048_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4048_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4072_2018/ftw-31PFN4072_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4072_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4072_2018/ftw-31PFN4072_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4072_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4072_2018/ftw-31PFN4072_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4072_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4072_2018/ftw-31PFN4072_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4072_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4088_2018/ftw-31PFN4088_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4088_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4088_2018/ftw-31PFN4088_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4088_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4088_2018/ftw-31PFN4088_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4088_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4088_2018/ftw-31PFN4088_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4088_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4090_2018/ftw-31PFN4090_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4090_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4090_2018/ftw-31PFN4090_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4090_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4090_2018/ftw-31PFN4090_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4090_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4090_2018/ftw-31PFN4090_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4090_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4828_2018/ftw-31PFN4828_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4828_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4828_2018/ftw-31PFN4828_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4828_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4828_2018/ftw-31PFN4828_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4828_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4828_2018/ftw-31PFN4828_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4828_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4830_2018/ftw-31PFN4830_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4830_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4830_2018/ftw-31PFN4830_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4830_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4830_2018/ftw-31PFN4830_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4830_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN4830_2018/ftw-31PFN4830_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN4830_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7016_2018/ftw-31PFN7016_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7016_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7016_2018/ftw-31PFN7016_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7016_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7016_2018/ftw-31PFN7016_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7016_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7016_2018/ftw-31PFN7016_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7016_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7018_2018/ftw-31PFN7018_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7018_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7018_2018/ftw-31PFN7018_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7018_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7018_2018/ftw-31PFN7018_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7018_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7018_2018/ftw-31PFN7018_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7018_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7216_2018/ftw-31PFN7216_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7216_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7216_2018/ftw-31PFN7216_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7216_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7216_2018/ftw-31PFN7216_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7216_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7216_2018/ftw-31PFN7216_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7216_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7218_2018/ftw-31PFN7218_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7218_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7218_2018/ftw-31PFN7218_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7218_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7218_2018/ftw-31PFN7218_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7218_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7218_2018/ftw-31PFN7218_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7218_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7456_2018/ftw-31PFN7456_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7456_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7456_2018/ftw-31PFN7456_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7456_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7456_2018/ftw-31PFN7456_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7456_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7456_2018/ftw-31PFN7456_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7456_2018_q4_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7656_2018/ftw-31PFN7656_2018_q1_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7656_2018_q1_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7656_2018/ftw-31PFN7656_2018_q2_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7656_2018_q2_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7656_2018/ftw-31PFN7656_2018_q3_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7656_2018_q3_s2"
+    },
+    {
+      "rel": "item",
+      "href": "./ftw-31PFN7656_2018/ftw-31PFN7656_2018_q4_s2.json",
+      "type": "application/geo+json",
+      "title": "ftw-31PFN7656_2018_q4_s2"
+    },
+    {
+      "rel": "parent",
+      "href": "../../collection.json",
+      "type": "application/json",
+      "title": "Mapping Africa \u2014 2018"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Square README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Square agent guide"
+    }
+  ],
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json"
+  ],
+  "title": "31PFN"
+}

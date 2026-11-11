@@ -1,0 +1,6424 @@
+{
+  "type": "Collection",
+  "id": "lacuna_2022",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for Africa (Mapping Africa sites) cut from the 2022 edition of the harmonized field boundary collection lacuna.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://go.planet.com/nicfi-pla-2024",
+      "title": "License"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/lacuna",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PBA/catalog.json",
+      "type": "application/json",
+      "title": "28PBA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PBB/catalog.json",
+      "type": "application/json",
+      "title": "28PBB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PCA/catalog.json",
+      "type": "application/json",
+      "title": "28PCA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PCB/catalog.json",
+      "type": "application/json",
+      "title": "28PCB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PCC/catalog.json",
+      "type": "application/json",
+      "title": "28PCC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PCV/catalog.json",
+      "type": "application/json",
+      "title": "28PCV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PDA/catalog.json",
+      "type": "application/json",
+      "title": "28PDA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PDB/catalog.json",
+      "type": "application/json",
+      "title": "28PDB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PDC/catalog.json",
+      "type": "application/json",
+      "title": "28PDC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PDU/catalog.json",
+      "type": "application/json",
+      "title": "28PDU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PDV/catalog.json",
+      "type": "application/json",
+      "title": "28PDV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PEA/catalog.json",
+      "type": "application/json",
+      "title": "28PEA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PES/catalog.json",
+      "type": "application/json",
+      "title": "28PES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PEU/catalog.json",
+      "type": "application/json",
+      "title": "28PEU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PEV/catalog.json",
+      "type": "application/json",
+      "title": "28PEV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PFA/catalog.json",
+      "type": "application/json",
+      "title": "28PFA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PFR/catalog.json",
+      "type": "application/json",
+      "title": "28PFR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PFU/catalog.json",
+      "type": "application/json",
+      "title": "28PFU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PFV/catalog.json",
+      "type": "application/json",
+      "title": "28PFV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PGA/catalog.json",
+      "type": "application/json",
+      "title": "28PGA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PGQ/catalog.json",
+      "type": "application/json",
+      "title": "28PGQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PGT/catalog.json",
+      "type": "application/json",
+      "title": "28PGT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28PHU/catalog.json",
+      "type": "application/json",
+      "title": "28PHU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28QCD/catalog.json",
+      "type": "application/json",
+      "title": "28QCD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/28QDD/catalog.json",
+      "type": "application/json",
+      "title": "28QDD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29NQH/catalog.json",
+      "type": "application/json",
+      "title": "29NQH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29NQJ/catalog.json",
+      "type": "application/json",
+      "title": "29NQJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29NRJ/catalog.json",
+      "type": "application/json",
+      "title": "29NRJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PKN/catalog.json",
+      "type": "application/json",
+      "title": "29PKN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PKQ/catalog.json",
+      "type": "application/json",
+      "title": "29PKQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PKR/catalog.json",
+      "type": "application/json",
+      "title": "29PKR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PKS/catalog.json",
+      "type": "application/json",
+      "title": "29PKS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PLQ/catalog.json",
+      "type": "application/json",
+      "title": "29PLQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PLR/catalog.json",
+      "type": "application/json",
+      "title": "29PLR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PLS/catalog.json",
+      "type": "application/json",
+      "title": "29PLS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PMM/catalog.json",
+      "type": "application/json",
+      "title": "29PMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PMN/catalog.json",
+      "type": "application/json",
+      "title": "29PMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PMQ/catalog.json",
+      "type": "application/json",
+      "title": "29PMQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PMR/catalog.json",
+      "type": "application/json",
+      "title": "29PMR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PMS/catalog.json",
+      "type": "application/json",
+      "title": "29PMS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNK/catalog.json",
+      "type": "application/json",
+      "title": "29PNK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNM/catalog.json",
+      "type": "application/json",
+      "title": "29PNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNN/catalog.json",
+      "type": "application/json",
+      "title": "29PNN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNP/catalog.json",
+      "type": "application/json",
+      "title": "29PNP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNQ/catalog.json",
+      "type": "application/json",
+      "title": "29PNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNR/catalog.json",
+      "type": "application/json",
+      "title": "29PNR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PNS/catalog.json",
+      "type": "application/json",
+      "title": "29PNS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPM/catalog.json",
+      "type": "application/json",
+      "title": "29PPM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPN/catalog.json",
+      "type": "application/json",
+      "title": "29PPN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPP/catalog.json",
+      "type": "application/json",
+      "title": "29PPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPQ/catalog.json",
+      "type": "application/json",
+      "title": "29PPQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPR/catalog.json",
+      "type": "application/json",
+      "title": "29PPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PPS/catalog.json",
+      "type": "application/json",
+      "title": "29PPS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQK/catalog.json",
+      "type": "application/json",
+      "title": "29PQK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQL/catalog.json",
+      "type": "application/json",
+      "title": "29PQL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQM/catalog.json",
+      "type": "application/json",
+      "title": "29PQM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQN/catalog.json",
+      "type": "application/json",
+      "title": "29PQN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQP/catalog.json",
+      "type": "application/json",
+      "title": "29PQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQQ/catalog.json",
+      "type": "application/json",
+      "title": "29PQQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PQR/catalog.json",
+      "type": "application/json",
+      "title": "29PQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRK/catalog.json",
+      "type": "application/json",
+      "title": "29PRK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRL/catalog.json",
+      "type": "application/json",
+      "title": "29PRL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRM/catalog.json",
+      "type": "application/json",
+      "title": "29PRM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRN/catalog.json",
+      "type": "application/json",
+      "title": "29PRN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRP/catalog.json",
+      "type": "application/json",
+      "title": "29PRP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRQ/catalog.json",
+      "type": "application/json",
+      "title": "29PRQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRR/catalog.json",
+      "type": "application/json",
+      "title": "29PRR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/29PRS/catalog.json",
+      "type": "application/json",
+      "title": "29PRS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NSN/catalog.json",
+      "type": "application/json",
+      "title": "30NSN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NTM/catalog.json",
+      "type": "application/json",
+      "title": "30NTM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NTN/catalog.json",
+      "type": "application/json",
+      "title": "30NTN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NUL/catalog.json",
+      "type": "application/json",
+      "title": "30NUL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NUN/catalog.json",
+      "type": "application/json",
+      "title": "30NUN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NVL/catalog.json",
+      "type": "application/json",
+      "title": "30NVL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NWN/catalog.json",
+      "type": "application/json",
+      "title": "30NWN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NWP/catalog.json",
+      "type": "application/json",
+      "title": "30NWP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NXN/catalog.json",
+      "type": "application/json",
+      "title": "30NXN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NXP/catalog.json",
+      "type": "application/json",
+      "title": "30NXP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NYM/catalog.json",
+      "type": "application/json",
+      "title": "30NYM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NYP/catalog.json",
+      "type": "application/json",
+      "title": "30NYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NZM/catalog.json",
+      "type": "application/json",
+      "title": "30NZM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30NZN/catalog.json",
+      "type": "application/json",
+      "title": "30NZN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSP/catalog.json",
+      "type": "application/json",
+      "title": "30PSP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSQ/catalog.json",
+      "type": "application/json",
+      "title": "30PSQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSR/catalog.json",
+      "type": "application/json",
+      "title": "30PSR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSS/catalog.json",
+      "type": "application/json",
+      "title": "30PSS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PST/catalog.json",
+      "type": "application/json",
+      "title": "30PST"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSU/catalog.json",
+      "type": "application/json",
+      "title": "30PSU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PSV/catalog.json",
+      "type": "application/json",
+      "title": "30PSV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTA/catalog.json",
+      "type": "application/json",
+      "title": "30PTA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTB/catalog.json",
+      "type": "application/json",
+      "title": "30PTB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTQ/catalog.json",
+      "type": "application/json",
+      "title": "30PTQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTR/catalog.json",
+      "type": "application/json",
+      "title": "30PTR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTS/catalog.json",
+      "type": "application/json",
+      "title": "30PTS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTT/catalog.json",
+      "type": "application/json",
+      "title": "30PTT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTU/catalog.json",
+      "type": "application/json",
+      "title": "30PTU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PTV/catalog.json",
+      "type": "application/json",
+      "title": "30PTV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUA/catalog.json",
+      "type": "application/json",
+      "title": "30PUA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUB/catalog.json",
+      "type": "application/json",
+      "title": "30PUB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUR/catalog.json",
+      "type": "application/json",
+      "title": "30PUR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUS/catalog.json",
+      "type": "application/json",
+      "title": "30PUS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUT/catalog.json",
+      "type": "application/json",
+      "title": "30PUT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUU/catalog.json",
+      "type": "application/json",
+      "title": "30PUU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PUV/catalog.json",
+      "type": "application/json",
+      "title": "30PUV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVA/catalog.json",
+      "type": "application/json",
+      "title": "30PVA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVB/catalog.json",
+      "type": "application/json",
+      "title": "30PVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVR/catalog.json",
+      "type": "application/json",
+      "title": "30PVR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVS/catalog.json",
+      "type": "application/json",
+      "title": "30PVS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVT/catalog.json",
+      "type": "application/json",
+      "title": "30PVT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVU/catalog.json",
+      "type": "application/json",
+      "title": "30PVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PVV/catalog.json",
+      "type": "application/json",
+      "title": "30PVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PWQ/catalog.json",
+      "type": "application/json",
+      "title": "30PWQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PWR/catalog.json",
+      "type": "application/json",
+      "title": "30PWR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PWS/catalog.json",
+      "type": "application/json",
+      "title": "30PWS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PWT/catalog.json",
+      "type": "application/json",
+      "title": "30PWT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PWU/catalog.json",
+      "type": "application/json",
+      "title": "30PWU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXQ/catalog.json",
+      "type": "application/json",
+      "title": "30PXQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXR/catalog.json",
+      "type": "application/json",
+      "title": "30PXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXS/catalog.json",
+      "type": "application/json",
+      "title": "30PXS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXT/catalog.json",
+      "type": "application/json",
+      "title": "30PXT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXU/catalog.json",
+      "type": "application/json",
+      "title": "30PXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PXV/catalog.json",
+      "type": "application/json",
+      "title": "30PXV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYQ/catalog.json",
+      "type": "application/json",
+      "title": "30PYQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYR/catalog.json",
+      "type": "application/json",
+      "title": "30PYR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYS/catalog.json",
+      "type": "application/json",
+      "title": "30PYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYT/catalog.json",
+      "type": "application/json",
+      "title": "30PYT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYU/catalog.json",
+      "type": "application/json",
+      "title": "30PYU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PYV/catalog.json",
+      "type": "application/json",
+      "title": "30PYV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZQ/catalog.json",
+      "type": "application/json",
+      "title": "30PZQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZR/catalog.json",
+      "type": "application/json",
+      "title": "30PZR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZS/catalog.json",
+      "type": "application/json",
+      "title": "30PZS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZT/catalog.json",
+      "type": "application/json",
+      "title": "30PZT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZU/catalog.json",
+      "type": "application/json",
+      "title": "30PZU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/30PZV/catalog.json",
+      "type": "application/json",
+      "title": "30PZV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NAG/catalog.json",
+      "type": "application/json",
+      "title": "31NAG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NAJ/catalog.json",
+      "type": "application/json",
+      "title": "31NAJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NBG/catalog.json",
+      "type": "application/json",
+      "title": "31NBG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NBH/catalog.json",
+      "type": "application/json",
+      "title": "31NBH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NBJ/catalog.json",
+      "type": "application/json",
+      "title": "31NBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NCH/catalog.json",
+      "type": "application/json",
+      "title": "31NCH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NCJ/catalog.json",
+      "type": "application/json",
+      "title": "31NCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NDH/catalog.json",
+      "type": "application/json",
+      "title": "31NDH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NDJ/catalog.json",
+      "type": "application/json",
+      "title": "31NDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NEH/catalog.json",
+      "type": "application/json",
+      "title": "31NEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31NEJ/catalog.json",
+      "type": "application/json",
+      "title": "31NEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAK/catalog.json",
+      "type": "application/json",
+      "title": "31PAK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAL/catalog.json",
+      "type": "application/json",
+      "title": "31PAL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAM/catalog.json",
+      "type": "application/json",
+      "title": "31PAM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAN/catalog.json",
+      "type": "application/json",
+      "title": "31PAN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAP/catalog.json",
+      "type": "application/json",
+      "title": "31PAP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PAQ/catalog.json",
+      "type": "application/json",
+      "title": "31PAQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBJ/catalog.json",
+      "type": "application/json",
+      "title": "31PBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBK/catalog.json",
+      "type": "application/json",
+      "title": "31PBK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBL/catalog.json",
+      "type": "application/json",
+      "title": "31PBL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBM/catalog.json",
+      "type": "application/json",
+      "title": "31PBM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBN/catalog.json",
+      "type": "application/json",
+      "title": "31PBN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBP/catalog.json",
+      "type": "application/json",
+      "title": "31PBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBQ/catalog.json",
+      "type": "application/json",
+      "title": "31PBQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PBR/catalog.json",
+      "type": "application/json",
+      "title": "31PBR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCJ/catalog.json",
+      "type": "application/json",
+      "title": "31PCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCK/catalog.json",
+      "type": "application/json",
+      "title": "31PCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCL/catalog.json",
+      "type": "application/json",
+      "title": "31PCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCM/catalog.json",
+      "type": "application/json",
+      "title": "31PCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCN/catalog.json",
+      "type": "application/json",
+      "title": "31PCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCP/catalog.json",
+      "type": "application/json",
+      "title": "31PCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCQ/catalog.json",
+      "type": "application/json",
+      "title": "31PCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PCR/catalog.json",
+      "type": "application/json",
+      "title": "31PCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDK/catalog.json",
+      "type": "application/json",
+      "title": "31PDK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDL/catalog.json",
+      "type": "application/json",
+      "title": "31PDL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDM/catalog.json",
+      "type": "application/json",
+      "title": "31PDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDN/catalog.json",
+      "type": "application/json",
+      "title": "31PDN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDP/catalog.json",
+      "type": "application/json",
+      "title": "31PDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDQ/catalog.json",
+      "type": "application/json",
+      "title": "31PDQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PDR/catalog.json",
+      "type": "application/json",
+      "title": "31PDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEJ/catalog.json",
+      "type": "application/json",
+      "title": "31PEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEK/catalog.json",
+      "type": "application/json",
+      "title": "31PEK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEL/catalog.json",
+      "type": "application/json",
+      "title": "31PEL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEM/catalog.json",
+      "type": "application/json",
+      "title": "31PEM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEN/catalog.json",
+      "type": "application/json",
+      "title": "31PEN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEP/catalog.json",
+      "type": "application/json",
+      "title": "31PEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PEQ/catalog.json",
+      "type": "application/json",
+      "title": "31PEQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PER/catalog.json",
+      "type": "application/json",
+      "title": "31PER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFJ/catalog.json",
+      "type": "application/json",
+      "title": "31PFJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFK/catalog.json",
+      "type": "application/json",
+      "title": "31PFK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFL/catalog.json",
+      "type": "application/json",
+      "title": "31PFL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFM/catalog.json",
+      "type": "application/json",
+      "title": "31PFM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFN/catalog.json",
+      "type": "application/json",
+      "title": "31PFN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFP/catalog.json",
+      "type": "application/json",
+      "title": "31PFP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFQ/catalog.json",
+      "type": "application/json",
+      "title": "31PFQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PFR/catalog.json",
+      "type": "application/json",
+      "title": "31PFR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGK/catalog.json",
+      "type": "application/json",
+      "title": "31PGK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGL/catalog.json",
+      "type": "application/json",
+      "title": "31PGL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGM/catalog.json",
+      "type": "application/json",
+      "title": "31PGM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGN/catalog.json",
+      "type": "application/json",
+      "title": "31PGN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGP/catalog.json",
+      "type": "application/json",
+      "title": "31PGP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGQ/catalog.json",
+      "type": "application/json",
+      "title": "31PGQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGR/catalog.json",
+      "type": "application/json",
+      "title": "31PGR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PGS/catalog.json",
+      "type": "application/json",
+      "title": "31PGS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHL/catalog.json",
+      "type": "application/json",
+      "title": "31PHL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHM/catalog.json",
+      "type": "application/json",
+      "title": "31PHM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHN/catalog.json",
+      "type": "application/json",
+      "title": "31PHN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHP/catalog.json",
+      "type": "application/json",
+      "title": "31PHP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHQ/catalog.json",
+      "type": "application/json",
+      "title": "31PHQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/31PHR/catalog.json",
+      "type": "application/json",
+      "title": "31PHR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NJN/catalog.json",
+      "type": "application/json",
+      "title": "32NJN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NJP/catalog.json",
+      "type": "application/json",
+      "title": "32NJP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NKM/catalog.json",
+      "type": "application/json",
+      "title": "32NKM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NKN/catalog.json",
+      "type": "application/json",
+      "title": "32NKN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NKP/catalog.json",
+      "type": "application/json",
+      "title": "32NKP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NLM/catalog.json",
+      "type": "application/json",
+      "title": "32NLM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NLN/catalog.json",
+      "type": "application/json",
+      "title": "32NLN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NLP/catalog.json",
+      "type": "application/json",
+      "title": "32NLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NMM/catalog.json",
+      "type": "application/json",
+      "title": "32NMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NMN/catalog.json",
+      "type": "application/json",
+      "title": "32NMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NMP/catalog.json",
+      "type": "application/json",
+      "title": "32NMP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NNN/catalog.json",
+      "type": "application/json",
+      "title": "32NNN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NNP/catalog.json",
+      "type": "application/json",
+      "title": "32NNP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NPM/catalog.json",
+      "type": "application/json",
+      "title": "32NPM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32NPP/catalog.json",
+      "type": "application/json",
+      "title": "32NPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJA/catalog.json",
+      "type": "application/json",
+      "title": "32PJA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJQ/catalog.json",
+      "type": "application/json",
+      "title": "32PJQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJR/catalog.json",
+      "type": "application/json",
+      "title": "32PJR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJS/catalog.json",
+      "type": "application/json",
+      "title": "32PJS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJT/catalog.json",
+      "type": "application/json",
+      "title": "32PJT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJU/catalog.json",
+      "type": "application/json",
+      "title": "32PJU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PJV/catalog.json",
+      "type": "application/json",
+      "title": "32PJV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKA/catalog.json",
+      "type": "application/json",
+      "title": "32PKA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKB/catalog.json",
+      "type": "application/json",
+      "title": "32PKB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKQ/catalog.json",
+      "type": "application/json",
+      "title": "32PKQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKR/catalog.json",
+      "type": "application/json",
+      "title": "32PKR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKS/catalog.json",
+      "type": "application/json",
+      "title": "32PKS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKT/catalog.json",
+      "type": "application/json",
+      "title": "32PKT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKU/catalog.json",
+      "type": "application/json",
+      "title": "32PKU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PKV/catalog.json",
+      "type": "application/json",
+      "title": "32PKV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLA/catalog.json",
+      "type": "application/json",
+      "title": "32PLA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLB/catalog.json",
+      "type": "application/json",
+      "title": "32PLB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLP/catalog.json",
+      "type": "application/json",
+      "title": "32PLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLQ/catalog.json",
+      "type": "application/json",
+      "title": "32PLQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLR/catalog.json",
+      "type": "application/json",
+      "title": "32PLR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLS/catalog.json",
+      "type": "application/json",
+      "title": "32PLS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLT/catalog.json",
+      "type": "application/json",
+      "title": "32PLT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLU/catalog.json",
+      "type": "application/json",
+      "title": "32PLU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PLV/catalog.json",
+      "type": "application/json",
+      "title": "32PLV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMA/catalog.json",
+      "type": "application/json",
+      "title": "32PMA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMB/catalog.json",
+      "type": "application/json",
+      "title": "32PMB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMQ/catalog.json",
+      "type": "application/json",
+      "title": "32PMQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMR/catalog.json",
+      "type": "application/json",
+      "title": "32PMR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMS/catalog.json",
+      "type": "application/json",
+      "title": "32PMS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMT/catalog.json",
+      "type": "application/json",
+      "title": "32PMT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMU/catalog.json",
+      "type": "application/json",
+      "title": "32PMU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PMV/catalog.json",
+      "type": "application/json",
+      "title": "32PMV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNA/catalog.json",
+      "type": "application/json",
+      "title": "32PNA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNB/catalog.json",
+      "type": "application/json",
+      "title": "32PNB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNP/catalog.json",
+      "type": "application/json",
+      "title": "32PNP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNQ/catalog.json",
+      "type": "application/json",
+      "title": "32PNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNR/catalog.json",
+      "type": "application/json",
+      "title": "32PNR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNS/catalog.json",
+      "type": "application/json",
+      "title": "32PNS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNT/catalog.json",
+      "type": "application/json",
+      "title": "32PNT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNU/catalog.json",
+      "type": "application/json",
+      "title": "32PNU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PNV/catalog.json",
+      "type": "application/json",
+      "title": "32PNV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPA/catalog.json",
+      "type": "application/json",
+      "title": "32PPA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPP/catalog.json",
+      "type": "application/json",
+      "title": "32PPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPQ/catalog.json",
+      "type": "application/json",
+      "title": "32PPQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPR/catalog.json",
+      "type": "application/json",
+      "title": "32PPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPS/catalog.json",
+      "type": "application/json",
+      "title": "32PPS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPT/catalog.json",
+      "type": "application/json",
+      "title": "32PPT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPU/catalog.json",
+      "type": "application/json",
+      "title": "32PPU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PPV/catalog.json",
+      "type": "application/json",
+      "title": "32PPV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQA/catalog.json",
+      "type": "application/json",
+      "title": "32PQA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQQ/catalog.json",
+      "type": "application/json",
+      "title": "32PQQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQR/catalog.json",
+      "type": "application/json",
+      "title": "32PQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQS/catalog.json",
+      "type": "application/json",
+      "title": "32PQS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQT/catalog.json",
+      "type": "application/json",
+      "title": "32PQT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQU/catalog.json",
+      "type": "application/json",
+      "title": "32PQU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PQV/catalog.json",
+      "type": "application/json",
+      "title": "32PQV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRQ/catalog.json",
+      "type": "application/json",
+      "title": "32PRQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRR/catalog.json",
+      "type": "application/json",
+      "title": "32PRR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRS/catalog.json",
+      "type": "application/json",
+      "title": "32PRS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRT/catalog.json",
+      "type": "application/json",
+      "title": "32PRT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRU/catalog.json",
+      "type": "application/json",
+      "title": "32PRU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/32PRV/catalog.json",
+      "type": "application/json",
+      "title": "32PRV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KVA/catalog.json",
+      "type": "application/json",
+      "title": "33KVA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KVB/catalog.json",
+      "type": "application/json",
+      "title": "33KVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KVV/catalog.json",
+      "type": "application/json",
+      "title": "33KVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KWA/catalog.json",
+      "type": "application/json",
+      "title": "33KWA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KWB/catalog.json",
+      "type": "application/json",
+      "title": "33KWB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KWC/catalog.json",
+      "type": "application/json",
+      "title": "33KWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KXA/catalog.json",
+      "type": "application/json",
+      "title": "33KXA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KXV/catalog.json",
+      "type": "application/json",
+      "title": "33KXV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KYA/catalog.json",
+      "type": "application/json",
+      "title": "33KYA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KYC/catalog.json",
+      "type": "application/json",
+      "title": "33KYC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KYS/catalog.json",
+      "type": "application/json",
+      "title": "33KYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33KYV/catalog.json",
+      "type": "application/json",
+      "title": "33KYV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LUD/catalog.json",
+      "type": "application/json",
+      "title": "33LUD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LUE/catalog.json",
+      "type": "application/json",
+      "title": "33LUE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LUG/catalog.json",
+      "type": "application/json",
+      "title": "33LUG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LUL/catalog.json",
+      "type": "application/json",
+      "title": "33LUL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVC/catalog.json",
+      "type": "application/json",
+      "title": "33LVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVD/catalog.json",
+      "type": "application/json",
+      "title": "33LVD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVE/catalog.json",
+      "type": "application/json",
+      "title": "33LVE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVF/catalog.json",
+      "type": "application/json",
+      "title": "33LVF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVG/catalog.json",
+      "type": "application/json",
+      "title": "33LVG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVH/catalog.json",
+      "type": "application/json",
+      "title": "33LVH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVJ/catalog.json",
+      "type": "application/json",
+      "title": "33LVJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LVK/catalog.json",
+      "type": "application/json",
+      "title": "33LVK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWD/catalog.json",
+      "type": "application/json",
+      "title": "33LWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWE/catalog.json",
+      "type": "application/json",
+      "title": "33LWE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWF/catalog.json",
+      "type": "application/json",
+      "title": "33LWF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWG/catalog.json",
+      "type": "application/json",
+      "title": "33LWG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWH/catalog.json",
+      "type": "application/json",
+      "title": "33LWH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWJ/catalog.json",
+      "type": "application/json",
+      "title": "33LWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LWK/catalog.json",
+      "type": "application/json",
+      "title": "33LWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LXE/catalog.json",
+      "type": "application/json",
+      "title": "33LXE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LXF/catalog.json",
+      "type": "application/json",
+      "title": "33LXF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LXG/catalog.json",
+      "type": "application/json",
+      "title": "33LXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LXH/catalog.json",
+      "type": "application/json",
+      "title": "33LXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LXK/catalog.json",
+      "type": "application/json",
+      "title": "33LXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LYD/catalog.json",
+      "type": "application/json",
+      "title": "33LYD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LYF/catalog.json",
+      "type": "application/json",
+      "title": "33LYF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LYG/catalog.json",
+      "type": "application/json",
+      "title": "33LYG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LYH/catalog.json",
+      "type": "application/json",
+      "title": "33LYH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33LZL/catalog.json",
+      "type": "application/json",
+      "title": "33LZL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MVP/catalog.json",
+      "type": "application/json",
+      "title": "33MVP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MVQ/catalog.json",
+      "type": "application/json",
+      "title": "33MVQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MWP/catalog.json",
+      "type": "application/json",
+      "title": "33MWP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MWQ/catalog.json",
+      "type": "application/json",
+      "title": "33MWQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MWR/catalog.json",
+      "type": "application/json",
+      "title": "33MWR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MWS/catalog.json",
+      "type": "application/json",
+      "title": "33MWS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MXR/catalog.json",
+      "type": "application/json",
+      "title": "33MXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MXS/catalog.json",
+      "type": "application/json",
+      "title": "33MXS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33MYP/catalog.json",
+      "type": "application/json",
+      "title": "33MYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33NUJ/catalog.json",
+      "type": "application/json",
+      "title": "33NUJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33NVJ/catalog.json",
+      "type": "application/json",
+      "title": "33NVJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33NWJ/catalog.json",
+      "type": "application/json",
+      "title": "33NWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33NXH/catalog.json",
+      "type": "application/json",
+      "title": "33NXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33NXJ/catalog.json",
+      "type": "application/json",
+      "title": "33NXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSJ/catalog.json",
+      "type": "application/json",
+      "title": "33PSJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSK/catalog.json",
+      "type": "application/json",
+      "title": "33PSK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSL/catalog.json",
+      "type": "application/json",
+      "title": "33PSL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSM/catalog.json",
+      "type": "application/json",
+      "title": "33PSM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSN/catalog.json",
+      "type": "application/json",
+      "title": "33PSN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PSQ/catalog.json",
+      "type": "application/json",
+      "title": "33PSQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTK/catalog.json",
+      "type": "application/json",
+      "title": "33PTK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTL/catalog.json",
+      "type": "application/json",
+      "title": "33PTL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTM/catalog.json",
+      "type": "application/json",
+      "title": "33PTM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTN/catalog.json",
+      "type": "application/json",
+      "title": "33PTN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTP/catalog.json",
+      "type": "application/json",
+      "title": "33PTP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PTQ/catalog.json",
+      "type": "application/json",
+      "title": "33PTQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUK/catalog.json",
+      "type": "application/json",
+      "title": "33PUK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUL/catalog.json",
+      "type": "application/json",
+      "title": "33PUL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUM/catalog.json",
+      "type": "application/json",
+      "title": "33PUM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUN/catalog.json",
+      "type": "application/json",
+      "title": "33PUN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUP/catalog.json",
+      "type": "application/json",
+      "title": "33PUP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PUQ/catalog.json",
+      "type": "application/json",
+      "title": "33PUQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PVK/catalog.json",
+      "type": "application/json",
+      "title": "33PVK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PVL/catalog.json",
+      "type": "application/json",
+      "title": "33PVL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PVM/catalog.json",
+      "type": "application/json",
+      "title": "33PVM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PVN/catalog.json",
+      "type": "application/json",
+      "title": "33PVN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWJ/catalog.json",
+      "type": "application/json",
+      "title": "33PWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWK/catalog.json",
+      "type": "application/json",
+      "title": "33PWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWL/catalog.json",
+      "type": "application/json",
+      "title": "33PWL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWM/catalog.json",
+      "type": "application/json",
+      "title": "33PWM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWN/catalog.json",
+      "type": "application/json",
+      "title": "33PWN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PWP/catalog.json",
+      "type": "application/json",
+      "title": "33PWP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PXK/catalog.json",
+      "type": "application/json",
+      "title": "33PXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PXL/catalog.json",
+      "type": "application/json",
+      "title": "33PXL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PXM/catalog.json",
+      "type": "application/json",
+      "title": "33PXM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PXN/catalog.json",
+      "type": "application/json",
+      "title": "33PXN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PXP/catalog.json",
+      "type": "application/json",
+      "title": "33PXP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYJ/catalog.json",
+      "type": "application/json",
+      "title": "33PYJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYK/catalog.json",
+      "type": "application/json",
+      "title": "33PYK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYL/catalog.json",
+      "type": "application/json",
+      "title": "33PYL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYM/catalog.json",
+      "type": "application/json",
+      "title": "33PYM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYN/catalog.json",
+      "type": "application/json",
+      "title": "33PYN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PYP/catalog.json",
+      "type": "application/json",
+      "title": "33PYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PZJ/catalog.json",
+      "type": "application/json",
+      "title": "33PZJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PZK/catalog.json",
+      "type": "application/json",
+      "title": "33PZK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PZL/catalog.json",
+      "type": "application/json",
+      "title": "33PZL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/33PZQ/catalog.json",
+      "type": "application/json",
+      "title": "33PZQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34JEP/catalog.json",
+      "type": "application/json",
+      "title": "34JEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34JFN/catalog.json",
+      "type": "application/json",
+      "title": "34JFN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34KBD/catalog.json",
+      "type": "application/json",
+      "title": "34KBD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34KBF/catalog.json",
+      "type": "application/json",
+      "title": "34KBF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34KCF/catalog.json",
+      "type": "application/json",
+      "title": "34KCF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34KDF/catalog.json",
+      "type": "application/json",
+      "title": "34KDF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34KEE/catalog.json",
+      "type": "application/json",
+      "title": "34KEE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34LEJ/catalog.json",
+      "type": "application/json",
+      "title": "34LEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34LHL/catalog.json",
+      "type": "application/json",
+      "title": "34LHL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MBA/catalog.json",
+      "type": "application/json",
+      "title": "34MBA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MBU/catalog.json",
+      "type": "application/json",
+      "title": "34MBU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MBV/catalog.json",
+      "type": "application/json",
+      "title": "34MBV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MCA/catalog.json",
+      "type": "application/json",
+      "title": "34MCA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MCU/catalog.json",
+      "type": "application/json",
+      "title": "34MCU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MCV/catalog.json",
+      "type": "application/json",
+      "title": "34MCV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MDA/catalog.json",
+      "type": "application/json",
+      "title": "34MDA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MFV/catalog.json",
+      "type": "application/json",
+      "title": "34MFV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MGT/catalog.json",
+      "type": "application/json",
+      "title": "34MGT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MGU/catalog.json",
+      "type": "application/json",
+      "title": "34MGU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34MHT/catalog.json",
+      "type": "application/json",
+      "title": "34MHT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NAK/catalog.json",
+      "type": "application/json",
+      "title": "34NAK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NBH/catalog.json",
+      "type": "application/json",
+      "title": "34NBH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NBJ/catalog.json",
+      "type": "application/json",
+      "title": "34NBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NCJ/catalog.json",
+      "type": "application/json",
+      "title": "34NCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NDG/catalog.json",
+      "type": "application/json",
+      "title": "34NDG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NDH/catalog.json",
+      "type": "application/json",
+      "title": "34NDH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NDJ/catalog.json",
+      "type": "application/json",
+      "title": "34NDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NEH/catalog.json",
+      "type": "application/json",
+      "title": "34NEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NEJ/catalog.json",
+      "type": "application/json",
+      "title": "34NEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NFH/catalog.json",
+      "type": "application/json",
+      "title": "34NFH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NFK/catalog.json",
+      "type": "application/json",
+      "title": "34NFK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34NGH/catalog.json",
+      "type": "application/json",
+      "title": "34NGH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PAQ/catalog.json",
+      "type": "application/json",
+      "title": "34PAQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PAR/catalog.json",
+      "type": "application/json",
+      "title": "34PAR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PAV/catalog.json",
+      "type": "application/json",
+      "title": "34PAV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PBA/catalog.json",
+      "type": "application/json",
+      "title": "34PBA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PBQ/catalog.json",
+      "type": "application/json",
+      "title": "34PBQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PBR/catalog.json",
+      "type": "application/json",
+      "title": "34PBR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PBU/catalog.json",
+      "type": "application/json",
+      "title": "34PBU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PBV/catalog.json",
+      "type": "application/json",
+      "title": "34PBV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PCT/catalog.json",
+      "type": "application/json",
+      "title": "34PCT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PDA/catalog.json",
+      "type": "application/json",
+      "title": "34PDA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PDS/catalog.json",
+      "type": "application/json",
+      "title": "34PDS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PDU/catalog.json",
+      "type": "application/json",
+      "title": "34PDU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PDV/catalog.json",
+      "type": "application/json",
+      "title": "34PDV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PEA/catalog.json",
+      "type": "application/json",
+      "title": "34PEA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PEB/catalog.json",
+      "type": "application/json",
+      "title": "34PEB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PEU/catalog.json",
+      "type": "application/json",
+      "title": "34PEU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PEV/catalog.json",
+      "type": "application/json",
+      "title": "34PEV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PFT/catalog.json",
+      "type": "application/json",
+      "title": "34PFT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PFU/catalog.json",
+      "type": "application/json",
+      "title": "34PFU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PFV/catalog.json",
+      "type": "application/json",
+      "title": "34PFV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PGS/catalog.json",
+      "type": "application/json",
+      "title": "34PGS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PGT/catalog.json",
+      "type": "application/json",
+      "title": "34PGT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PGV/catalog.json",
+      "type": "application/json",
+      "title": "34PGV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PHS/catalog.json",
+      "type": "application/json",
+      "title": "34PHS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/34PHT/catalog.json",
+      "type": "application/json",
+      "title": "34PHT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JKH/catalog.json",
+      "type": "application/json",
+      "title": "35JKH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JKK/catalog.json",
+      "type": "application/json",
+      "title": "35JKK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JKL/catalog.json",
+      "type": "application/json",
+      "title": "35JKL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLH/catalog.json",
+      "type": "application/json",
+      "title": "35JLH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLJ/catalog.json",
+      "type": "application/json",
+      "title": "35JLJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLK/catalog.json",
+      "type": "application/json",
+      "title": "35JLK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLL/catalog.json",
+      "type": "application/json",
+      "title": "35JLL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLM/catalog.json",
+      "type": "application/json",
+      "title": "35JLM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JLN/catalog.json",
+      "type": "application/json",
+      "title": "35JLN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMG/catalog.json",
+      "type": "application/json",
+      "title": "35JMG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMH/catalog.json",
+      "type": "application/json",
+      "title": "35JMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMJ/catalog.json",
+      "type": "application/json",
+      "title": "35JMJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMK/catalog.json",
+      "type": "application/json",
+      "title": "35JMK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JML/catalog.json",
+      "type": "application/json",
+      "title": "35JML"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMM/catalog.json",
+      "type": "application/json",
+      "title": "35JMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JMP/catalog.json",
+      "type": "application/json",
+      "title": "35JMP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNG/catalog.json",
+      "type": "application/json",
+      "title": "35JNG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNH/catalog.json",
+      "type": "application/json",
+      "title": "35JNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNJ/catalog.json",
+      "type": "application/json",
+      "title": "35JNJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNK/catalog.json",
+      "type": "application/json",
+      "title": "35JNK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNL/catalog.json",
+      "type": "application/json",
+      "title": "35JNL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JNM/catalog.json",
+      "type": "application/json",
+      "title": "35JNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPG/catalog.json",
+      "type": "application/json",
+      "title": "35JPG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPH/catalog.json",
+      "type": "application/json",
+      "title": "35JPH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPJ/catalog.json",
+      "type": "application/json",
+      "title": "35JPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPK/catalog.json",
+      "type": "application/json",
+      "title": "35JPK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPL/catalog.json",
+      "type": "application/json",
+      "title": "35JPL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPM/catalog.json",
+      "type": "application/json",
+      "title": "35JPM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPN/catalog.json",
+      "type": "application/json",
+      "title": "35JPN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JPP/catalog.json",
+      "type": "application/json",
+      "title": "35JPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQH/catalog.json",
+      "type": "application/json",
+      "title": "35JQH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQK/catalog.json",
+      "type": "application/json",
+      "title": "35JQK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQL/catalog.json",
+      "type": "application/json",
+      "title": "35JQL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQM/catalog.json",
+      "type": "application/json",
+      "title": "35JQM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQN/catalog.json",
+      "type": "application/json",
+      "title": "35JQN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35JQP/catalog.json",
+      "type": "application/json",
+      "title": "35JQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KLA/catalog.json",
+      "type": "application/json",
+      "title": "35KLA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KLB/catalog.json",
+      "type": "application/json",
+      "title": "35KLB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KLP/catalog.json",
+      "type": "application/json",
+      "title": "35KLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMA/catalog.json",
+      "type": "application/json",
+      "title": "35KMA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMB/catalog.json",
+      "type": "application/json",
+      "title": "35KMB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMC/catalog.json",
+      "type": "application/json",
+      "title": "35KMC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMQ/catalog.json",
+      "type": "application/json",
+      "title": "35KMQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMS/catalog.json",
+      "type": "application/json",
+      "title": "35KMS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KMT/catalog.json",
+      "type": "application/json",
+      "title": "35KMT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNA/catalog.json",
+      "type": "application/json",
+      "title": "35KNA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNB/catalog.json",
+      "type": "application/json",
+      "title": "35KNB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNC/catalog.json",
+      "type": "application/json",
+      "title": "35KNC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNQ/catalog.json",
+      "type": "application/json",
+      "title": "35KNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNS/catalog.json",
+      "type": "application/json",
+      "title": "35KNS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNT/catalog.json",
+      "type": "application/json",
+      "title": "35KNT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KNV/catalog.json",
+      "type": "application/json",
+      "title": "35KNV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPA/catalog.json",
+      "type": "application/json",
+      "title": "35KPA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPB/catalog.json",
+      "type": "application/json",
+      "title": "35KPB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPC/catalog.json",
+      "type": "application/json",
+      "title": "35KPC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPQ/catalog.json",
+      "type": "application/json",
+      "title": "35KPQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPR/catalog.json",
+      "type": "application/json",
+      "title": "35KPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPS/catalog.json",
+      "type": "application/json",
+      "title": "35KPS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPT/catalog.json",
+      "type": "application/json",
+      "title": "35KPT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPU/catalog.json",
+      "type": "application/json",
+      "title": "35KPU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KPV/catalog.json",
+      "type": "application/json",
+      "title": "35KPV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQA/catalog.json",
+      "type": "application/json",
+      "title": "35KQA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQB/catalog.json",
+      "type": "application/json",
+      "title": "35KQB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQP/catalog.json",
+      "type": "application/json",
+      "title": "35KQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQQ/catalog.json",
+      "type": "application/json",
+      "title": "35KQQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQR/catalog.json",
+      "type": "application/json",
+      "title": "35KQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQS/catalog.json",
+      "type": "application/json",
+      "title": "35KQS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQT/catalog.json",
+      "type": "application/json",
+      "title": "35KQT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQU/catalog.json",
+      "type": "application/json",
+      "title": "35KQU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KQV/catalog.json",
+      "type": "application/json",
+      "title": "35KQV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KRA/catalog.json",
+      "type": "application/json",
+      "title": "35KRA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35KRB/catalog.json",
+      "type": "application/json",
+      "title": "35KRB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LKD/catalog.json",
+      "type": "application/json",
+      "title": "35LKD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LKE/catalog.json",
+      "type": "application/json",
+      "title": "35LKE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LKF/catalog.json",
+      "type": "application/json",
+      "title": "35LKF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LLE/catalog.json",
+      "type": "application/json",
+      "title": "35LLE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LLF/catalog.json",
+      "type": "application/json",
+      "title": "35LLF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LLK/catalog.json",
+      "type": "application/json",
+      "title": "35LLK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LLL/catalog.json",
+      "type": "application/json",
+      "title": "35LLL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LMD/catalog.json",
+      "type": "application/json",
+      "title": "35LMD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LMF/catalog.json",
+      "type": "application/json",
+      "title": "35LMF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LMH/catalog.json",
+      "type": "application/json",
+      "title": "35LMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LMJ/catalog.json",
+      "type": "application/json",
+      "title": "35LMJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LML/catalog.json",
+      "type": "application/json",
+      "title": "35LML"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LMM/catalog.json",
+      "type": "application/json",
+      "title": "35LMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LNC/catalog.json",
+      "type": "application/json",
+      "title": "35LNC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LND/catalog.json",
+      "type": "application/json",
+      "title": "35LND"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LNE/catalog.json",
+      "type": "application/json",
+      "title": "35LNE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LNF/catalog.json",
+      "type": "application/json",
+      "title": "35LNF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LNG/catalog.json",
+      "type": "application/json",
+      "title": "35LNG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LNH/catalog.json",
+      "type": "application/json",
+      "title": "35LNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPC/catalog.json",
+      "type": "application/json",
+      "title": "35LPC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPD/catalog.json",
+      "type": "application/json",
+      "title": "35LPD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPE/catalog.json",
+      "type": "application/json",
+      "title": "35LPE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPF/catalog.json",
+      "type": "application/json",
+      "title": "35LPF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPG/catalog.json",
+      "type": "application/json",
+      "title": "35LPG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPH/catalog.json",
+      "type": "application/json",
+      "title": "35LPH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPJ/catalog.json",
+      "type": "application/json",
+      "title": "35LPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LPK/catalog.json",
+      "type": "application/json",
+      "title": "35LPK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQD/catalog.json",
+      "type": "application/json",
+      "title": "35LQD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQE/catalog.json",
+      "type": "application/json",
+      "title": "35LQE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQG/catalog.json",
+      "type": "application/json",
+      "title": "35LQG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQJ/catalog.json",
+      "type": "application/json",
+      "title": "35LQJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQK/catalog.json",
+      "type": "application/json",
+      "title": "35LQK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LQL/catalog.json",
+      "type": "application/json",
+      "title": "35LQL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35LRE/catalog.json",
+      "type": "application/json",
+      "title": "35LRE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MKP/catalog.json",
+      "type": "application/json",
+      "title": "35MKP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MLS/catalog.json",
+      "type": "application/json",
+      "title": "35MLS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MMM/catalog.json",
+      "type": "application/json",
+      "title": "35MMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MMN/catalog.json",
+      "type": "application/json",
+      "title": "35MMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MNM/catalog.json",
+      "type": "application/json",
+      "title": "35MNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MNQ/catalog.json",
+      "type": "application/json",
+      "title": "35MNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MPT/catalog.json",
+      "type": "application/json",
+      "title": "35MPT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQP/catalog.json",
+      "type": "application/json",
+      "title": "35MQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQR/catalog.json",
+      "type": "application/json",
+      "title": "35MQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQS/catalog.json",
+      "type": "application/json",
+      "title": "35MQS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQT/catalog.json",
+      "type": "application/json",
+      "title": "35MQT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQU/catalog.json",
+      "type": "application/json",
+      "title": "35MQU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MQV/catalog.json",
+      "type": "application/json",
+      "title": "35MQV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MRR/catalog.json",
+      "type": "application/json",
+      "title": "35MRR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MRS/catalog.json",
+      "type": "application/json",
+      "title": "35MRS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MRT/catalog.json",
+      "type": "application/json",
+      "title": "35MRT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MRU/catalog.json",
+      "type": "application/json",
+      "title": "35MRU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35MRV/catalog.json",
+      "type": "application/json",
+      "title": "35MRV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35NJD/catalog.json",
+      "type": "application/json",
+      "title": "35NJD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35NQA/catalog.json",
+      "type": "application/json",
+      "title": "35NQA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35NRD/catalog.json",
+      "type": "application/json",
+      "title": "35NRD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PKN/catalog.json",
+      "type": "application/json",
+      "title": "35PKN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PKP/catalog.json",
+      "type": "application/json",
+      "title": "35PKP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PKQ/catalog.json",
+      "type": "application/json",
+      "title": "35PKQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PLM/catalog.json",
+      "type": "application/json",
+      "title": "35PLM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PLN/catalog.json",
+      "type": "application/json",
+      "title": "35PLN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PLP/catalog.json",
+      "type": "application/json",
+      "title": "35PLP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PMM/catalog.json",
+      "type": "application/json",
+      "title": "35PMM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PMN/catalog.json",
+      "type": "application/json",
+      "title": "35PMN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PMP/catalog.json",
+      "type": "application/json",
+      "title": "35PMP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PMQ/catalog.json",
+      "type": "application/json",
+      "title": "35PMQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PNM/catalog.json",
+      "type": "application/json",
+      "title": "35PNM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PNN/catalog.json",
+      "type": "application/json",
+      "title": "35PNN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PNP/catalog.json",
+      "type": "application/json",
+      "title": "35PNP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PNQ/catalog.json",
+      "type": "application/json",
+      "title": "35PNQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PNR/catalog.json",
+      "type": "application/json",
+      "title": "35PNR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PPK/catalog.json",
+      "type": "application/json",
+      "title": "35PPK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PPP/catalog.json",
+      "type": "application/json",
+      "title": "35PPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PPQ/catalog.json",
+      "type": "application/json",
+      "title": "35PPQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PPR/catalog.json",
+      "type": "application/json",
+      "title": "35PPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PQM/catalog.json",
+      "type": "application/json",
+      "title": "35PQM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PQP/catalog.json",
+      "type": "application/json",
+      "title": "35PQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PQQ/catalog.json",
+      "type": "application/json",
+      "title": "35PQQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PQR/catalog.json",
+      "type": "application/json",
+      "title": "35PQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PRN/catalog.json",
+      "type": "application/json",
+      "title": "35PRN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PRP/catalog.json",
+      "type": "application/json",
+      "title": "35PRP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PRQ/catalog.json",
+      "type": "application/json",
+      "title": "35PRQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/35PRR/catalog.json",
+      "type": "application/json",
+      "title": "35PRR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JTM/catalog.json",
+      "type": "application/json",
+      "title": "36JTM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JTN/catalog.json",
+      "type": "application/json",
+      "title": "36JTN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JTQ/catalog.json",
+      "type": "application/json",
+      "title": "36JTQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JTR/catalog.json",
+      "type": "application/json",
+      "title": "36JTR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JTS/catalog.json",
+      "type": "application/json",
+      "title": "36JTS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JUN/catalog.json",
+      "type": "application/json",
+      "title": "36JUN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JUP/catalog.json",
+      "type": "application/json",
+      "title": "36JUP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JUR/catalog.json",
+      "type": "application/json",
+      "title": "36JUR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JUS/catalog.json",
+      "type": "application/json",
+      "title": "36JUS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JVQ/catalog.json",
+      "type": "application/json",
+      "title": "36JVQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JVR/catalog.json",
+      "type": "application/json",
+      "title": "36JVR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JVS/catalog.json",
+      "type": "application/json",
+      "title": "36JVS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JWT/catalog.json",
+      "type": "application/json",
+      "title": "36JWT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36JXU/catalog.json",
+      "type": "application/json",
+      "title": "36JXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KSC/catalog.json",
+      "type": "application/json",
+      "title": "36KSC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KSE/catalog.json",
+      "type": "application/json",
+      "title": "36KSE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KSF/catalog.json",
+      "type": "application/json",
+      "title": "36KSF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTB/catalog.json",
+      "type": "application/json",
+      "title": "36KTB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTC/catalog.json",
+      "type": "application/json",
+      "title": "36KTC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTD/catalog.json",
+      "type": "application/json",
+      "title": "36KTD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTE/catalog.json",
+      "type": "application/json",
+      "title": "36KTE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTF/catalog.json",
+      "type": "application/json",
+      "title": "36KTF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTG/catalog.json",
+      "type": "application/json",
+      "title": "36KTG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTU/catalog.json",
+      "type": "application/json",
+      "title": "36KTU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KTV/catalog.json",
+      "type": "application/json",
+      "title": "36KTV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUA/catalog.json",
+      "type": "application/json",
+      "title": "36KUA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUB/catalog.json",
+      "type": "application/json",
+      "title": "36KUB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUC/catalog.json",
+      "type": "application/json",
+      "title": "36KUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUD/catalog.json",
+      "type": "application/json",
+      "title": "36KUD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUE/catalog.json",
+      "type": "application/json",
+      "title": "36KUE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUF/catalog.json",
+      "type": "application/json",
+      "title": "36KUF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KUG/catalog.json",
+      "type": "application/json",
+      "title": "36KUG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVB/catalog.json",
+      "type": "application/json",
+      "title": "36KVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVC/catalog.json",
+      "type": "application/json",
+      "title": "36KVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVD/catalog.json",
+      "type": "application/json",
+      "title": "36KVD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVE/catalog.json",
+      "type": "application/json",
+      "title": "36KVE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVF/catalog.json",
+      "type": "application/json",
+      "title": "36KVF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVG/catalog.json",
+      "type": "application/json",
+      "title": "36KVG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KVU/catalog.json",
+      "type": "application/json",
+      "title": "36KVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KWD/catalog.json",
+      "type": "application/json",
+      "title": "36KWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KWE/catalog.json",
+      "type": "application/json",
+      "title": "36KWE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KWF/catalog.json",
+      "type": "application/json",
+      "title": "36KWF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KXB/catalog.json",
+      "type": "application/json",
+      "title": "36KXB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KXC/catalog.json",
+      "type": "application/json",
+      "title": "36KXC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KXG/catalog.json",
+      "type": "application/json",
+      "title": "36KXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KXH/catalog.json",
+      "type": "application/json",
+      "title": "36KXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYA/catalog.json",
+      "type": "application/json",
+      "title": "36KYA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYE/catalog.json",
+      "type": "application/json",
+      "title": "36KYE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYF/catalog.json",
+      "type": "application/json",
+      "title": "36KYF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYG/catalog.json",
+      "type": "application/json",
+      "title": "36KYG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYH/catalog.json",
+      "type": "application/json",
+      "title": "36KYH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KYU/catalog.json",
+      "type": "application/json",
+      "title": "36KYU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KZE/catalog.json",
+      "type": "application/json",
+      "title": "36KZE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36KZH/catalog.json",
+      "type": "application/json",
+      "title": "36KZH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LTJ/catalog.json",
+      "type": "application/json",
+      "title": "36LTJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LTK/catalog.json",
+      "type": "application/json",
+      "title": "36LTK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LTL/catalog.json",
+      "type": "application/json",
+      "title": "36LTL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LTP/catalog.json",
+      "type": "application/json",
+      "title": "36LTP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LTS/catalog.json",
+      "type": "application/json",
+      "title": "36LTS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUJ/catalog.json",
+      "type": "application/json",
+      "title": "36LUJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUK/catalog.json",
+      "type": "application/json",
+      "title": "36LUK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUL/catalog.json",
+      "type": "application/json",
+      "title": "36LUL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUM/catalog.json",
+      "type": "application/json",
+      "title": "36LUM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUN/catalog.json",
+      "type": "application/json",
+      "title": "36LUN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUP/catalog.json",
+      "type": "application/json",
+      "title": "36LUP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUQ/catalog.json",
+      "type": "application/json",
+      "title": "36LUQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUR/catalog.json",
+      "type": "application/json",
+      "title": "36LUR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LUS/catalog.json",
+      "type": "application/json",
+      "title": "36LUS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVK/catalog.json",
+      "type": "application/json",
+      "title": "36LVK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVL/catalog.json",
+      "type": "application/json",
+      "title": "36LVL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVM/catalog.json",
+      "type": "application/json",
+      "title": "36LVM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVN/catalog.json",
+      "type": "application/json",
+      "title": "36LVN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVQ/catalog.json",
+      "type": "application/json",
+      "title": "36LVQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LVR/catalog.json",
+      "type": "application/json",
+      "title": "36LVR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWJ/catalog.json",
+      "type": "application/json",
+      "title": "36LWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWK/catalog.json",
+      "type": "application/json",
+      "title": "36LWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWL/catalog.json",
+      "type": "application/json",
+      "title": "36LWL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWM/catalog.json",
+      "type": "application/json",
+      "title": "36LWM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWN/catalog.json",
+      "type": "application/json",
+      "title": "36LWN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWP/catalog.json",
+      "type": "application/json",
+      "title": "36LWP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWQ/catalog.json",
+      "type": "application/json",
+      "title": "36LWQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWR/catalog.json",
+      "type": "application/json",
+      "title": "36LWR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LWS/catalog.json",
+      "type": "application/json",
+      "title": "36LWS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LXH/catalog.json",
+      "type": "application/json",
+      "title": "36LXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LXJ/catalog.json",
+      "type": "application/json",
+      "title": "36LXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LXK/catalog.json",
+      "type": "application/json",
+      "title": "36LXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LXL/catalog.json",
+      "type": "application/json",
+      "title": "36LXL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LXR/catalog.json",
+      "type": "application/json",
+      "title": "36LXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYH/catalog.json",
+      "type": "application/json",
+      "title": "36LYH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYJ/catalog.json",
+      "type": "application/json",
+      "title": "36LYJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYK/catalog.json",
+      "type": "application/json",
+      "title": "36LYK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYL/catalog.json",
+      "type": "application/json",
+      "title": "36LYL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYP/catalog.json",
+      "type": "application/json",
+      "title": "36LYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LYS/catalog.json",
+      "type": "application/json",
+      "title": "36LYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LZH/catalog.json",
+      "type": "application/json",
+      "title": "36LZH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LZL/catalog.json",
+      "type": "application/json",
+      "title": "36LZL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LZR/catalog.json",
+      "type": "application/json",
+      "title": "36LZR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36LZS/catalog.json",
+      "type": "application/json",
+      "title": "36LZS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MSB/catalog.json",
+      "type": "application/json",
+      "title": "36MSB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MSC/catalog.json",
+      "type": "application/json",
+      "title": "36MSC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MSD/catalog.json",
+      "type": "application/json",
+      "title": "36MSD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTB/catalog.json",
+      "type": "application/json",
+      "title": "36MTB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTC/catalog.json",
+      "type": "application/json",
+      "title": "36MTC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTD/catalog.json",
+      "type": "application/json",
+      "title": "36MTD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTE/catalog.json",
+      "type": "application/json",
+      "title": "36MTE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTS/catalog.json",
+      "type": "application/json",
+      "title": "36MTS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTT/catalog.json",
+      "type": "application/json",
+      "title": "36MTT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTU/catalog.json",
+      "type": "application/json",
+      "title": "36MTU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MTV/catalog.json",
+      "type": "application/json",
+      "title": "36MTV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUA/catalog.json",
+      "type": "application/json",
+      "title": "36MUA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUB/catalog.json",
+      "type": "application/json",
+      "title": "36MUB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUC/catalog.json",
+      "type": "application/json",
+      "title": "36MUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUD/catalog.json",
+      "type": "application/json",
+      "title": "36MUD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUE/catalog.json",
+      "type": "application/json",
+      "title": "36MUE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUS/catalog.json",
+      "type": "application/json",
+      "title": "36MUS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUT/catalog.json",
+      "type": "application/json",
+      "title": "36MUT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUU/catalog.json",
+      "type": "application/json",
+      "title": "36MUU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MUV/catalog.json",
+      "type": "application/json",
+      "title": "36MUV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVA/catalog.json",
+      "type": "application/json",
+      "title": "36MVA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVB/catalog.json",
+      "type": "application/json",
+      "title": "36MVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVC/catalog.json",
+      "type": "application/json",
+      "title": "36MVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVS/catalog.json",
+      "type": "application/json",
+      "title": "36MVS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVT/catalog.json",
+      "type": "application/json",
+      "title": "36MVT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVU/catalog.json",
+      "type": "application/json",
+      "title": "36MVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MVV/catalog.json",
+      "type": "application/json",
+      "title": "36MVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWA/catalog.json",
+      "type": "application/json",
+      "title": "36MWA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWB/catalog.json",
+      "type": "application/json",
+      "title": "36MWB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWC/catalog.json",
+      "type": "application/json",
+      "title": "36MWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWD/catalog.json",
+      "type": "application/json",
+      "title": "36MWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWT/catalog.json",
+      "type": "application/json",
+      "title": "36MWT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MWV/catalog.json",
+      "type": "application/json",
+      "title": "36MWV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXA/catalog.json",
+      "type": "application/json",
+      "title": "36MXA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXB/catalog.json",
+      "type": "application/json",
+      "title": "36MXB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXC/catalog.json",
+      "type": "application/json",
+      "title": "36MXC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXD/catalog.json",
+      "type": "application/json",
+      "title": "36MXD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXE/catalog.json",
+      "type": "application/json",
+      "title": "36MXE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXU/catalog.json",
+      "type": "application/json",
+      "title": "36MXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MXV/catalog.json",
+      "type": "application/json",
+      "title": "36MXV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYA/catalog.json",
+      "type": "application/json",
+      "title": "36MYA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYD/catalog.json",
+      "type": "application/json",
+      "title": "36MYD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYE/catalog.json",
+      "type": "application/json",
+      "title": "36MYE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYS/catalog.json",
+      "type": "application/json",
+      "title": "36MYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYT/catalog.json",
+      "type": "application/json",
+      "title": "36MYT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYU/catalog.json",
+      "type": "application/json",
+      "title": "36MYU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MYV/catalog.json",
+      "type": "application/json",
+      "title": "36MYV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZA/catalog.json",
+      "type": "application/json",
+      "title": "36MZA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZE/catalog.json",
+      "type": "application/json",
+      "title": "36MZE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZS/catalog.json",
+      "type": "application/json",
+      "title": "36MZS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZT/catalog.json",
+      "type": "application/json",
+      "title": "36MZT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZU/catalog.json",
+      "type": "application/json",
+      "title": "36MZU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36MZV/catalog.json",
+      "type": "application/json",
+      "title": "36MZV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NSF/catalog.json",
+      "type": "application/json",
+      "title": "36NSF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NSG/catalog.json",
+      "type": "application/json",
+      "title": "36NSG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NTF/catalog.json",
+      "type": "application/json",
+      "title": "36NTF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NTG/catalog.json",
+      "type": "application/json",
+      "title": "36NTG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NTH/catalog.json",
+      "type": "application/json",
+      "title": "36NTH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NTJ/catalog.json",
+      "type": "application/json",
+      "title": "36NTJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUF/catalog.json",
+      "type": "application/json",
+      "title": "36NUF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUG/catalog.json",
+      "type": "application/json",
+      "title": "36NUG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUH/catalog.json",
+      "type": "application/json",
+      "title": "36NUH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUJ/catalog.json",
+      "type": "application/json",
+      "title": "36NUJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUK/catalog.json",
+      "type": "application/json",
+      "title": "36NUK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NUM/catalog.json",
+      "type": "application/json",
+      "title": "36NUM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NVF/catalog.json",
+      "type": "application/json",
+      "title": "36NVF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NVG/catalog.json",
+      "type": "application/json",
+      "title": "36NVG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NVH/catalog.json",
+      "type": "application/json",
+      "title": "36NVH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NVJ/catalog.json",
+      "type": "application/json",
+      "title": "36NVJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NWF/catalog.json",
+      "type": "application/json",
+      "title": "36NWF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NWG/catalog.json",
+      "type": "application/json",
+      "title": "36NWG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NWH/catalog.json",
+      "type": "application/json",
+      "title": "36NWH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NWJ/catalog.json",
+      "type": "application/json",
+      "title": "36NWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NWK/catalog.json",
+      "type": "application/json",
+      "title": "36NWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NXF/catalog.json",
+      "type": "application/json",
+      "title": "36NXF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NXG/catalog.json",
+      "type": "application/json",
+      "title": "36NXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NXH/catalog.json",
+      "type": "application/json",
+      "title": "36NXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NXJ/catalog.json",
+      "type": "application/json",
+      "title": "36NXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NXK/catalog.json",
+      "type": "application/json",
+      "title": "36NXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NYF/catalog.json",
+      "type": "application/json",
+      "title": "36NYF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NYG/catalog.json",
+      "type": "application/json",
+      "title": "36NYG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NYM/catalog.json",
+      "type": "application/json",
+      "title": "36NYM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NYN/catalog.json",
+      "type": "application/json",
+      "title": "36NYN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NZF/catalog.json",
+      "type": "application/json",
+      "title": "36NZF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NZN/catalog.json",
+      "type": "application/json",
+      "title": "36NZN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36NZP/catalog.json",
+      "type": "application/json",
+      "title": "36NZP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PSA/catalog.json",
+      "type": "application/json",
+      "title": "36PSA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PSV/catalog.json",
+      "type": "application/json",
+      "title": "36PSV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PTA/catalog.json",
+      "type": "application/json",
+      "title": "36PTA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PTU/catalog.json",
+      "type": "application/json",
+      "title": "36PTU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PTV/catalog.json",
+      "type": "application/json",
+      "title": "36PTV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PUA/catalog.json",
+      "type": "application/json",
+      "title": "36PUA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PUT/catalog.json",
+      "type": "application/json",
+      "title": "36PUT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PUU/catalog.json",
+      "type": "application/json",
+      "title": "36PUU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PUV/catalog.json",
+      "type": "application/json",
+      "title": "36PUV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PVA/catalog.json",
+      "type": "application/json",
+      "title": "36PVA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PVB/catalog.json",
+      "type": "application/json",
+      "title": "36PVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PVC/catalog.json",
+      "type": "application/json",
+      "title": "36PVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PVU/catalog.json",
+      "type": "application/json",
+      "title": "36PVU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PVV/catalog.json",
+      "type": "application/json",
+      "title": "36PVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWA/catalog.json",
+      "type": "application/json",
+      "title": "36PWA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWB/catalog.json",
+      "type": "application/json",
+      "title": "36PWB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWC/catalog.json",
+      "type": "application/json",
+      "title": "36PWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWT/catalog.json",
+      "type": "application/json",
+      "title": "36PWT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWU/catalog.json",
+      "type": "application/json",
+      "title": "36PWU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PWV/catalog.json",
+      "type": "application/json",
+      "title": "36PWV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXA/catalog.json",
+      "type": "application/json",
+      "title": "36PXA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXB/catalog.json",
+      "type": "application/json",
+      "title": "36PXB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXQ/catalog.json",
+      "type": "application/json",
+      "title": "36PXQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXR/catalog.json",
+      "type": "application/json",
+      "title": "36PXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXS/catalog.json",
+      "type": "application/json",
+      "title": "36PXS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXT/catalog.json",
+      "type": "application/json",
+      "title": "36PXT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXU/catalog.json",
+      "type": "application/json",
+      "title": "36PXU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PXV/catalog.json",
+      "type": "application/json",
+      "title": "36PXV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYA/catalog.json",
+      "type": "application/json",
+      "title": "36PYA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYB/catalog.json",
+      "type": "application/json",
+      "title": "36PYB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYC/catalog.json",
+      "type": "application/json",
+      "title": "36PYC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYP/catalog.json",
+      "type": "application/json",
+      "title": "36PYP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYQ/catalog.json",
+      "type": "application/json",
+      "title": "36PYQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYR/catalog.json",
+      "type": "application/json",
+      "title": "36PYR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYS/catalog.json",
+      "type": "application/json",
+      "title": "36PYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PYV/catalog.json",
+      "type": "application/json",
+      "title": "36PYV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PZA/catalog.json",
+      "type": "application/json",
+      "title": "36PZA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PZB/catalog.json",
+      "type": "application/json",
+      "title": "36PZB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PZQ/catalog.json",
+      "type": "application/json",
+      "title": "36PZQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PZR/catalog.json",
+      "type": "application/json",
+      "title": "36PZR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36PZS/catalog.json",
+      "type": "application/json",
+      "title": "36PZS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36QWD/catalog.json",
+      "type": "application/json",
+      "title": "36QWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/36QXD/catalog.json",
+      "type": "application/json",
+      "title": "36QXD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37KAV/catalog.json",
+      "type": "application/json",
+      "title": "37KAV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37KCB/catalog.json",
+      "type": "application/json",
+      "title": "37KCB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37KCC/catalog.json",
+      "type": "application/json",
+      "title": "37KCC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LAC/catalog.json",
+      "type": "application/json",
+      "title": "37LAC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LAF/catalog.json",
+      "type": "application/json",
+      "title": "37LAF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LBC/catalog.json",
+      "type": "application/json",
+      "title": "37LBC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LBD/catalog.json",
+      "type": "application/json",
+      "title": "37LBD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LBE/catalog.json",
+      "type": "application/json",
+      "title": "37LBE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LBL/catalog.json",
+      "type": "application/json",
+      "title": "37LBL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LCC/catalog.json",
+      "type": "application/json",
+      "title": "37LCC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LCD/catalog.json",
+      "type": "application/json",
+      "title": "37LCD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LCH/catalog.json",
+      "type": "application/json",
+      "title": "37LCH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LCJ/catalog.json",
+      "type": "application/json",
+      "title": "37LCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LCK/catalog.json",
+      "type": "application/json",
+      "title": "37LCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDC/catalog.json",
+      "type": "application/json",
+      "title": "37LDC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDD/catalog.json",
+      "type": "application/json",
+      "title": "37LDD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDE/catalog.json",
+      "type": "application/json",
+      "title": "37LDE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDF/catalog.json",
+      "type": "application/json",
+      "title": "37LDF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDH/catalog.json",
+      "type": "application/json",
+      "title": "37LDH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDJ/catalog.json",
+      "type": "application/json",
+      "title": "37LDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LDK/catalog.json",
+      "type": "application/json",
+      "title": "37LDK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEC/catalog.json",
+      "type": "application/json",
+      "title": "37LEC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LED/catalog.json",
+      "type": "application/json",
+      "title": "37LED"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEE/catalog.json",
+      "type": "application/json",
+      "title": "37LEE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEF/catalog.json",
+      "type": "application/json",
+      "title": "37LEF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEH/catalog.json",
+      "type": "application/json",
+      "title": "37LEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEJ/catalog.json",
+      "type": "application/json",
+      "title": "37LEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LEK/catalog.json",
+      "type": "application/json",
+      "title": "37LEK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LFD/catalog.json",
+      "type": "application/json",
+      "title": "37LFD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LFE/catalog.json",
+      "type": "application/json",
+      "title": "37LFE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37LFF/catalog.json",
+      "type": "application/json",
+      "title": "37LFF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MAN/catalog.json",
+      "type": "application/json",
+      "title": "37MAN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MAP/catalog.json",
+      "type": "application/json",
+      "title": "37MAP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MAQ/catalog.json",
+      "type": "application/json",
+      "title": "37MAQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MAR/catalog.json",
+      "type": "application/json",
+      "title": "37MAR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MAV/catalog.json",
+      "type": "application/json",
+      "title": "37MAV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBN/catalog.json",
+      "type": "application/json",
+      "title": "37MBN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBP/catalog.json",
+      "type": "application/json",
+      "title": "37MBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBQ/catalog.json",
+      "type": "application/json",
+      "title": "37MBQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBR/catalog.json",
+      "type": "application/json",
+      "title": "37MBR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBS/catalog.json",
+      "type": "application/json",
+      "title": "37MBS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBU/catalog.json",
+      "type": "application/json",
+      "title": "37MBU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MBV/catalog.json",
+      "type": "application/json",
+      "title": "37MBV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCN/catalog.json",
+      "type": "application/json",
+      "title": "37MCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCP/catalog.json",
+      "type": "application/json",
+      "title": "37MCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCQ/catalog.json",
+      "type": "application/json",
+      "title": "37MCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCR/catalog.json",
+      "type": "application/json",
+      "title": "37MCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCS/catalog.json",
+      "type": "application/json",
+      "title": "37MCS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCT/catalog.json",
+      "type": "application/json",
+      "title": "37MCT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCU/catalog.json",
+      "type": "application/json",
+      "title": "37MCU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MCV/catalog.json",
+      "type": "application/json",
+      "title": "37MCV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MDQ/catalog.json",
+      "type": "application/json",
+      "title": "37MDQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MDR/catalog.json",
+      "type": "application/json",
+      "title": "37MDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MDT/catalog.json",
+      "type": "application/json",
+      "title": "37MDT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MDU/catalog.json",
+      "type": "application/json",
+      "title": "37MDU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MDV/catalog.json",
+      "type": "application/json",
+      "title": "37MDV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MEM/catalog.json",
+      "type": "application/json",
+      "title": "37MEM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MER/catalog.json",
+      "type": "application/json",
+      "title": "37MER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MES/catalog.json",
+      "type": "application/json",
+      "title": "37MES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MFS/catalog.json",
+      "type": "application/json",
+      "title": "37MFS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37MFT/catalog.json",
+      "type": "application/json",
+      "title": "37MFT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NAA/catalog.json",
+      "type": "application/json",
+      "title": "37NAA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NAH/catalog.json",
+      "type": "application/json",
+      "title": "37NAH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NAJ/catalog.json",
+      "type": "application/json",
+      "title": "37NAJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NBA/catalog.json",
+      "type": "application/json",
+      "title": "37NBA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NBF/catalog.json",
+      "type": "application/json",
+      "title": "37NBF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NBG/catalog.json",
+      "type": "application/json",
+      "title": "37NBG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NBH/catalog.json",
+      "type": "application/json",
+      "title": "37NBH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NBJ/catalog.json",
+      "type": "application/json",
+      "title": "37NBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NCA/catalog.json",
+      "type": "application/json",
+      "title": "37NCA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NCF/catalog.json",
+      "type": "application/json",
+      "title": "37NCF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NCG/catalog.json",
+      "type": "application/json",
+      "title": "37NCG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NCH/catalog.json",
+      "type": "application/json",
+      "title": "37NCH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NCJ/catalog.json",
+      "type": "application/json",
+      "title": "37NCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NDE/catalog.json",
+      "type": "application/json",
+      "title": "37NDE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NDG/catalog.json",
+      "type": "application/json",
+      "title": "37NDG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NDH/catalog.json",
+      "type": "application/json",
+      "title": "37NDH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NDJ/catalog.json",
+      "type": "application/json",
+      "title": "37NDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NEF/catalog.json",
+      "type": "application/json",
+      "title": "37NEF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NEG/catalog.json",
+      "type": "application/json",
+      "title": "37NEG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NEH/catalog.json",
+      "type": "application/json",
+      "title": "37NEH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NEJ/catalog.json",
+      "type": "application/json",
+      "title": "37NEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NFH/catalog.json",
+      "type": "application/json",
+      "title": "37NFH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NFJ/catalog.json",
+      "type": "application/json",
+      "title": "37NFJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37NGJ/catalog.json",
+      "type": "application/json",
+      "title": "37NGJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PAK/catalog.json",
+      "type": "application/json",
+      "title": "37PAK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PAM/catalog.json",
+      "type": "application/json",
+      "title": "37PAM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PAR/catalog.json",
+      "type": "application/json",
+      "title": "37PAR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBJ/catalog.json",
+      "type": "application/json",
+      "title": "37PBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBK/catalog.json",
+      "type": "application/json",
+      "title": "37PBK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBL/catalog.json",
+      "type": "application/json",
+      "title": "37PBL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBM/catalog.json",
+      "type": "application/json",
+      "title": "37PBM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBN/catalog.json",
+      "type": "application/json",
+      "title": "37PBN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBP/catalog.json",
+      "type": "application/json",
+      "title": "37PBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBQ/catalog.json",
+      "type": "application/json",
+      "title": "37PBQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBR/catalog.json",
+      "type": "application/json",
+      "title": "37PBR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PBS/catalog.json",
+      "type": "application/json",
+      "title": "37PBS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCK/catalog.json",
+      "type": "application/json",
+      "title": "37PCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCL/catalog.json",
+      "type": "application/json",
+      "title": "37PCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCM/catalog.json",
+      "type": "application/json",
+      "title": "37PCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCN/catalog.json",
+      "type": "application/json",
+      "title": "37PCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCP/catalog.json",
+      "type": "application/json",
+      "title": "37PCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCQ/catalog.json",
+      "type": "application/json",
+      "title": "37PCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PCR/catalog.json",
+      "type": "application/json",
+      "title": "37PCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDJ/catalog.json",
+      "type": "application/json",
+      "title": "37PDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDK/catalog.json",
+      "type": "application/json",
+      "title": "37PDK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDL/catalog.json",
+      "type": "application/json",
+      "title": "37PDL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDM/catalog.json",
+      "type": "application/json",
+      "title": "37PDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDN/catalog.json",
+      "type": "application/json",
+      "title": "37PDN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDP/catalog.json",
+      "type": "application/json",
+      "title": "37PDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDQ/catalog.json",
+      "type": "application/json",
+      "title": "37PDQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDR/catalog.json",
+      "type": "application/json",
+      "title": "37PDR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDS/catalog.json",
+      "type": "application/json",
+      "title": "37PDS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PDT/catalog.json",
+      "type": "application/json",
+      "title": "37PDT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEJ/catalog.json",
+      "type": "application/json",
+      "title": "37PEJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEK/catalog.json",
+      "type": "application/json",
+      "title": "37PEK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEL/catalog.json",
+      "type": "application/json",
+      "title": "37PEL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEM/catalog.json",
+      "type": "application/json",
+      "title": "37PEM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEN/catalog.json",
+      "type": "application/json",
+      "title": "37PEN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEP/catalog.json",
+      "type": "application/json",
+      "title": "37PEP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PEQ/catalog.json",
+      "type": "application/json",
+      "title": "37PEQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PER/catalog.json",
+      "type": "application/json",
+      "title": "37PER"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PES/catalog.json",
+      "type": "application/json",
+      "title": "37PES"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PFK/catalog.json",
+      "type": "application/json",
+      "title": "37PFK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PFL/catalog.json",
+      "type": "application/json",
+      "title": "37PFL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PFM/catalog.json",
+      "type": "application/json",
+      "title": "37PFM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PFN/catalog.json",
+      "type": "application/json",
+      "title": "37PFN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PGK/catalog.json",
+      "type": "application/json",
+      "title": "37PGK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PGL/catalog.json",
+      "type": "application/json",
+      "title": "37PGL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37PHL/catalog.json",
+      "type": "application/json",
+      "title": "37PHL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/37QDT/catalog.json",
+      "type": "application/json",
+      "title": "37QDT"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NJH/catalog.json",
+      "type": "application/json",
+      "title": "38NJH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NJM/catalog.json",
+      "type": "application/json",
+      "title": "38NJM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NKG/catalog.json",
+      "type": "application/json",
+      "title": "38NKG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NKH/catalog.json",
+      "type": "application/json",
+      "title": "38NKH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NLJ/catalog.json",
+      "type": "application/json",
+      "title": "38NLJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NLK/catalog.json",
+      "type": "application/json",
+      "title": "38NLK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NMH/catalog.json",
+      "type": "application/json",
+      "title": "38NMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NNH/catalog.json",
+      "type": "application/json",
+      "title": "38NNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NNJ/catalog.json",
+      "type": "application/json",
+      "title": "38NNJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38NPJ/catalog.json",
+      "type": "application/json",
+      "title": "38NPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38PKR/catalog.json",
+      "type": "application/json",
+      "title": "38PKR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/38PLR/catalog.json",
+      "type": "application/json",
+      "title": "38PLR"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 3
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 3
+    }
+  },
+  "updated": "2026-11-10T05:32:11Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "block3x3",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "semantic_2_class",
+    "semantic_3_class"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": true,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "c313f519e72633cdcf11ce306de6d7e91c498117",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-10T02:52:55.653160+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/lacuna/year=2022/lacuna-2022.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/lacuna/collection.json",
+      "sha256": "9622d68ab0d108dcf68a983d79cba87b11b3be7dac77e943868d8ee5f8e603c8",
+      "size": 11327399,
+      "fetched_at": "2026-11-10T02:52:55.940090Z"
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/lacuna/year=2022/lacuna-2022.parquet",
+      "output_dir": "staging/lacuna_2022",
+      "name": "lacuna_2022",
+      "year": 2022,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/lacuna/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": false,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "block3x3",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "semantic_2_class",
+            "semantic_3_class"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": true,
+          "class_filter": null,
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Mapping Africa \u2014 2022",
+        "description": "Benchmark chips for Africa (Mapping Africa sites) cut from the 2022 edition of the harmonized field boundary collection lacuna.\n",
+        "license": "other",
+        "license_url": "https://go.planet.com/nicfi-pla-2024",
+        "version": "2.0.0-alpha.1",
+        "attribution": "Estes et al. (2024), Lacuna Fund; labels digitised over Planet NICFI basemaps",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "lacuna",
+          "2022"
+        ],
+        "providers": [
+          {
+            "name": "Agricultural Impacts Research Group, Clark University",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://github.com/agroimpacts/lacunalabels"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": null
+    }
+  },
+  "title": "Mapping Africa \u2014 2022",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -16.961254477631886,
+          -29.955505058169365,
+          46.1891530756111,
+          17.138975842860223
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2022-01-01T00:00:00Z",
+          "2023-09-13T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "other",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "lacuna",
+    "2022"
+  ],
+  "providers": [
+    {
+      "name": "Agricultural Impacts Research Group, Clark University",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://github.com/agroimpacts/lacunalabels"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./lacuna_2022_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 11465937,
+      "table:columns": [
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "determination:datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "admin:country_code",
+          "type": "varchar"
+        },
+        {
+          "name": "site",
+          "type": "varchar"
+        },
+        {
+          "name": "assignment_id",
+          "type": "bigint"
+        },
+        {
+          "name": "label_class",
+          "type": "varchar"
+        },
+        {
+          "name": "labeller",
+          "type": "varchar"
+        },
+        {
+          "name": "qscore",
+          "type": "float"
+        },
+        {
+          "name": "rscore",
+          "type": "float"
+        },
+        {
+          "name": "label_category",
+          "type": "varchar"
+        },
+        {
+          "name": "completion_time",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 94510,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./lacuna_2022_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 9057025,
+      "table:columns": [
+        {
+          "name": "determination:datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "admin:country_code",
+          "type": "varchar"
+        },
+        {
+          "name": "site",
+          "type": "varchar"
+        },
+        {
+          "name": "assignment_id",
+          "type": "bigint"
+        },
+        {
+          "name": "label_class",
+          "type": "varchar"
+        },
+        {
+          "name": "labeller",
+          "type": "varchar"
+        },
+        {
+          "name": "qscore",
+          "type": "float"
+        },
+        {
+          "name": "rscore",
+          "type": "float"
+        },
+        {
+          "name": "label_category",
+          "type": "varchar"
+        },
+        {
+          "name": "completion_time",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 94510,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./lacuna_2022_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 1003938,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 7262,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 7136299,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 7262,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 3672914
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 12089821
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1039
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Mapping Africa \u2014 2022 \u2014 Field outlines"
+    }
+  }
+}
