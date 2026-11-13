@@ -212,6 +212,7 @@ for real_id in [*EXTENT_IDS, "br_ba_lem_2020"]:
     check(masks["mask_types"] == new_dataset.PRESENCE_ONLY_MASK_TYPES,
           f"{real_id}: semantic masks only: {masks['mask_types']}")
     check(chips["drop_border_chips"] is False, f"{real_id}: border chips kept")
+    check(chips["admin_names"] is True, f"{real_id}: chips get admin names")
     if real_id in EXTENT_IDS:
         check(masks.get("label_extent") == f"../work/extents/{real_id}.parquet"
               and masks["presence_only"] is False, f"{real_id}: reads its label extent: {masks}")
