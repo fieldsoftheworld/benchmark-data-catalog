@@ -1,0 +1,1669 @@
+{
+  "type": "Collection",
+  "id": "wri_trazo_ml_2020",
+  "stac_version": "1.1.0",
+  "description": "Benchmark chips for South America (Trazo regions) cut from the 2020 edition of the harmonized field boundary collection wri_trazo_ml.\n",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/wri_trazo_ml",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/18MXS/catalog.json",
+      "type": "application/json",
+      "title": "18MXS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/18MYS/catalog.json",
+      "type": "application/json",
+      "title": "18MYS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/18MZS/catalog.json",
+      "type": "application/json",
+      "title": "18MZS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20HMH/catalog.json",
+      "type": "application/json",
+      "title": "20HMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20HPD/catalog.json",
+      "type": "application/json",
+      "title": "20HPD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20HQC/catalog.json",
+      "type": "application/json",
+      "title": "20HQC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20HQF/catalog.json",
+      "type": "application/json",
+      "title": "20HQF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20HQH/catalog.json",
+      "type": "application/json",
+      "title": "20HQH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20JKR/catalog.json",
+      "type": "application/json",
+      "title": "20JKR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20JPL/catalog.json",
+      "type": "application/json",
+      "title": "20JPL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20JPR/catalog.json",
+      "type": "application/json",
+      "title": "20JPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KLF/catalog.json",
+      "type": "application/json",
+      "title": "20KLF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KLG/catalog.json",
+      "type": "application/json",
+      "title": "20KLG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KMC/catalog.json",
+      "type": "application/json",
+      "title": "20KMC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KMD/catalog.json",
+      "type": "application/json",
+      "title": "20KMD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KME/catalog.json",
+      "type": "application/json",
+      "title": "20KME"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KMF/catalog.json",
+      "type": "application/json",
+      "title": "20KMF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KMG/catalog.json",
+      "type": "application/json",
+      "title": "20KMG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KMH/catalog.json",
+      "type": "application/json",
+      "title": "20KMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KNC/catalog.json",
+      "type": "application/json",
+      "title": "20KNC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KND/catalog.json",
+      "type": "application/json",
+      "title": "20KND"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KNE/catalog.json",
+      "type": "application/json",
+      "title": "20KNE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KNF/catalog.json",
+      "type": "application/json",
+      "title": "20KNF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KNG/catalog.json",
+      "type": "application/json",
+      "title": "20KNG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KNH/catalog.json",
+      "type": "application/json",
+      "title": "20KNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KPF/catalog.json",
+      "type": "application/json",
+      "title": "20KPF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KPG/catalog.json",
+      "type": "application/json",
+      "title": "20KPG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KPH/catalog.json",
+      "type": "application/json",
+      "title": "20KPH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KQF/catalog.json",
+      "type": "application/json",
+      "title": "20KQF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KQG/catalog.json",
+      "type": "application/json",
+      "title": "20KQG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20KQH/catalog.json",
+      "type": "application/json",
+      "title": "20KQH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LLJ/catalog.json",
+      "type": "application/json",
+      "title": "20LLJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LMH/catalog.json",
+      "type": "application/json",
+      "title": "20LMH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LNH/catalog.json",
+      "type": "application/json",
+      "title": "20LNH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LPH/catalog.json",
+      "type": "application/json",
+      "title": "20LPH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LPJ/catalog.json",
+      "type": "application/json",
+      "title": "20LPJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LPP/catalog.json",
+      "type": "application/json",
+      "title": "20LPP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LPQ/catalog.json",
+      "type": "application/json",
+      "title": "20LPQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LPR/catalog.json",
+      "type": "application/json",
+      "title": "20LPR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LQH/catalog.json",
+      "type": "application/json",
+      "title": "20LQH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LQJ/catalog.json",
+      "type": "application/json",
+      "title": "20LQJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LQP/catalog.json",
+      "type": "application/json",
+      "title": "20LQP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LQQ/catalog.json",
+      "type": "application/json",
+      "title": "20LQQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LQR/catalog.json",
+      "type": "application/json",
+      "title": "20LQR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LRJ/catalog.json",
+      "type": "application/json",
+      "title": "20LRJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20LRQ/catalog.json",
+      "type": "application/json",
+      "title": "20LRQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20NQG/catalog.json",
+      "type": "application/json",
+      "title": "20NQG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20NRF/catalog.json",
+      "type": "application/json",
+      "title": "20NRF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/20NRG/catalog.json",
+      "type": "application/json",
+      "title": "20NRG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21HTU/catalog.json",
+      "type": "application/json",
+      "title": "21HTU"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21JXF/catalog.json",
+      "type": "application/json",
+      "title": "21JXF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21JXM/catalog.json",
+      "type": "application/json",
+      "title": "21JXM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KSV/catalog.json",
+      "type": "application/json",
+      "title": "21KSV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KTB/catalog.json",
+      "type": "application/json",
+      "title": "21KTB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KTC/catalog.json",
+      "type": "application/json",
+      "title": "21KTC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KTQ/catalog.json",
+      "type": "application/json",
+      "title": "21KTQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KTR/catalog.json",
+      "type": "application/json",
+      "title": "21KTR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KTV/catalog.json",
+      "type": "application/json",
+      "title": "21KTV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KUB/catalog.json",
+      "type": "application/json",
+      "title": "21KUB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KUC/catalog.json",
+      "type": "application/json",
+      "title": "21KUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KUQ/catalog.json",
+      "type": "application/json",
+      "title": "21KUQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KUR/catalog.json",
+      "type": "application/json",
+      "title": "21KUR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KVB/catalog.json",
+      "type": "application/json",
+      "title": "21KVB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KVC/catalog.json",
+      "type": "application/json",
+      "title": "21KVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KVV/catalog.json",
+      "type": "application/json",
+      "title": "21KVV"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KWB/catalog.json",
+      "type": "application/json",
+      "title": "21KWB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KWC/catalog.json",
+      "type": "application/json",
+      "title": "21KWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KXA/catalog.json",
+      "type": "application/json",
+      "title": "21KXA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KXB/catalog.json",
+      "type": "application/json",
+      "title": "21KXB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KXC/catalog.json",
+      "type": "application/json",
+      "title": "21KXC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KXR/catalog.json",
+      "type": "application/json",
+      "title": "21KXR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KYA/catalog.json",
+      "type": "application/json",
+      "title": "21KYA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KYB/catalog.json",
+      "type": "application/json",
+      "title": "21KYB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KYC/catalog.json",
+      "type": "application/json",
+      "title": "21KYC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KZA/catalog.json",
+      "type": "application/json",
+      "title": "21KZA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21KZC/catalog.json",
+      "type": "application/json",
+      "title": "21KZC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LSC/catalog.json",
+      "type": "application/json",
+      "title": "21LSC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LSE/catalog.json",
+      "type": "application/json",
+      "title": "21LSE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LSF/catalog.json",
+      "type": "application/json",
+      "title": "21LSF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LSK/catalog.json",
+      "type": "application/json",
+      "title": "21LSK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTC/catalog.json",
+      "type": "application/json",
+      "title": "21LTC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTD/catalog.json",
+      "type": "application/json",
+      "title": "21LTD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTE/catalog.json",
+      "type": "application/json",
+      "title": "21LTE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTF/catalog.json",
+      "type": "application/json",
+      "title": "21LTF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTH/catalog.json",
+      "type": "application/json",
+      "title": "21LTH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTJ/catalog.json",
+      "type": "application/json",
+      "title": "21LTJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTK/catalog.json",
+      "type": "application/json",
+      "title": "21LTK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LTL/catalog.json",
+      "type": "application/json",
+      "title": "21LTL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUC/catalog.json",
+      "type": "application/json",
+      "title": "21LUC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUD/catalog.json",
+      "type": "application/json",
+      "title": "21LUD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUE/catalog.json",
+      "type": "application/json",
+      "title": "21LUE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUF/catalog.json",
+      "type": "application/json",
+      "title": "21LUF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUG/catalog.json",
+      "type": "application/json",
+      "title": "21LUG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUH/catalog.json",
+      "type": "application/json",
+      "title": "21LUH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUJ/catalog.json",
+      "type": "application/json",
+      "title": "21LUJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LUK/catalog.json",
+      "type": "application/json",
+      "title": "21LUK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVC/catalog.json",
+      "type": "application/json",
+      "title": "21LVC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVD/catalog.json",
+      "type": "application/json",
+      "title": "21LVD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVE/catalog.json",
+      "type": "application/json",
+      "title": "21LVE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVF/catalog.json",
+      "type": "application/json",
+      "title": "21LVF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVG/catalog.json",
+      "type": "application/json",
+      "title": "21LVG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVH/catalog.json",
+      "type": "application/json",
+      "title": "21LVH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVJ/catalog.json",
+      "type": "application/json",
+      "title": "21LVJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LVK/catalog.json",
+      "type": "application/json",
+      "title": "21LVK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWC/catalog.json",
+      "type": "application/json",
+      "title": "21LWC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWD/catalog.json",
+      "type": "application/json",
+      "title": "21LWD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWE/catalog.json",
+      "type": "application/json",
+      "title": "21LWE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWG/catalog.json",
+      "type": "application/json",
+      "title": "21LWG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWJ/catalog.json",
+      "type": "application/json",
+      "title": "21LWJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LWK/catalog.json",
+      "type": "application/json",
+      "title": "21LWK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXC/catalog.json",
+      "type": "application/json",
+      "title": "21LXC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXD/catalog.json",
+      "type": "application/json",
+      "title": "21LXD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXE/catalog.json",
+      "type": "application/json",
+      "title": "21LXE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXF/catalog.json",
+      "type": "application/json",
+      "title": "21LXF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXG/catalog.json",
+      "type": "application/json",
+      "title": "21LXG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXH/catalog.json",
+      "type": "application/json",
+      "title": "21LXH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXJ/catalog.json",
+      "type": "application/json",
+      "title": "21LXJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LXK/catalog.json",
+      "type": "application/json",
+      "title": "21LXK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYC/catalog.json",
+      "type": "application/json",
+      "title": "21LYC"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYD/catalog.json",
+      "type": "application/json",
+      "title": "21LYD"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYE/catalog.json",
+      "type": "application/json",
+      "title": "21LYE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYF/catalog.json",
+      "type": "application/json",
+      "title": "21LYF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYG/catalog.json",
+      "type": "application/json",
+      "title": "21LYG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYH/catalog.json",
+      "type": "application/json",
+      "title": "21LYH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYJ/catalog.json",
+      "type": "application/json",
+      "title": "21LYJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LYL/catalog.json",
+      "type": "application/json",
+      "title": "21LYL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LZE/catalog.json",
+      "type": "application/json",
+      "title": "21LZE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LZF/catalog.json",
+      "type": "application/json",
+      "title": "21LZF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LZH/catalog.json",
+      "type": "application/json",
+      "title": "21LZH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21LZJ/catalog.json",
+      "type": "application/json",
+      "title": "21LZJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21NSA/catalog.json",
+      "type": "application/json",
+      "title": "21NSA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21NSB/catalog.json",
+      "type": "application/json",
+      "title": "21NSB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21NTA/catalog.json",
+      "type": "application/json",
+      "title": "21NTA"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/21NTB/catalog.json",
+      "type": "application/json",
+      "title": "21NTB"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JBM/catalog.json",
+      "type": "application/json",
+      "title": "22JBM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JBN/catalog.json",
+      "type": "application/json",
+      "title": "22JBN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JBP/catalog.json",
+      "type": "application/json",
+      "title": "22JBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JCK/catalog.json",
+      "type": "application/json",
+      "title": "22JCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JCL/catalog.json",
+      "type": "application/json",
+      "title": "22JCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JCM/catalog.json",
+      "type": "application/json",
+      "title": "22JCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JCN/catalog.json",
+      "type": "application/json",
+      "title": "22JCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JCR/catalog.json",
+      "type": "application/json",
+      "title": "22JCR"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JDL/catalog.json",
+      "type": "application/json",
+      "title": "22JDL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JDM/catalog.json",
+      "type": "application/json",
+      "title": "22JDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JDN/catalog.json",
+      "type": "application/json",
+      "title": "22JDN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JDP/catalog.json",
+      "type": "application/json",
+      "title": "22JDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22JFS/catalog.json",
+      "type": "application/json",
+      "title": "22JFS"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22KAF/catalog.json",
+      "type": "application/json",
+      "title": "22KAF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22KBF/catalog.json",
+      "type": "application/json",
+      "title": "22KBF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22KBG/catalog.json",
+      "type": "application/json",
+      "title": "22KBG"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22KEF/catalog.json",
+      "type": "application/json",
+      "title": "22KEF"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22KFE/catalog.json",
+      "type": "application/json",
+      "title": "22KFE"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LAK/catalog.json",
+      "type": "application/json",
+      "title": "22LAK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LAN/catalog.json",
+      "type": "application/json",
+      "title": "22LAN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LBH/catalog.json",
+      "type": "application/json",
+      "title": "22LBH"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LBJ/catalog.json",
+      "type": "application/json",
+      "title": "22LBJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LBK/catalog.json",
+      "type": "application/json",
+      "title": "22LBK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LBL/catalog.json",
+      "type": "application/json",
+      "title": "22LBL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LBP/catalog.json",
+      "type": "application/json",
+      "title": "22LBP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCJ/catalog.json",
+      "type": "application/json",
+      "title": "22LCJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCK/catalog.json",
+      "type": "application/json",
+      "title": "22LCK"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCL/catalog.json",
+      "type": "application/json",
+      "title": "22LCL"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCM/catalog.json",
+      "type": "application/json",
+      "title": "22LCM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCN/catalog.json",
+      "type": "application/json",
+      "title": "22LCN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCP/catalog.json",
+      "type": "application/json",
+      "title": "22LCP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LCQ/catalog.json",
+      "type": "application/json",
+      "title": "22LCQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LDJ/catalog.json",
+      "type": "application/json",
+      "title": "22LDJ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LDM/catalog.json",
+      "type": "application/json",
+      "title": "22LDM"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LDN/catalog.json",
+      "type": "application/json",
+      "title": "22LDN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LDP/catalog.json",
+      "type": "application/json",
+      "title": "22LDP"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LDQ/catalog.json",
+      "type": "application/json",
+      "title": "22LDQ"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/22LEN/catalog.json",
+      "type": "application/json",
+      "title": "22LEN"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/23LND/catalog.json",
+      "type": "application/json",
+      "title": "23LND"
+    },
+    {
+      "rel": "child",
+      "href": "./chips/23MNM/catalog.json",
+      "type": "application/json",
+      "title": "23MNM"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "llms",
+      "href": "./llms.txt",
+      "type": "text/plain",
+      "title": "llms.txt"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "pmtiles:layers": [
+        "chips"
+      ]
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "pmtiles:layers": [
+        "fields"
+      ]
+    }
+  ],
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/render/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "item_assets": {
+    "semantic_2class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "Binary semantic mask (field/background)"
+    },
+    "semantic_3class_mask": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "labels"
+      ],
+      "title": "3-class semantic mask (field/boundary/background)"
+    },
+    "q1_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q1 quarterly mosaic imagery"
+    },
+    "q2_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q2 quarterly mosaic imagery"
+    },
+    "q3_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q3 quarterly mosaic imagery"
+    },
+    "q4_image": {
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "roles": [
+        "data"
+      ],
+      "title": "Q4 quarterly mosaic imagery"
+    },
+    "thumbnail": {
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip preview"
+    }
+  },
+  "renders": {
+    "semantic_2class_mask": {
+      "title": "Fields (binary mask)",
+      "assets": [
+        "semantic_2class_mask"
+      ],
+      "nodata": 0
+    },
+    "semantic_3class_mask": {
+      "title": "Fields and boundaries (3-class mask)",
+      "assets": [
+        "semantic_3class_mask"
+      ],
+      "nodata": 0
+    }
+  },
+  "updated": "2026-11-13T13:53:57Z",
+  "version": "2.0.0-alpha.1",
+  "ftw:split_type": "predefined",
+  "ftw:split_seed": 42,
+  "ftw:split_percents": [
+    80,
+    10,
+    10
+  ],
+  "ftw:chip_size_km": 2.0,
+  "ftw:mask_types": [
+    "semantic_2_class",
+    "semantic_3_class"
+  ],
+  "ftw:mask_resolution_m": 10.0,
+  "ftw:presence_only": false,
+  "ftw:min_coverage_pct": 0.01,
+  "ftw:label_extent": true,
+  "ftw:nodata_max": 100.0,
+  "ftw:config": {
+    "ftwd_version": "0.1.0",
+    "ftwd_git_commit": "b9dd7ce8a07495ffd88382b2e8071f2818554548",
+    "config_schema_version": 1,
+    "generated_at": "2026-11-13T13:12:04.343151+00:00",
+    "source": {
+      "href": "https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/year=2020/wri_trazo_ml-2020.parquet",
+      "via": "https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/collection.json",
+      "sha256": "c9ef163d79ec04b5271598430948dc578321c54bd8bb9bc84e3fef104042a7a3",
+      "size": 13899583,
+      "fetched_at": null
+    },
+    "config": {
+      "fields_file": "https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/year=2020/wri_trazo_ml-2020.parquet",
+      "output_dir": "staging/wri_trazo_ml_2020",
+      "name": "wri_trazo_ml_2020",
+      "year": 2020,
+      "skip_reproject": false,
+      "source_via": "https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/collection.json",
+      "stages": {
+        "chips": {
+          "min_coverage": 0.01,
+          "drop_border_chips": false,
+          "border_gap_chips": 2,
+          "min_chip_area": 99.5,
+          "km_size": 2.0,
+          "grid_file": null,
+          "grid_source": null,
+          "crop_stats": true,
+          "land_cover": false,
+          "coverage_batch_size": 2000
+        },
+        "scale": {
+          "percent": 100.0,
+          "min_blocks_per_square": 1
+        },
+        "splits": {
+          "split_type": "predefined",
+          "split_percents": [
+            80,
+            10,
+            10
+          ],
+          "random_seed": 42
+        },
+        "masks": {
+          "mask_types": [
+            "semantic_2_class",
+            "semantic_3_class"
+          ],
+          "resolution": 10.0,
+          "workers": null,
+          "presence_only": false,
+          "class_filter": null,
+          "skip_existing": true,
+          "crop_column": null,
+          "utm": true,
+          "label_extent": "../work/extents/wri_trazo_ml_2020.parquet"
+        },
+        "select_images": {
+          "enabled": true,
+          "imagery_mode": "mosaics",
+          "cloud_cover_chip": 2.0,
+          "nodata_max": 100.0,
+          "buffer_days": 14,
+          "num_buffer_expansions": 3,
+          "buffer_expansion_size": 14,
+          "search_backend": "parquet",
+          "workers": null
+        },
+        "download_images": {
+          "enabled": true,
+          "bands": [
+            "red",
+            "green",
+            "blue",
+            "nir"
+          ],
+          "resolution": 10.0,
+          "workers": 16,
+          "resume": true,
+          "mode": "clip"
+        },
+        "stac": {
+          "checksums": false,
+          "crop_calendar": true
+        },
+        "fetch": {
+          "cache_dir": "~/.cache/ftwd/sources",
+          "refresh": false
+        },
+        "docs": {
+          "pmtiles": "auto",
+          "readme": true,
+          "agents": true
+        }
+      },
+      "metadata": {
+        "title": "Trazo with splits \u2014 2020",
+        "description": "Benchmark chips for South America (Trazo regions) cut from the 2020 edition of the harmonized field boundary collection wri_trazo_ml.\n",
+        "license": "CC-BY-4.0",
+        "license_url": null,
+        "version": "2.0.0-alpha.1",
+        "attribution": "Grupp et al. (2026), Field Boundaries of South America, World Resources Institute & Arizona State University",
+        "keywords": [
+          "field-boundaries",
+          "benchmark",
+          "wri_trazo_ml",
+          "2020"
+        ],
+        "providers": [
+          {
+            "name": "World Resources Institute and Arizona State University",
+            "roles": [
+              "producer",
+              "licensor"
+            ],
+            "url": "https://source.coop/wri-data-lab/trazoannotations"
+          },
+          {
+            "name": "Fields of the World",
+            "roles": [
+              "processor"
+            ],
+            "url": "https://fieldsofthe.world"
+          }
+        ]
+      },
+      "class_filter": null
+    }
+  },
+  "title": "Trazo with splits \u2014 2020",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -73.19211236090491,
+          -38.3242027651972,
+          -44.087118183229684,
+          1.7415096590154422
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2020-01-01T00:00:00Z",
+          "2021-07-27T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "wri_trazo_ml",
+    "2020"
+  ],
+  "providers": [
+    {
+      "name": "World Resources Institute and Arizona State University",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://source.coop/wri-data-lab/trazoannotations"
+    },
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "assets": {
+    "fields": {
+      "href": "./wri_trazo_ml_2020_fields.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary polygons",
+      "file:size": 13920220,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "determination:datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "region",
+          "type": "varchar"
+        },
+        {
+          "name": "basemap",
+          "type": "varchar"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 37048,
+      "roles": [
+        "data"
+      ]
+    },
+    "boundary_lines": {
+      "href": "./wri_trazo_ml_2020_boundary_lines.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Field boundary lines",
+      "file:size": 13326039,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "determination:datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "region",
+          "type": "varchar"
+        },
+        {
+          "name": "basemap",
+          "type": "varchar"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "metrics:area",
+          "type": "float"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 37048,
+      "roles": [
+        "data"
+      ]
+    },
+    "chips": {
+      "href": "./wri_trazo_ml_2020_chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chip definitions with field coverage",
+      "file:size": 439193,
+      "table:columns": [
+        {
+          "name": "gzd",
+          "type": "varchar"
+        },
+        {
+          "name": "mgrs_10km",
+          "type": "varchar"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "label_extent_pct",
+          "type": "double"
+        },
+        {
+          "name": "label_extent_sha256",
+          "type": "varchar"
+        },
+        {
+          "name": "split",
+          "type": "varchar"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        }
+      ],
+      "table:row_count": 3687,
+      "roles": [
+        "data"
+      ]
+    },
+    "items": {
+      "href": "./items.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "STAC items in GeoParquet format (collection mirror)",
+      "file:size": 3538303,
+      "table:columns": [
+        {
+          "name": "type",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_version",
+          "type": "varchar"
+        },
+        {
+          "name": "stac_extensions",
+          "type": "varchar[]"
+        },
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "links",
+          "type": "struct"
+        },
+        {
+          "name": "assets",
+          "type": "struct"
+        },
+        {
+          "name": "collection",
+          "type": "varchar"
+        },
+        {
+          "name": "datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "start_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "end_datetime",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "ftw:calendar_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:split",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:field_coverage_pct",
+          "type": "double"
+        },
+        {
+          "name": "ftw:label_extent_pct",
+          "type": "double"
+        },
+        {
+          "name": "renders",
+          "type": "struct"
+        },
+        {
+          "name": "ftw:summer_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:summer_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "bbox",
+          "type": "struct"
+        },
+        {
+          "name": "geometry",
+          "type": "geometry"
+        }
+      ],
+      "table:row_count": 3687,
+      "roles": [
+        "collection-mirror"
+      ]
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chips (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 1254380
+    },
+    "fields_tiles": {
+      "href": "./fields.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Field boundaries (PMTiles)",
+      "roles": [
+        "visual"
+      ],
+      "file:size": 7779659
+    },
+    "style-split": {
+      "href": "./styles/split.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 911
+    },
+    "style-field-coverage": {
+      "href": "./styles/field-coverage.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field coverage",
+      "roles": [
+        "style"
+      ],
+      "file:size": 1076
+    },
+    "style-outline": {
+      "href": "./styles/outline.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Field outlines",
+      "roles": [
+        "style"
+      ],
+      "file:size": 710
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Trazo with splits \u2014 2020 \u2014 Field outlines"
+    }
+  }
+}

@@ -56,7 +56,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
-**175 collections · 3,076,036 chips**
+**180 collections · 3,082,670 chips**
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -234,6 +234,11 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Slovakia — 2023](https://source.coop/ftw/benchmark-data/sk_2023) | 9,571 | 7,624/946/1,001 | 9,552 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2023/collection.json) |
 | [Slovakia — 2024](https://source.coop/ftw/benchmark-data/sk_2024) | 9,986 | 7,975/999/1,012 | 9,965 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2024/collection.json) |
 | [Slovakia — 2025](https://source.coop/ftw/benchmark-data/sk_2025) | 9,985 | 7,991/975/1,019 | 9,964 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/sk](https://source.coop/ftw/harmonized-field-data/sk) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/sk_2025/collection.json) |
+| [Trazo with splits — 2020](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2020) | 3,687 | 2,176/543/968 | 3,686 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/wri_trazo_ml](https://source.coop/ftw/harmonized-field-data/wri_trazo_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/wri_trazo_ml_2020/collection.json) |
+| [Trazo with splits — 2021](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2021) | 498 | 399/99/0 | 498 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/wri_trazo_ml](https://source.coop/ftw/harmonized-field-data/wri_trazo_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/wri_trazo_ml_2021/collection.json) |
+| [Trazo with splits — 2022](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2022) | 590 | 472/118/0 | 590 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/wri_trazo_ml](https://source.coop/ftw/harmonized-field-data/wri_trazo_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/wri_trazo_ml_2022/collection.json) |
+| [Trazo with splits — 2023](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2023) | 499 | 400/99/0 | 499 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/wri_trazo_ml](https://source.coop/ftw/harmonized-field-data/wri_trazo_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/wri_trazo_ml_2023/collection.json) |
+| [Trazo with splits — 2024](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2024) | 1,360 | 1,088/272/0 | 1,358 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/wri_trazo_ml](https://source.coop/ftw/harmonized-field-data/wri_trazo_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/wri_trazo_ml_2024/collection.json) |
 | [South Africa (Fusion) with splits — 2017](https://source.coop/ftw/benchmark-data/za_fusion_ml_2017) | 239 | 182/23/34 | — | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/za_fusion_ml](https://source.coop/ftw/harmonized-field-data/za_fusion_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/za_fusion_ml_2017/collection.json) |
 
 ### What each collection carries
@@ -414,6 +419,11 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Slovakia — 2023](https://source.coop/ftw/benchmark-data/sk_2023) | 9,571 | 9,552 stored | 9,571 |
 | [Slovakia — 2024](https://source.coop/ftw/benchmark-data/sk_2024) | 9,986 | 9,965 stored | 9,986 |
 | [Slovakia — 2025](https://source.coop/ftw/benchmark-data/sk_2025) | 9,985 | 9,964 stored | 9,985 |
+| [Trazo with splits — 2020](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2020) | 3,687 | 3,686 stored | none |
+| [Trazo with splits — 2021](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2021) | 498 | 498 stored | none |
+| [Trazo with splits — 2022](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2022) | 590 | 590 stored | none |
+| [Trazo with splits — 2023](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2023) | 499 | 499 stored | none |
+| [Trazo with splits — 2024](https://source.coop/ftw/benchmark-data/wri_trazo_ml_2024) | 1,360 | 1,358 stored | none |
 | [South Africa (Fusion) with splits — 2017](https://source.coop/ftw/benchmark-data/za_fusion_ml_2017) | 239 | — | — |
 
 `stored` means four-band GeoTIFFs (red, green, blue, NIR at 10 m) clipped to the chip's mask grid and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless mosaics of the collection's year (and planting/harvest scenes, where a collection has them). `linked` means the chip's imagery items point at whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with no imagery still carries its masks and its split — pair it with imagery of your own, on the footprint in `items.parquet`.
