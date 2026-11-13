@@ -34,7 +34,7 @@ The extent per harmonized collection (``BUILDERS``; the keys must match
   from DANS, the file the converter takes the split from), from UTM 48N.
 - ``rw_rwanda_ml``: the NASA Harvest competition's 57 train and 13 test tiles,
   read from the image headers. The harmonized set holds both splits.
-- ``wri_trazo``: WRI's 256x256 Sentinel-2 chips (``chips_<region>.parquet``) of
+- ``wri_trazo_ml``: WRI's 256x256 Sentinel-2 chips (``chips_<region>.parquet``) of
   every region annotated that year, empty chips included.
 """
 from __future__ import annotations
@@ -222,7 +222,7 @@ BUILDERS: dict[str, Callable] = {
     "ai4sf_ml": ai4sf_tiles,
     "glocab": glocab_regions,
     "rw_rwanda_ml": rwanda_tiles,
-    "wri_trazo": trazo_chips,
+    "wri_trazo_ml": trazo_chips,
 }
 
 

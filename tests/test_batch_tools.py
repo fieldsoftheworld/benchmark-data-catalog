@@ -201,7 +201,7 @@ finally:
 from ftw_dataset_tools.api.config import DatasetConfig  # noqa: E402
 
 EXTENT_IDS = ["ai4sf_ml_2021", "glocab_2017", "glocab_2018", "glocab_2019", "glocab_2020",
-              "rw_rwanda_ml_2021", *(f"wri_trazo_{y}" for y in range(2020, 2025))]
+              "rw_rwanda_ml_2021", *(f"wri_trazo_ml_{y}" for y in range(2020, 2025))]
 for real_id in [*EXTENT_IDS, "br_ba_lem_2020"]:
     real = tracking.row(real_id)
     check(new_dataset.row_problem(real) is None, f"{real_id}: {new_dataset.row_problem(real)}")
@@ -224,8 +224,11 @@ for real_id in [*EXTENT_IDS, "br_ba_lem_2020"]:
         DatasetConfig.from_dict(real_recipe)
     except Exception as exc:  # noqa: BLE001 - any refusal is the failure
         errors.append(f"{real_id}: ftwd refuses the recipe: {exc}")
-check(tracking.row("wri_trazo_2020")["issues"].startswith("waiting for fiboa/cli#354"),
-      "Trazo still waits for its converter and the harmonized publish")
+for year in range(2020, 2025):
+    trazo = tracking.row(f"wri_trazo_ml_{year}")
+    # The split column (WRI's test regions) is only in the _ml edition.
+    check(trazo["harmonized_id"] == "wri_trazo_ml" and not trazo["issues"],
+          f"wri_trazo_ml_{year} reads wri_trazo_ml and waits for nothing: {trazo}")
 
 # Credits for a dataset drawn from several collections.
 cc_open = {"license": "CC-BY-4.0", "attribution": "Nat", "providers": [

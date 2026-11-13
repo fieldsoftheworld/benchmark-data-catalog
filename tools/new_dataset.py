@@ -76,7 +76,7 @@ PRESENCE_ONLY = "Presence-only"
 # Harmonized collections labelled completely only inside their sample tiles, chips or
 # mapped regions; tools/label_extent.py builds each one's extent (BUILDERS there).
 # br_ba_lem is not one: its fields are a sample, so it is presence-only (2026-11-10).
-LABEL_EXTENT_SOURCES = ("ai4sf_ml", "glocab", "rw_rwanda_ml", "wri_trazo")
+LABEL_EXTENT_SOURCES = ("ai4sf_ml", "glocab", "rw_rwanda_ml", "wri_trazo_ml")
 MASK_TYPES = ["instance", "semantic_2_class", "semantic_3_class", "decode_boundary", "decode_distance"]
 # Only these can mark a pixel unknown; the others would call unlabelled fields not-field.
 PRESENCE_ONLY_MASK_TYPES = ["semantic_2_class", "semantic_3_class"]

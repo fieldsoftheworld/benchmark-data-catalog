@@ -167,7 +167,7 @@ with tempfile.TemporaryDirectory() as tmp:
             for a in aois])
     label_extent.TRAZO = str(trazo)
     label_extent.TRAZO_REGIONS = {"acre": 2020, "pampas": 2021}
-    chips = build({"dataset_id": "wri_trazo_2020", "harmonized_id": "wri_trazo", "year": "2020"},
+    chips = build({"dataset_id": "wri_trazo_ml_2020", "harmonized_id": "wri_trazo_ml", "year": "2020"},
                   label_extent.trazo_chips, tmp / "trazo.parquet")
     check(sorted(chips) == ["acre/tile_1", "acre/tile_2"],
           f"only the year's regions (acre 2020, not pampas 2021): {sorted(chips)}")
