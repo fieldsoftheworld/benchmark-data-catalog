@@ -1,0 +1,29 @@
+# Cambodia/Vietnam (AI4SF) with splits — 2021 — MGRS square 48PWS
+
+## Overview
+
+This is a sub-catalog of chips in MGRS 100 km square 48PWS. See the [collection agent guide](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021/AGENTS.md) for the full collection.
+
+## Accessing the data
+
+Query this square's items out of the collection's `items.parquet`, filtered on the square prefix of the item id:
+
+```sql
+SELECT * FROM read_parquet('https://data.source.coop/ftw/benchmark-data/ai4sf_ml_2021/items.parquet') WHERE id LIKE 'ftw-48PWS%';
+```
+
+## Schema & field notes
+
+Every column and property is documented in the [collection agent guide](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021/AGENTS.md); nothing here is specific to this square.
+
+## Data quality & usage notes
+
+Every data quality note in the [collection agent guide](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021/AGENTS.md) applies equally to this square.
+
+## Example queries
+
+See the [collection agent guide](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021/AGENTS.md) for worked examples against the full collection; the query above scopes any of them to this square.
+
+## Related collections
+
+See the [collection agent guide](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021/AGENTS.md) for related collections and the source field boundary data.

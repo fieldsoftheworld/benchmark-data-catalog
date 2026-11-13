@@ -56,10 +56,11 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 ## Collections
 
 <!-- collections:start -->
-**168 collections · 3,049,806 chips**
+**175 collections · 3,076,036 chips**
 
 | Collection | Chips | Splits (train/val/test) | Imagery | License | Source | Browse |
 | --- | --- | --- | --- | --- | --- | --- |
+| [Cambodia/Vietnam (AI4SF) with splits — 2021](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021) | 797 | 668/73/56 | 797 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ai4sf_ml](https://source.coop/ftw/harmonized-field-data/ai4sf_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ai4sf_ml_2021/collection.json) |
 | [Austria — 2018](https://source.coop/ftw/benchmark-data/at_2018) | 14,493 | 11,621/1,433/1,439 | 14,493 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at_2018/collection.json) |
 | [Austria — 2019](https://source.coop/ftw/benchmark-data/at_2019) | 14,491 | 11,659/1,389/1,443 | 14,491 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at_2019/collection.json) |
 | [Austria — 2020](https://source.coop/ftw/benchmark-data/at_2020) | 14,496 | 11,730/1,401/1,365 | 14,496 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/at](https://source.coop/ftw/harmonized-field-data/at) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/at_2020/collection.json) |
@@ -82,6 +83,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Bulgaria — 2023](https://source.coop/ftw/benchmark-data/bg_2023) | 17,846 | 14,283/1,753/1,810 | 17,825 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/bg](https://source.coop/ftw/harmonized-field-data/bg) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/bg_2023/collection.json) |
 | [Bulgaria — 2024](https://source.coop/ftw/benchmark-data/bg_2024) | 18,225 | 14,490/1,876/1,859 | 18,204 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/bg](https://source.coop/ftw/harmonized-field-data/bg) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/bg_2024/collection.json) |
 | [Bulgaria — 2025](https://source.coop/ftw/benchmark-data/bg_2025) | 18,292 | 14,642/1,833/1,817 | 18,271 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/bg](https://source.coop/ftw/harmonized-field-data/bg) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/bg_2025/collection.json) |
+| [West Bahia, Brazil — 2020](https://source.coop/ftw/benchmark-data/br_ba_lem_2020) | 1,268 | 1,000/126/142 | 1,268 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/br_ba_lem](https://source.coop/ftw/harmonized-field-data/br_ba_lem) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/br_ba_lem_2020/collection.json) |
 | [Switzerland, Aargau — 2025](https://source.coop/ftw/benchmark-data/ch_ag_2025) | 346 | 267/38/41 | 346 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ch](https://source.coop/ftw/harmonized-field-data/ch) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ch_ag_2025/collection.json) |
 | [Switzerland, Appenzell Innerrhoden — 2025](https://source.coop/ftw/benchmark-data/ch_ai_2025) | 14 | 10/0/4 | 14 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/ch](https://source.coop/ftw/harmonized-field-data/ch) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ch_ai_2025/collection.json) |
 | [Switzerland, Appenzell Ausserrhoden — 2025](https://source.coop/ftw/benchmark-data/ch_ar_2025) | 34 | 24/0/10 | 34 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/ch](https://source.coop/ftw/harmonized-field-data/ch) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/ch_ar_2025/collection.json) |
@@ -149,6 +151,10 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [France — 2022](https://source.coop/ftw/benchmark-data/fr_2022) | 121,995 | 97,548/12,229/12,218 | 121,804 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2022/collection.json) |
 | [France — 2023](https://source.coop/ftw/benchmark-data/fr_2023) | 121,876 | 97,747/12,007/12,122 | 121,684 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2023/collection.json) |
 | [France — 2024](https://source.coop/ftw/benchmark-data/fr_2024) | 121,860 | 97,593/12,079/12,188 | 121,670 stored | [License](https://etalab.gouv.fr/licence-ouverte-open-licence) | [harmonized/fr](https://source.coop/ftw/harmonized-field-data/fr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/fr_2024/collection.json) |
+| [GloCAB — 2017](https://source.coop/ftw/benchmark-data/glocab_2017) | 6,067 | 4,888/578/601 | 6,054 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/glocab](https://source.coop/ftw/harmonized-field-data/glocab) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/glocab_2017/collection.json) |
+| [GloCAB — 2018](https://source.coop/ftw/benchmark-data/glocab_2018) | 598 | 464/69/65 | 598 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/glocab](https://source.coop/ftw/harmonized-field-data/glocab) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/glocab_2018/collection.json) |
+| [GloCAB — 2019](https://source.coop/ftw/benchmark-data/glocab_2019) | 4,975 | 3,960/488/527 | 4,975 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/glocab](https://source.coop/ftw/harmonized-field-data/glocab) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/glocab_2019/collection.json) |
+| [GloCAB — 2020](https://source.coop/ftw/benchmark-data/glocab_2020) | 12,452 | 9,972/1,208/1,272 | 12,425 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/glocab](https://source.coop/ftw/harmonized-field-data/glocab) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/glocab_2020/collection.json) |
 | [Croatia — 2017](https://source.coop/ftw/benchmark-data/hr_2017) | 9,676 | 7,792/932/952 | 9,676 stored | [License](https://www.apprrr.hr/prostorni-podaci-servisi/) | [harmonized/hr](https://source.coop/ftw/harmonized-field-data/hr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/hr_2017/collection.json) |
 | [Croatia — 2018](https://source.coop/ftw/benchmark-data/hr_2018) | 9,704 | 7,735/999/970 | 9,704 stored | [License](https://www.apprrr.hr/prostorni-podaci-servisi/) | [harmonized/hr](https://source.coop/ftw/harmonized-field-data/hr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/hr_2018/collection.json) |
 | [Croatia — 2019](https://source.coop/ftw/benchmark-data/hr_2019) | 9,724 | 7,748/970/1,006 | 9,724 stored | [License](https://www.apprrr.hr/prostorni-podaci-servisi/) | [harmonized/hr](https://source.coop/ftw/harmonized-field-data/hr) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/hr_2019/collection.json) |
@@ -204,6 +210,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Portugal — 2022](https://source.coop/ftw/benchmark-data/pt_2022) | 20,361 | 16,290/2,055/2,016 | 20,361 stored | [License](https://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply) | [harmonized/pt](https://source.coop/ftw/harmonized-field-data/pt) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/pt_2022/collection.json) |
 | [Portugal — 2023](https://source.coop/ftw/benchmark-data/pt_2023) | 20,002 | 15,964/2,043/1,995 | 20,002 stored | [License](https://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply) | [harmonized/pt](https://source.coop/ftw/harmonized-field-data/pt) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/pt_2023/collection.json) |
 | [Portugal — 2025](https://source.coop/ftw/benchmark-data/pt_2025) | 20,298 | 16,283/1,981/2,034 | 20,298 stored | [License](https://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply) | [harmonized/pt](https://source.coop/ftw/harmonized-field-data/pt) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/pt_2025/collection.json) |
+| [Rwanda with splits — 2021](https://source.coop/ftw/benchmark-data/rw_rwanda_ml_2021) | 73 | 58/7/8 | 73 stored | [CC-BY-4.0](https://spdx.org/licenses/CC-BY-4.0.html) | [harmonized/rw_rwanda_ml](https://source.coop/ftw/harmonized-field-data/rw_rwanda_ml) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/rw_rwanda_ml_2021/collection.json) |
 | [Sweden — 2017](https://source.coop/ftw/benchmark-data/se_2017) | 32,935 | 26,187/3,324/3,424 | 32,935 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/se](https://source.coop/ftw/harmonized-field-data/se) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/se_2017/collection.json) |
 | [Sweden — 2018](https://source.coop/ftw/benchmark-data/se_2018) | 32,623 | 26,043/3,263/3,317 | 32,623 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/se](https://source.coop/ftw/harmonized-field-data/se) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/se_2018/collection.json) |
 | [Sweden — 2019](https://source.coop/ftw/benchmark-data/se_2019) | 32,880 | 26,392/3,263/3,225 | 32,880 stored | [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html) | [harmonized/se](https://source.coop/ftw/harmonized-field-data/se) | [browse](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/se_2019/collection.json) |
@@ -233,6 +240,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 
 | Collection | Label masks | Sentinel-2 imagery | HCAT crop labels |
 | --- | --- | --- | --- |
+| [Cambodia/Vietnam (AI4SF) with splits — 2021](https://source.coop/ftw/benchmark-data/ai4sf_ml_2021) | 797 | 797 stored | none |
 | [Austria — 2018](https://source.coop/ftw/benchmark-data/at_2018) | 14,493 | 14,493 stored | 14,493 |
 | [Austria — 2019](https://source.coop/ftw/benchmark-data/at_2019) | 14,491 | 14,491 stored | 14,491 |
 | [Austria — 2020](https://source.coop/ftw/benchmark-data/at_2020) | 14,496 | 14,496 stored | 14,496 |
@@ -255,6 +263,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Bulgaria — 2023](https://source.coop/ftw/benchmark-data/bg_2023) | 17,846 | 17,825 stored | none |
 | [Bulgaria — 2024](https://source.coop/ftw/benchmark-data/bg_2024) | 18,225 | 18,204 stored | none |
 | [Bulgaria — 2025](https://source.coop/ftw/benchmark-data/bg_2025) | 18,292 | 18,271 stored | none |
+| [West Bahia, Brazil — 2020](https://source.coop/ftw/benchmark-data/br_ba_lem_2020) | 1,268 | 1,268 stored | none |
 | [Switzerland, Aargau — 2025](https://source.coop/ftw/benchmark-data/ch_ag_2025) | 346 | 346 stored | 346 |
 | [Switzerland, Appenzell Innerrhoden — 2025](https://source.coop/ftw/benchmark-data/ch_ai_2025) | 14 | 14 stored | 14 |
 | [Switzerland, Appenzell Ausserrhoden — 2025](https://source.coop/ftw/benchmark-data/ch_ar_2025) | 34 | 34 stored | 34 |
@@ -322,6 +331,10 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [France — 2022](https://source.coop/ftw/benchmark-data/fr_2022) | 121,995 | 121,804 stored | 121,995 |
 | [France — 2023](https://source.coop/ftw/benchmark-data/fr_2023) | 121,876 | 121,684 stored | 121,840 |
 | [France — 2024](https://source.coop/ftw/benchmark-data/fr_2024) | 121,860 | 121,670 stored | 121,829 |
+| [GloCAB — 2017](https://source.coop/ftw/benchmark-data/glocab_2017) | 6,067 | 6,054 stored | none |
+| [GloCAB — 2018](https://source.coop/ftw/benchmark-data/glocab_2018) | 598 | 598 stored | none |
+| [GloCAB — 2019](https://source.coop/ftw/benchmark-data/glocab_2019) | 4,975 | 4,975 stored | none |
+| [GloCAB — 2020](https://source.coop/ftw/benchmark-data/glocab_2020) | 12,452 | 12,425 stored | none |
 | [Croatia — 2017](https://source.coop/ftw/benchmark-data/hr_2017) | 9,676 | 9,676 stored | 9,676 |
 | [Croatia — 2018](https://source.coop/ftw/benchmark-data/hr_2018) | 9,704 | 9,704 stored | 9,704 |
 | [Croatia — 2019](https://source.coop/ftw/benchmark-data/hr_2019) | 9,724 | 9,724 stored | 9,724 |
@@ -377,6 +390,7 @@ Links in these documents are absolute: `source.coop` URLs are pages for people,
 | [Portugal — 2022](https://source.coop/ftw/benchmark-data/pt_2022) | 20,361 | 20,361 stored | 20,361 |
 | [Portugal — 2023](https://source.coop/ftw/benchmark-data/pt_2023) | 20,002 | 20,002 stored | 20,002 |
 | [Portugal — 2025](https://source.coop/ftw/benchmark-data/pt_2025) | 20,298 | 20,298 stored | 20,298 |
+| [Rwanda with splits — 2021](https://source.coop/ftw/benchmark-data/rw_rwanda_ml_2021) | 73 | 73 stored | none |
 | [Sweden — 2017](https://source.coop/ftw/benchmark-data/se_2017) | 32,935 | 32,935 stored | 32,935 |
 | [Sweden — 2018](https://source.coop/ftw/benchmark-data/se_2018) | 32,623 | 32,623 stored | 32,623 |
 | [Sweden — 2019](https://source.coop/ftw/benchmark-data/se_2019) | 32,880 | 32,880 stored | 32,880 |
