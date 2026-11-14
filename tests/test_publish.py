@@ -486,6 +486,18 @@ with tempfile.TemporaryDirectory() as tmp:
           "a group already in the bucket is not new, so the root files stay out")
     check({u.key for u in root_uploads(cfg, root)} == {"pre/catalog.json", "pre/README.md"},
           "root_uploads is exactly the files directly under publish_dir")
+    from publish import collect_uploads, plan_root_files  # noqa: E402
+    group_only = collect_uploads(cfg, root, only={"aa_2024"})
+    planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root)
+    check("pre/catalog.json" in {u.key for u in planned} and why,
+          "--only on a new group adds the root files")
+    planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root, no_root=True)
+    check({u.key for u in planned} == {"pre/aa/catalog.json", "pre/aa/aa_2024/collection.json"}
+          and why is None,
+          f"--no-root keeps root files out even for a new group, group files still go: {planned}")
+    planned, why = plan_root_files(collect_uploads(cfg, root), None, {}, cfg, root, no_root=True)
+    check(not {"pre/catalog.json", "pre/README.md"} & {u.key for u in planned} and why,
+          "--no-root drops the root files from a full publish too")
 
 # --- a moved collection is not published before its data is at the new keys -------
 with tempfile.TemporaryDirectory() as tmp:

@@ -246,6 +246,41 @@ def new_groups(
     }
 
 
+def is_root_file(upload: Upload, config: dict[str, str], root: Path = ROOT) -> bool:
+    """True for a file directly under publish_dir (the root catalog.json, README, AGENTS, llms.txt)."""
+    return len(upload.local.relative_to(root / config["publish_dir"]).parts) == 1
+
+
+def plan_root_files(
+    uploads: list[Upload],
+    only: set[str] | None,
+    index: dict[str, tuple[int, str]],
+    config: dict[str, str],
+    root: Path = ROOT,
+    *,
+    no_root: bool = False,
+) -> tuple[list[Upload], str | None]:
+    """``uploads`` with the root files added or removed, and a line saying why.
+
+    ``--only`` adds them when a dataset's group is new, so the root links it.
+    ``no_root`` keeps every root file out, even then (the move into source
+    groups publishes the root once, after every group is in place); the
+    groups' own files still go.
+    """
+    if no_root:
+        kept = [u for u in uploads if not is_root_file(u, config, root)]
+        dropped = len(uploads) - len(kept)
+        return kept, (f"--no-root: leaving out {dropped} root file(s)" if dropped else None)
+    if only is None:
+        return uploads, None
+    fresh = new_groups(only, index, config, root)
+    if not fresh:
+        return uploads, None
+    return uploads + root_uploads(config, root), (
+        f"new source group(s) {', '.join(sorted(fresh))}: publishing the root files too, "
+        "so the root catalog links them")
+
+
 def missing_data(
     uploads: list[Upload],
     listing: dict[str, tuple[int, str]],
@@ -718,6 +753,12 @@ def main() -> int:
         help="publish only this dataset's folder and its source group's files, listing only "
              "them (repeatable; root files only when the group is new)",
     )
+    parser.add_argument(
+        "--no-root",
+        action="store_true",
+        help="never upload the root files, even for a new source group (the move publishes "
+             "the root once, at the end)",
+    )
     args = parser.parse_args()
     only = set(args.only) if args.only else None
 
@@ -739,12 +780,9 @@ def main() -> int:
         return 1
 
     index = {} if args.force else remote_index(bucket, prefix, config, only=only)
-    if only is not None:
-        fresh = new_groups(only, index, config)
-        if fresh:
-            print(f"new source group(s) {', '.join(sorted(fresh))}: publishing the root files too, "
-                  "so the root catalog links them")
-            uploads += root_uploads(config)
+    uploads, why = plan_root_files(uploads, only, index, config, no_root=args.no_root)
+    if why:
+        print(why)
     changed = [u for u in uploads if args.force or not is_unchanged(u, index)]
 
     print(f"publish_dir: {config['publish_dir']}/")
