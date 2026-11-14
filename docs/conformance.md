@@ -6,12 +6,12 @@ accepted, and the issue tracking its removal.
 
 | Rule | Where | Why accepted | Tracking |
 |------|-------|--------------|----------|
-| PTL-LNK-006 | `catalog/<id>/chips/<square>/catalog.json`, `rel: item` links only, and only when the gate runs under `CI_LIGHT=1` without a staging tree | Item JSON is bucket-only; CI checks out metadata alone, so the links cannot resolve there. The local overlay run resolves and enforces them. The `ACCEPTED` set stays empty; this is a scoped waiver in `tests/test_conformance.py`. | [#1](https://github.com/fieldsoftheworld/benchmark-data-catalog/issues/1) |
-| PTL-COL-005 | `catalog/<id>/collection.json`, only under `CI_LIGHT=1` without a staging tree | Same cause: the item mirror is registered but CI sees no item JSON. Enforced in the overlay run. | [#1](https://github.com/fieldsoftheworld/benchmark-data-catalog/issues/1) |
+| PTL-LNK-006 | `catalog/<source>/<id>/chips/<square>/catalog.json`, `rel: item` links only, and only when the gate runs under `CI_LIGHT=1` without a staging tree | Item JSON is bucket-only; CI checks out metadata alone, so the links cannot resolve there. The local overlay run resolves and enforces them. The `ACCEPTED` set stays empty; this is a scoped waiver in `tests/test_conformance.py`. | [#1](https://github.com/fieldsoftheworld/benchmark-data-catalog/issues/1) |
+| PTL-COL-005 | `catalog/<source>/<id>/collection.json`, only under `CI_LIGHT=1` without a staging tree | Same cause: the item mirror is registered but CI sees no item JSON. Enforced in the overlay run. | [#1](https://github.com/fieldsoftheworld/benchmark-data-catalog/issues/1) |
 
 ## Overlay validation
 
-A committed sub-catalog (`catalog/<id>/chips/<square>/catalog.json`) carries
+A committed sub-catalog (`catalog/<source>/<id>/chips/<square>/catalog.json`) carries
 `rel: item` links to item JSON that lives only in
 `staging/<id>/chips/<square>/<item>/` — ftwd writes it there and it is never
 committed (data, uploaded by `tools/upload_data.py`). Validating `catalog/`

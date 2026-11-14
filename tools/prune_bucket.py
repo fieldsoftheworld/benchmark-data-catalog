@@ -4,7 +4,7 @@
 A rebuilt dataset can drop chips (a new class filter or chip rule changes the
 chip set). ``upload_data.py`` and ``publish.py`` never delete, so the dropped
 chips' files would stay in the bucket, unlinked from the catalog. This lists
-``<write_prefix>/<id>/`` and deletes every key that neither the staged data
+``<write_prefix>/<source>/<id>/`` and deletes every key that neither the staged data
 (``upload_data.collect_data_uploads``) nor the published catalog
 (``publish.collect_uploads``) would write.
 
@@ -24,7 +24,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from common import dataset_relpath  # noqa: E402
 from publish import (  # noqa: E402
+    ROOT,
     aws_session,
     collect_uploads,
     load_config,
@@ -35,14 +37,17 @@ from publish import (  # noqa: E402
 from upload_data import collect_data_uploads, data_root  # noqa: E402
 
 
-def stale_keys(dataset_id: str, config: dict[str, str], remote: dict) -> list[str]:
-    """Keys under the dataset's prefix that the current build does not publish."""
+def stale_keys(
+    dataset_id: str, config: dict[str, str], remote: dict, root: Path = ROOT
+) -> list[str]:
+    """Keys under the dataset's ``<source>/<id>/`` prefix that the current build does not publish."""
     _, prefix = split_s3_uri(config["write_prefix"])
-    under = f"{prefix}/{dataset_id}/" if prefix else f"{dataset_id}/"
-    if not (data_root(config) / dataset_id).is_dir():
+    rel = dataset_relpath(dataset_id, catalog=root / config["publish_dir"], root=root)
+    under = f"{prefix}/{rel}/" if prefix else f"{rel}/"
+    if not (data_root(config, root) / dataset_id).is_dir():
         sys.exit(f"{dataset_id}: no staging to compare against; refusing to prune")
-    wanted = {u.key for u in collect_data_uploads(config, only={dataset_id})}
-    wanted |= {u.key for u in collect_uploads(config) if u.key.startswith(under)}
+    wanted = {u.key for u in collect_data_uploads(config, root, only={dataset_id})}
+    wanted |= {u.key for u in collect_uploads(config, root, only={dataset_id}) if u.key.startswith(under)}
     if not any(k.endswith("/collection.json") for k in wanted):
         sys.exit(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"

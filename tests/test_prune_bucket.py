@@ -43,36 +43,31 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     touch(root / "staging/d1/chips/A/c1/c1_semantic_2_class.tif")
     touch(root / "staging/d1/chips/A/c1/c1.json")
-    touch(root / "catalog/d1/collection.json")
-    touch(root / "catalog/d1/chips/A/catalog.json")
-    touch(root / "catalog/d10/collection.json")
+    touch(root / "catalog/g/d1/collection.json")
+    touch(root / "catalog/g/d1/chips/A/catalog.json")
+    touch(root / "catalog/g/d10/collection.json")
 
-    real = (prune_bucket.data_root, prune_bucket.collect_data_uploads, prune_bucket.collect_uploads)
-    prune_bucket.data_root = lambda c: real[0](c, root)
-    prune_bucket.collect_data_uploads = lambda c, only: real[1](c, root, only=only)
-    prune_bucket.collect_uploads = lambda c: real[2](c, root)
+    keep = {
+        "benchmark-data/g/d1/chips/A/c1/c1_semantic_2_class.tif",
+        "benchmark-data/g/d1/chips/A/c1/c1.json",
+        "benchmark-data/g/d1/collection.json",
+        "benchmark-data/g/d1/chips/A/catalog.json",
+    }
+    drop = {
+        "benchmark-data/g/d1/chips/B/c9/c9_semantic_2_class.tif",
+        "benchmark-data/g/d1/chips/B/catalog.json",
+    }
+    others = {"benchmark-data/g/d10/collection.json", "benchmark-data/d1/collection.json"}
+    remote = dict.fromkeys(keep | drop | others, (1, "e"))
+    stale = set(prune_bucket.stale_keys("d1", config, remote, root))
+    check(stale == drop, f"only the dropped chip's files are stale, got {sorted(stale)}")
+
     try:
-        keep = {
-            "benchmark-data/d1/chips/A/c1/c1_semantic_2_class.tif",
-            "benchmark-data/d1/chips/A/c1/c1.json",
-            "benchmark-data/d1/collection.json",
-            "benchmark-data/d1/chips/A/catalog.json",
-        }
-        drop = {
-            "benchmark-data/d1/chips/B/c9/c9_semantic_2_class.tif",
-            "benchmark-data/d1/chips/B/catalog.json",
-        }
-        remote = dict.fromkeys(keep | drop | {"benchmark-data/d10/collection.json"}, (1, "e"))
-        stale = set(prune_bucket.stale_keys("d1", config, remote))
-        check(stale == drop, f"only the dropped chip's files are stale, got {sorted(stale)}")
-
-        try:
-            prune_bucket.stale_keys("d2", config, remote)
-            check(False, "a dataset without staging is refused")
-        except SystemExit as err:
-            check("no staging" in str(err), f"the refusal says why, got {err}")
-    finally:
-        prune_bucket.data_root, prune_bucket.collect_data_uploads, prune_bucket.collect_uploads = real
+        touch(root / "catalog/g/d2/collection.json")
+        prune_bucket.stale_keys("d2", config, remote, root)
+        check(False, "a dataset without staging is refused")
+    except SystemExit as err:
+        check("no staging" in str(err), f"the refusal says why, got {err}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

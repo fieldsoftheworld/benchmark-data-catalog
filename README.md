@@ -14,12 +14,16 @@ the uploaders carry the bytes to the bucket.
 - `datasets.yaml` names the official datasets and catalog-level facts.
 - `datasets/<id>.yaml` is the ftwd recipe for one dataset. Input is always a
   collection of the [harmonized field data catalog](https://source.coop/ftw/harmonized-field-data).
-- `catalog/` is published; `catalog/<id>/` holds one collection's metadata,
-  docs, styles and thumbnail: `collection.json`, `README.md`, `AGENTS.md`,
-  `llms.txt`, `thumbnail.webp`, `styles/*.json`, and per chip square
+- `catalog/` is published. Collections are grouped by the harmonized source
+  collection they are cut from (the recipe's `source_via`): `catalog/<source>/`
+  holds that group's `catalog.json`, `README.md` and `AGENTS.md`, and
+  `catalog/<source>/<id>/` holds one collection's metadata, docs, styles and
+  thumbnail: `collection.json`, `README.md`, `AGENTS.md`, `llms.txt`,
+  `thumbnail.webp`, `styles/*.json`, and per chip square
   `chips/<square>/{catalog.json,README.md,AGENTS.md}`. Item JSON, COGs,
   imagery, `*.parquet` (including `items.parquet`) and `*.pmtiles` stay in
-  `staging/<id>/` and are bucket-only.
+  `staging/<id>/` (flat, no source folder) and are bucket-only, uploaded to
+  `<source>/<id>/` beside the metadata.
 - `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
   (`publish.py`, `upload_data.py`).
 - `tests/run_all.py` runs every gate; CI runs it on every pull request.
@@ -75,7 +79,7 @@ Two uploaders, run in this order once the gates pass:
 
 `tools/upload_data.py` uploads files staged under `staging/<id>/` (item JSON,
 COGs, imagery, `*.parquet`, `*.pmtiles`), skipping any relative path that
-already exists under `catalog/<id>/` — the git-owned copy always wins.
+already exists under `catalog/<source>/<id>/` — the git-owned copy always wins.
 `tools/publish.py` walks `catalog/` only and has no flag that widens that.
 `upload_data.py --only <id>` (repeatable) uploads one dataset's staging tree
 while another is still being built.
@@ -102,7 +106,7 @@ say-so — it's a real upload to the published bucket.
 ## Thumbnails
 
 `tools/thumbnail.py` renders a built collection's manifest-chosen style into
-`catalog/<id>/thumbnail.webp` with [chiitiler](https://github.com/Kanahiro/chiitiler),
+`catalog/<source>/<id>/thumbnail.webp` with [chiitiler](https://github.com/Kanahiro/chiitiler),
 a tile server that can rasterize a MapLibre style server-side. It needs a
 running chiitiler:
 

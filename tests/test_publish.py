@@ -13,6 +13,7 @@ Run: python3 tests/test_publish.py
 import hashlib
 import importlib.util
 import io
+import json
 import os
 import sys
 import tempfile
@@ -57,12 +58,12 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "catalog/catalog.json")
     write(root / "catalog/README.md")
     write(root / "catalog/AGENTS.md")
-    write(root / "catalog/roads/collection.json")
-    write(root / "catalog/roads/thumbnail.png")
-    write(root / "catalog/roads/styles/default.json")
+    write(root / "catalog/g/roads/collection.json")
+    write(root / "catalog/g/roads/thumbnail.png")
+    write(root / "catalog/g/roads/styles/default.json")
     write(root / "catalog/_assets/logo.svg")
-    write(root / "catalog/roads/chips/32UNA/catalog.json")
-    write(root / "catalog/roads/chips/32UNA/ftw-1/ftw-1.json")
+    write(root / "catalog/g/roads/chips/32UNA/catalog.json")
+    write(root / "catalog/g/roads/chips/32UNA/ftw-1/ftw-1.json")
 
     # Category 2: tracked, never published.
     write(root / "tools/publish.py")
@@ -90,12 +91,12 @@ with tempfile.TemporaryDirectory() as tmp:
         "a/prefix/catalog.json",
         "a/prefix/README.md",
         "a/prefix/AGENTS.md",
-        "a/prefix/roads/collection.json",
-        "a/prefix/roads/thumbnail.png",
-        "a/prefix/roads/styles/default.json",
+        "a/prefix/g/roads/collection.json",
+        "a/prefix/g/roads/thumbnail.png",
+        "a/prefix/g/roads/styles/default.json",
         "a/prefix/_assets/logo.svg",
-        "a/prefix/roads/chips/32UNA/catalog.json",
-        "a/prefix/roads/chips/32UNA/ftw-1/ftw-1.json",
+        "a/prefix/g/roads/chips/32UNA/catalog.json",
+        "a/prefix/g/roads/chips/32UNA/ftw-1/ftw-1.json",
     }
     check(keys == expected, f"upload set wrong.\n  extra:   {keys - expected}"
                             f"\n  missing: {expected - keys}")
@@ -104,12 +105,12 @@ with tempfile.TemporaryDirectory() as tmp:
     # JSON gets geo+json and its square's catalog.json stays plain json.
     types = {u.key: u.content_type for u in uploads}
     check(
-        types["a/prefix/roads/chips/32UNA/ftw-1/ftw-1.json"]
+        types["a/prefix/g/roads/chips/32UNA/ftw-1/ftw-1.json"]
         == "application/geo+json",
         "collect_uploads gives an item JSON geo+json via rel",
     )
     check(
-        types["a/prefix/roads/chips/32UNA/catalog.json"] == "application/json",
+        types["a/prefix/g/roads/chips/32UNA/catalog.json"] == "application/json",
         "collect_uploads leaves a square's catalog.json as plain json",
     )
 
@@ -364,8 +365,8 @@ from publish import pending_data  # noqa: E402
 
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
-    write(root / "catalog/aa_2024/collection.json")
-    write(root / "catalog/bb_2024/collection.json")
+    write(root / "catalog/aa/aa_2024/collection.json")
+    write(root / "catalog/bb/bb_2024/collection.json")
     a = write(root / "staging/aa_2024/items.parquet", "aaaa")
     write(root / "staging/bb_2024/items.parquet", "bbbb")
     write(root / "staging/bb_2024/chips/x/c_q1_image_s2.tif", "tif")
@@ -373,14 +374,14 @@ with tempfile.TemporaryDirectory() as tmp:
     cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
            "data_dir": "staging"}
     a_md5 = hashlib.md5(a.read_bytes()).hexdigest()
-    listing = {"pre/aa_2024/items.parquet": (4, a_md5)}
+    listing = {"pre/aa/aa_2024/items.parquet": (4, a_md5)}
     check(pending_data(cfg, listing, root) == {"bb_2024": 2}, "bb_2024's two files are pending")
-    listing["pre/bb_2024/items.parquet"] = (4, hashlib.md5(b"bbbb").hexdigest())
-    listing["pre/bb_2024/chips/x/c_q1_image_s2.tif"] = (3, hashlib.md5(b"tif").hexdigest())
+    listing["pre/bb/bb_2024/items.parquet"] = (4, hashlib.md5(b"bbbb").hexdigest())
+    listing["pre/bb/bb_2024/chips/x/c_q1_image_s2.tif"] = (3, hashlib.md5(b"tif").hexdigest())
     check(pending_data(cfg, listing, root) == {}, "everything uploaded: nothing pending")
-    write(root / "catalog/dd_2024/collection.json")  # no staging: must already be in the bucket
+    write(root / "catalog/dd/dd_2024/collection.json")  # no staging: must already be in the bucket
     check(pending_data(cfg, listing, root) == {"dd_2024": 1}, "no staging and no mirror: pending")
-    listing["pre/dd_2024/items.parquet"] = (1, "x")
+    listing["pre/dd/dd_2024/items.parquet"] = (1, "x")
     check(pending_data(cfg, listing, root) == {}, "staging pruned after upload: fine")
 
 from publish import collections_to_check, split_pending  # noqa: E402
@@ -401,8 +402,8 @@ with tempfile.TemporaryDirectory() as tmp:
         return Upload(write(root / "catalog" / rel, body), f"pre/{rel}", "application/json")
 
     root_json = up("catalog.json")
-    aa = up("aa_2024/collection.json")
-    bb_chip = up("bb_2024/chips/x/c.json")
+    aa = up("aa/aa_2024/collection.json")
+    bb_chip = up("bb/bb_2024/chips/x/c.json")
     asset = up("_assets/logo.json")
     uploads = [root_json, aa, bb_chip, asset]
     listing: dict = {}
@@ -410,10 +411,10 @@ with tempfile.TemporaryDirectory() as tmp:
         uploaded(listing, u)
     check(collections_to_check(uploads, listing, cfg, root) == set(),
           "nothing differs from the bucket: no collections to check")
-    write(root / "catalog/bb_2024/chips/x/c.json", '{"new": 1}')
+    write(root / "catalog/bb/bb_2024/chips/x/c.json", '{"new": 1}')
     write(root / "catalog/_assets/logo.json", '{"new": 1}')
-    check(collections_to_check(uploads, listing, cfg, root) == {"bb_2024", "_assets"},
-          "the top-level directories that differ are checked")
+    check(collections_to_check(uploads, listing, cfg, root) == {"bb_2024"},
+          "the dataset folders (<source>/<id>/) that differ are checked")
     write(root / "catalog/catalog.json", '{"new": 1}')
     check(collections_to_check(uploads, listing, cfg, root) is None,
           "a changed root file checks every collection: root tables come from staging")
@@ -426,11 +427,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # split_pending, the check main() runs: aa_2024 is rebuilding in staging while
     # bb_2024 (fully uploaded) is what this publish changes.
-    write(root / "catalog/bb_2024/collection.json")
+    write(root / "catalog/bb/bb_2024/collection.json")
     write(root / "catalog/catalog.json", "{}")
     write(root / "catalog/_assets/logo.json", "{}")
     bb_data = write(root / "staging/bb_2024/items.parquet", "bbbb")
-    listing["pre/bb_2024/items.parquet"] = (4, hashlib.md5(bb_data.read_bytes()).hexdigest())
+    listing["pre/bb/bb_2024/items.parquet"] = (4, hashlib.md5(bb_data.read_bytes()).hexdigest())
     write(root / "staging/aa_2024/items.parquet", "rebuilt")
     blocking, other = split_pending(uploads, listing, cfg, root)
     check(blocking == {} and other == {"aa_2024": 1},
@@ -440,9 +441,79 @@ with tempfile.TemporaryDirectory() as tmp:
     check(blocking == {"aa_2024": 1} and other == {},
           f"a root change publishes aa_2024's staged row, so it blocks, got {blocking}, {other}")
     write(root / "catalog/catalog.json", "{}")
-    write(root / "catalog/aa_2024/collection.json", '{"rebuilt": 1}')
+    write(root / "catalog/aa/aa_2024/collection.json", '{"rebuilt": 1}')
     blocking, other = split_pending(uploads, listing, cfg, root)
     check(blocking == {"aa_2024": 1}, f"aa_2024's own catalog changes: it blocks, got {blocking}")
+
+# --- --only narrows the walk, the listing and the data check ------------------
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
+           "data_dir": "staging"}
+    write(root / "catalog/catalog.json")
+    write(root / "catalog/aa/aa_2024/collection.json")
+    write(root / "catalog/aa/aa_2024/chips/x/catalog.json")
+    write(root / "catalog/aa/catalog.json")
+    write(root / "catalog/aa/README.md")
+    write(root / "catalog/aa/aa_2023/collection.json")
+    write(root / "catalog/bb/catalog.json")
+    write(root / "catalog/bb/bb_2024/collection.json")
+    write(root / "staging/bb_2024/items.parquet", "not uploaded")
+    keys = {u.key for u in collect_uploads(cfg, root, only={"aa_2024"})}
+    check(keys == {"pre/aa/aa_2024/collection.json", "pre/aa/aa_2024/chips/x/catalog.json",
+                   "pre/aa/catalog.json", "pre/aa/README.md"},
+          f"--only publishes that dataset's folder and its group's own files, no root file and "
+          f"no sibling, got {sorted(keys)}")
+    check(pending_data(cfg, {"pre/aa/aa_2024/items.parquet": (1, "x")}, root, only={"aa_2024"}) == {},
+          "--only leaves other datasets' pending data out of the check")
+    check(pending_data(cfg, {}, root, only={"bb_2024"}) == {"bb_2024": 1},
+          "--only still blocks the named dataset until its data is uploaded")
+
+# --- a new source group brings the root files; otherwise they stay out ------------
+from publish import missing_data, new_groups, root_uploads  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
+           "data_dir": "staging"}
+    write(root / "catalog/catalog.json")
+    write(root / "catalog/README.md")
+    write(root / "catalog/aa/catalog.json")
+    write(root / "catalog/aa/aa_2024/collection.json")
+    check(new_groups({"aa_2024"}, {}, cfg, root) == {"aa"},
+          "a group whose catalog.json the bucket lacks is new")
+    check(new_groups({"aa_2024"}, {"pre/aa/catalog.json": (1, "x")}, cfg, root) == set(),
+          "a group already in the bucket is not new, so the root files stay out")
+    check({u.key for u in root_uploads(cfg, root)} == {"pre/catalog.json", "pre/README.md"},
+          "root_uploads is exactly the files directly under publish_dir")
+
+# --- a moved collection is not published before its data is at the new keys -------
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
+           "data_dir": "staging"}
+    collection = {"type": "Collection", "id": "aa_2024",
+                  "assets": {"chips": {"href": "./aa_2024_chips.parquet"},
+                             "thumbnail": {"href": "./thumbnail.webp"},
+                             "license": {"href": "https://example.org/terms"}},
+                  "links": [{"rel": "pmtiles", "href": "./chips.pmtiles"},
+                            {"rel": "root", "href": "../../catalog.json"}]}
+    coll = write(root / "catalog/aa/aa_2024/collection.json", json.dumps(collection))
+    write(root / "catalog/aa/aa_2024/thumbnail.webp", "git owns it")
+    up_coll = Upload(coll, "pre/aa/aa_2024/collection.json", "application/json")
+    check(missing_data([up_coll], {}, cfg, root) == {"aa_2024": ["aa_2024_chips.parquet", "chips.pmtiles"]},
+          f"data neither staged nor at the new key is missing: {missing_data([up_coll], {}, cfg, root)}")
+    write(root / "staging/aa_2024/aa_2024_chips.parquet", "staged")
+    listing = {"pre/aa/aa_2024/chips.pmtiles": (1, "x"), "pre/aa_2024/chips.pmtiles": (1, "old")}
+    check(missing_data([up_coll], listing, cfg, root) == {},
+          "staged data, or data already copied to the new key, is enough")
+    check(missing_data([up_coll], {"pre/aa_2024/chips.pmtiles": (1, "x")}, cfg, root)
+          == {"aa_2024": ["chips.pmtiles"]},
+          "data still only at the old flat key does not count")
+    uploaded(listing, up_coll)
+    (root / "staging/aa_2024/aa_2024_chips.parquet").unlink()
+    check(missing_data([up_coll], listing, cfg, root) == {},
+          "a collection this publish leaves unchanged is not checked")
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
@@ -512,77 +583,91 @@ class FakeLister:
 _keys = [
     "bd/catalog.json",
     "bd/README.md",
-    "bd/aa_2024/collection.json",
-    "bd/aa_2024/items.parquet",
-    "bd/bb_2025/collection.json",
+    "bd/aa/catalog.json",
+    "bd/aa/aa_2024/collection.json",
+    "bd/aa/aa_2024/items.parquet",
+    "bd/bb/bb_2025/collection.json",
     "bd-other/unrelated.txt",
     "elsewhere/x.json",
 ]
 for tile in ("30SVH", "31TBF"):
     for chip in range(3):
         for f in ("image_s2.tif", "mask.tif"):
-            _keys.append(f"bd/aa_2024/chips/{tile}/ftw-{tile}{chip}/{f}")
-_keys.append("bd/bb_2025/chips/32ULU/ftw-32ULU0/mask.tif")
+            _keys.append(f"bd/aa/aa_2024/chips/{tile}/ftw-{tile}{chip}/{f}")
+_keys.append("bd/bb/bb_2025/chips/32ULU/ftw-32ULU0/mask.tif")
+# A dataset still at the old flat key during the move: never walked, never split.
+_old = [f"bd/zz_2020/chips/30SVH/ftw-30SVH{c}/mask.tif" for c in range(3)] + ["bd/zz_2020/collection.json"]
 _expected = {k: (len(k), f'"{k}"') for k in _keys if k.startswith("bd/")}
+
+_listing_root = Path(tempfile.mkdtemp())
+for _rel in ("aa/aa_2024", "bb/bb_2025"):
+    write(_listing_root / "catalog" / _rel / "collection.json")
+_cfg = {"publish_dir": "catalog"}
 
 _saved = (_publish.aws_session, _publish.s3_client, _publish.LIST_RETRY_SECONDS)
 _publish.LIST_RETRY_SECONDS = 0
 try:
     _publish.aws_session = lambda config: None
-    _lister = FakeLister(_keys)
+    _lister = FakeLister(_keys + _old)
     _publish.s3_client = lambda session, endpoint_url=None, **kw: _lister
     _out = io.StringIO()
     with redirect_stdout(_out):
-        _index = _publish.remote_index("b", "bd", {})
-    check(_index == _expected, "the parallel walk finds every key under <prefix>/ and nothing else")
+        _index = _publish.remote_index("b", "bd", _cfg, root=_listing_root)
+    check(_index == _expected, "the walk finds every key under the root and the source groups, nothing else")
     _flat = [p for p, d in _lister.requests if d is None]
     check(
-        sorted(_flat) == ["bd/aa_2024/chips/30SVH/", "bd/aa_2024/chips/31TBF/",
-                          "bd/bb_2025/chips/32ULU/"],
+        sorted(_flat) == ["bd/aa/aa_2024/chips/30SVH/", "bd/aa/aa_2024/chips/31TBF/",
+                          "bd/bb/bb_2025/chips/32ULU/"],
         f"folders are split down to the tile and listed flat there, got {sorted(_flat)}",
     )
     check(
-        not any(p.count("/") > 4 for p, _ in _lister.requests),
+        not any(p.count("/") > 5 for p, _ in _lister.requests),
         "single chip folders are not listed one by one",
+    )
+    check(
+        not any(p.startswith("bd/zz_2020/") for p, _ in _lister.requests),
+        "a top-level folder that is not a source group (an old flat dataset) is never walked",
     )
 
     _lister = FakeLister(_keys)
     with redirect_stdout(_out):
-        _only = _publish.remote_index("b", "bd", {}, only={"aa_2024"})
+        _only = _publish.remote_index("b", "bd", _cfg, only={"aa_2024"}, root=_listing_root)
     check(
-        _only == {k: v for k, v in _expected.items() if k.startswith("bd/aa_2024/")},
-        "only= lists just those datasets' folders",
+        _only == {k: v for k, v in _expected.items()
+                  if k.startswith("bd/aa/aa_2024/") or k in ("bd/catalog.json", "bd/README.md", "bd/aa/catalog.json")},
+        f"only= lists those datasets' folders, their group's files and the root files, got {sorted(_only)}",
     )
     check(
-        all(p.startswith("bd/aa_2024/") for p, _ in _lister.requests),
-        "only= sends no request outside those folders",
+        all(p.startswith("bd/aa/aa_2024/") or (p in ("bd/", "bd/aa/") and d == "/")
+            for p, d in _lister.requests),
+        f"only= walks nothing else, and the root and group only one level: {_lister.requests}",
     )
     _flat = sorted(p for p, d in _lister.requests if d is None)
     check(
-        _flat == ["bd/aa_2024/chips/30SVH/", "bd/aa_2024/chips/31TBF/"],
+        _flat == ["bd/aa/aa_2024/chips/30SVH/", "bd/aa/aa_2024/chips/31TBF/"],
         f"only= splits to the same tile depth, got {_flat}",
     )
 
-    _lister = FakeLister(_keys, fail_prefix="bd/aa_2024/chips/31TBF/")
+    _lister = FakeLister(_keys, fail_prefix="bd/aa/aa_2024/chips/31TBF/")
     _out = io.StringIO()
     with redirect_stdout(_out):
-        _failed = _publish.remote_index("b", "bd", {})
+        _failed = _publish.remote_index("b", "bd", _cfg, root=_listing_root)
     check(_failed == {}, "one failed request fails the whole listing, never a partial index")
     check("could not list" in _out.getvalue(), "a failed listing says so")
 
     check(
-        sum(p == "bd/aa_2024/chips/31TBF/" for p, _ in _lister.requests) == _publish.LIST_ATTEMPTS,
+        sum(p == "bd/aa/aa_2024/chips/31TBF/" for p, _ in _lister.requests) == _publish.LIST_ATTEMPTS,
         "a failing folder is tried LIST_ATTEMPTS times before the listing gives up",
     )
 
-    _lister = FakeLister(_keys, fail_prefix="bd/aa_2024/chips/31TBF/", failures=2)
+    _lister = FakeLister(_keys, fail_prefix="bd/aa/aa_2024/chips/31TBF/", failures=2)
     with redirect_stdout(io.StringIO()):
-        _retried = _publish.remote_index("b", "bd", {})
+        _retried = _publish.remote_index("b", "bd", _cfg, root=_listing_root)
     check(_retried == _expected, "a folder that fails twice and then answers is listed in full")
 
     _lister = FakeLister([])
     with redirect_stdout(io.StringIO()):
-        check(_publish.remote_index("b", "bd", {}) == {}, "an empty bucket lists as empty")
+        check(_publish.remote_index("b", "bd", _cfg, root=_listing_root) == {}, "an empty bucket lists as empty")
 finally:
     _publish.aws_session, _publish.s3_client, _publish.LIST_RETRY_SECONDS = _saved
 

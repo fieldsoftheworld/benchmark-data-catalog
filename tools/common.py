@@ -43,6 +43,90 @@ def public_url(rel: str) -> str:
     return _config["public_base"].rstrip("/") + "/" + rel
 
 
+# --- where a dataset sits: catalog/<source>/<id>/ and <prefix>/<source>/<id>/ --
+
+# A recipe's ``source_via``: the harmonized collection's JSON endpoint. Its
+# collection id names the group folder every benchmark cut from it sits in.
+SOURCE_VIA_RE = re.compile(
+    r"^https://data\.source\.coop/(?P<org>[^/]+)/(?P<repo>[^/]+)/(?P<id>[^/]+)/collection\.json$"
+)
+
+
+class LayoutError(SystemExit):
+    """A dataset whose place in the catalog cannot be worked out."""
+
+
+def source_group(source_via: str | None) -> str | None:
+    """The group folder for a ``source_via`` URL: the harmonized collection id, or None."""
+    match = SOURCE_VIA_RE.match(source_via or "")
+    return match.group("id") if match else None
+
+
+def recipe_group(dataset_id: str, root: Path = ROOT) -> str:
+    """The group ``datasets/<id>.yaml`` puts the dataset in, from its ``source_via``."""
+    import yaml
+
+    path = root / "datasets" / f"{dataset_id}.yaml"
+    if not path.is_file():
+        raise LayoutError(f"{dataset_id}: no datasets/{dataset_id}.yaml to place it by")
+    group = source_group((yaml.safe_load(path.read_text()) or {}).get("source_via"))
+    if not group:
+        raise LayoutError(
+            f"{dataset_id}: datasets/{dataset_id}.yaml has no harmonized source_via "
+            "(https://data.source.coop/<org>/<repo>/<id>/collection.json) to group it under"
+        )
+    return group
+
+
+def refuse_flat(catalog: Path = CATALOG) -> None:
+    """Exit when ``catalog/`` still has a flat ``catalog/<id>/collection.json``.
+
+    The tools read only ``catalog/<source>/<id>/``; a flat collection would be
+    silently skipped or placed twice. ``tools/relayout.py`` reads the flat
+    tree itself and does not call this.
+    """
+    flat = sorted(p.parent.name for p in catalog.glob("*/collection.json"))
+    if flat:
+        shown = ", ".join(flat[:3]) + (f" and {len(flat) - 3} more" if len(flat) > 3 else "")
+        raise LayoutError(
+            f"catalog/{flat[0]} is still flat ({shown}); run tools/relayout.py --confirm"
+        )
+
+
+def published_collections(catalog: Path = CATALOG) -> dict[str, Path]:
+    """``{dataset id: collection.json}`` for every collection under ``catalog/<source>/``."""
+    refuse_flat(catalog)
+    found: dict[str, Path] = {}
+    for path in sorted(catalog.glob("*/*/collection.json")):
+        dataset_id = path.parent.name
+        if dataset_id in found:
+            raise LayoutError(
+                f"{dataset_id} is published twice: {found[dataset_id].parent} and {path.parent}"
+            )
+        found[dataset_id] = path
+    return found
+
+
+def dataset_relpath(dataset_id: str, *, catalog: Path = CATALOG, root: Path = ROOT) -> str:
+    """``<source>/<id>``: where the dataset sits under ``catalog/`` and the bucket prefix.
+
+    A published dataset stays where ``catalog/`` already has it; a new one goes
+    under the group its recipe's ``source_via`` names. ``staging/<id>/`` stays flat.
+    """
+    refuse_flat(catalog)
+    found = sorted(catalog.glob(f"*/{dataset_id}/collection.json"))
+    if len(found) > 1:
+        raise LayoutError(f"{dataset_id} is published twice: {[str(p.parent) for p in found]}")
+    if found:
+        return f"{found[0].parent.parent.name}/{dataset_id}"
+    return f"{recipe_group(dataset_id, root)}/{dataset_id}"
+
+
+def dataset_dir(dataset_id: str, *, catalog: Path = CATALOG, root: Path = ROOT) -> Path:
+    """``catalog/<source>/<id>``."""
+    return catalog / dataset_relpath(dataset_id, catalog=catalog, root=root)
+
+
 def read_json(path: Path) -> dict:
     """Read and parse a JSON file."""
     return json.loads(Path(path).read_text())

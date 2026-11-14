@@ -356,6 +356,8 @@ stages:
     drop_border_chips: {"false" if presence_only or extent else "true"}
     # Country, first- and second-level unit names per chip (FAO GAUL 2024).
     admin_names: true
+    # Mean and std of AlphaEarth and OlmoEarth v1.3 embeddings over each field.
+    field_embeddings: true
   splits:
     split_type: block3x3
     split_percents: [80, 10, 10]

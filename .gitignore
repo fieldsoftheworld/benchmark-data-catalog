@@ -37,7 +37,7 @@ __pycache__/
 # ftwd output; uploaded by tools/upload_data.py, never committed
 staging/
 # per-dataset item trees are bucket-only (committed: collection.json, docs, styles, sub-catalogs)
-catalog/*/chips/*/*/
+catalog/*/*/chips/*/*/
 
 # run_batch.py per-dataset build logs
 logs/
