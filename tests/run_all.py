@@ -31,6 +31,7 @@ TESTS = [
     "test_catalog_stats.py",
     "test_backfill.py",
     "test_relayout.py",
+    "test_bucket_copy.py",
     "test_stac_valid.py",
     "test_conformance.py",
 ]
