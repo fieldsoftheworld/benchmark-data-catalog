@@ -3,8 +3,8 @@
 
 Uses a fake S3 client: reads a plan in both key forms, lists the source and
 destination folders, skips pairs already copied, refuses a plan naming objects
-the bucket lacks, copies below a trial folder, and sends objects over 5 GB
-through the multipart copy. No network, no AWS.
+the bucket lacks, copies below a trial folder, and relays objects over
+RELAY_BYTES through the public bucket. No network, no AWS.
 
 Run: python3 tests/test_bucket_copy.py
 """
@@ -106,7 +106,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                     f"{P}/lv/lv_2020/lv_2020_fields.parquet",
                                     {"ContentType": "application/vnd.apache.parquet"})]
           and not client.single,
-          f"an object over 5 GB is read from the public bucket and uploaded in parts: "
+          f"an object over RELAY_BYTES is read from the public bucket and uploaded in parts: "
           f"{reader.read} {client.multipart}")
 
     client = FakeClient(OBJECTS)
@@ -115,6 +115,13 @@ with tempfile.TemporaryDirectory() as tmp:
     check(client.single == [(f"{P}/lv_2020/chips/A/c/c_q1.tif",
                              f"{P}/_trial/lv/lv_2020/chips/A/c/c_q1.tif")],
           f"--under writes below the trial folder: {client.single}")
+
+    client, reader = FakeClient(OBJECTS), FakeReader()
+    mid = bucket_copy.Pair("lv_2020/lv_2020_fields.parquet", "lv/lv_2020/lv_2020_fields.parquet")
+    bucket_copy.copy_one(client, "ftw", P, mid, 3 * 1024**3, "", reader)
+    bucket_copy.copy_one(client, "ftw", P, mid, 10, "", reader)
+    check(len(client.multipart) == 1 and len(client.single) == 1,
+          "a 3 GiB object is relayed (a proxied CopyObject times out); a small one is copied")
 
     gone = {k: v for k, v in source.items() if not k.endswith(".tif")}
     _, missing = bucket_copy.todo(pairs, gone, {}, "")

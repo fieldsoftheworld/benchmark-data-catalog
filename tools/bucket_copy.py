@@ -4,9 +4,10 @@
 Reads a ``<keys>.copy.tsv`` from ``tools/relayout.py --bucket-plan`` (``old
 key<TAB>new key`` per line) and runs one CopyObject per pair through the
 catalog's write endpoint, so no bytes pass through this machine. The write
-endpoint has no server-side multipart copy (UploadPartCopy), so an object over
-5 GB is relayed instead: read from the public bucket in the same region, then
-uploaded in parts.
+endpoint has no server-side multipart copy (UploadPartCopy), and a CopyObject
+of a few GB outlasts its response timeout, so an object over RELAY_BYTES is
+relayed instead: read from the public bucket in the same region, then uploaded
+in parts.
 
 Resumable: the destination folders are listed first, and a pair whose new key
 already holds an object of the source's size is skipped. The source is never
@@ -28,8 +29,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-#: Largest object a single CopyObject accepts.
-SINGLE_COPY_BYTES = 5 * 1024**3
+#: Objects larger than this are relayed rather than copied. A CopyObject is
+#: capped at 5 GiB, and through the proxy one of 5.3 GB timed out every attempt
+#: while 3.4 GB ones finished.
+RELAY_BYTES = 2 * 1024**3
 COPY_ATTEMPTS = 5
 
 
@@ -122,7 +125,7 @@ def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str
     dst = f"{prefix}/{_dest(pair, under)}"
     for attempt in range(COPY_ATTEMPTS):
         try:
-            if size > SINGLE_COPY_BYTES:
+            if size > RELAY_BYTES:
                 relay_one(client, reader, bucket, prefix, pair, under)
             else:
                 client.copy_object(CopySource=src, Bucket=bucket, Key=dst, MetadataDirective="COPY")
@@ -134,7 +137,7 @@ def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str
 
 
 def run_copies(client, bucket, prefix, pending, source, under, workers, reader=None) -> int:
-    if reader is None and any(source[p.old] > SINGLE_COPY_BYTES for p in pending):
+    if reader is None and any(source[p.old] > RELAY_BYTES for p in pending):
         from verify_move import anonymous_client
 
         reader = anonymous_client()
