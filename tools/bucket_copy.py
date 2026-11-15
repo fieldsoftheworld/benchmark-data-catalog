@@ -3,8 +3,10 @@
 
 Reads a ``<keys>.copy.tsv`` from ``tools/relayout.py --bucket-plan`` (``old
 key<TAB>new key`` per line) and runs one CopyObject per pair through the
-catalog's write endpoint, so no bytes pass through this machine. Objects over
-5 GB go through a managed multipart copy.
+catalog's write endpoint, so no bytes pass through this machine. The write
+endpoint has no server-side multipart copy (UploadPartCopy), so an object over
+5 GB is relayed instead: read from the public bucket in the same region, then
+uploaded in parts.
 
 Resumable: the destination folders are listed first, and a pair whose new key
 already holds an object of the source's size is skipped. The source is never
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -27,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 #: Largest object a single CopyObject accepts.
 SINGLE_COPY_BYTES = 5 * 1024**3
-#: Part size for the managed multipart copy of larger objects.
+#: Part size for the multipart upload of relayed objects.
 MULTIPART_CHUNK_BYTES = 512 * 1024**2
 COPY_ATTEMPTS = 5
 
@@ -100,16 +103,36 @@ def _dest(pair: Pair, under: str) -> str:
     return f"{under}/{pair.new}" if under else pair.new
 
 
-def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str) -> None:
+def _transfer_config():
+    from boto3.s3.transfer import TransferConfig
+
+    return TransferConfig(multipart_threshold=MULTIPART_CHUNK_BYTES,
+                          multipart_chunksize=MULTIPART_CHUNK_BYTES)
+
+
+def relay_one(client, reader, bucket: str, prefix: str, pair: Pair, under: str) -> None:
+    """Copy one large object by reading it from the public bucket and uploading it in parts."""
+    from verify_move import READ_BUCKET
+
+    public_key = f"{bucket}/{prefix}/{pair.old}"
+    content_type = reader.head_object(Bucket=READ_BUCKET, Key=public_key).get("ContentType")
+    extra = {"ContentType": content_type} if content_type else {}
+    config = _transfer_config()
+    with tempfile.TemporaryFile() as buffer:
+        reader.download_fileobj(READ_BUCKET, public_key, buffer, Config=config)
+        buffer.seek(0)
+        client.upload_fileobj(buffer, bucket, f"{prefix}/{_dest(pair, under)}",
+                              ExtraArgs=extra, Config=config)
+
+
+def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str,
+             reader=None) -> None:
     src = {"Bucket": bucket, "Key": f"{prefix}/{pair.old}"}
     dst = f"{prefix}/{_dest(pair, under)}"
     for attempt in range(COPY_ATTEMPTS):
         try:
             if size > SINGLE_COPY_BYTES:
-                from boto3.s3.transfer import TransferConfig
-
-                client.copy(src, bucket, dst, Config=TransferConfig(
-                    multipart_threshold=SINGLE_COPY_BYTES, multipart_chunksize=MULTIPART_CHUNK_BYTES))
+                relay_one(client, reader, bucket, prefix, pair, under)
             else:
                 client.copy_object(CopySource=src, Bucket=bucket, Key=dst, MetadataDirective="COPY")
             return
@@ -119,10 +142,14 @@ def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str
             time.sleep(2**attempt)
 
 
-def run_copies(client, bucket, prefix, pending, source, under, workers) -> int:
+def run_copies(client, bucket, prefix, pending, source, under, workers, reader=None) -> int:
+    if reader is None and any(source[p.old] > SINGLE_COPY_BYTES for p in pending):
+        from verify_move import anonymous_client
+
+        reader = anonymous_client()
     done = 0
     with ThreadPoolExecutor(workers) as pool:
-        futures = [pool.submit(copy_one, client, bucket, prefix, p, source[p.old], under)
+        futures = [pool.submit(copy_one, client, bucket, prefix, p, source[p.old], under, reader)
                    for p in pending]
         for future in futures:
             future.result()

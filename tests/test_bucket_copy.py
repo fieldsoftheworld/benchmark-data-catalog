@@ -47,8 +47,25 @@ class FakeClient:
         self.objects[Key] = self.objects[CopySource["Key"]]
 
     def copy(self, src, bucket, key, Config):
-        self.multipart.append((src["Key"], key))
-        self.objects[key] = self.objects[src["Key"]]
+        raise AssertionError("the write endpoint has no UploadPartCopy")
+
+    def upload_fileobj(self, fileobj, bucket, key, ExtraArgs, Config):
+        self.multipart.append((fileobj.read().decode(), key, ExtraArgs))
+        self.objects[key] = BIG
+
+
+class FakeReader:
+    """The public bucket: keys are ``<bucket>/<prefix>/...``."""
+
+    def __init__(self):
+        self.read = []
+
+    def head_object(self, Bucket, Key):
+        return {"ContentType": "application/vnd.apache.parquet"}
+
+    def download_fileobj(self, Bucket, Key, fileobj, Config):
+        self.read.append((Bucket, Key))
+        fileobj.write(Key.encode())
 
 
 P = "benchmark-data"
@@ -82,10 +99,16 @@ with tempfile.TemporaryDirectory() as tmp:
     check([p.old for p in pending] == ["lv_2020/lv_2020_fields.parquet"] and not missing,
           f"a pair whose destination already has the size is skipped: {pending}")
 
-    bucket_copy.run_copies(client, "ftw", P, pending, source, "", 4)
-    check(client.multipart == [(f"{P}/lv_2020/lv_2020_fields.parquet",
-                                f"{P}/lv/lv_2020/lv_2020_fields.parquet")] and not client.single,
-          f"an object over 5 GB goes through the multipart copy: {client.multipart}")
+    reader = FakeReader()
+    bucket_copy._transfer_config = lambda: None  # no boto3 here
+    bucket_copy.run_copies(client, "ftw", P, pending, source, "", 4, reader=reader)
+    check(reader.read == [("us-west-2.opendata.source.coop", f"ftw/{P}/lv_2020/lv_2020_fields.parquet")]
+          and client.multipart == [(f"ftw/{P}/lv_2020/lv_2020_fields.parquet",
+                                    f"{P}/lv/lv_2020/lv_2020_fields.parquet",
+                                    {"ContentType": "application/vnd.apache.parquet"})]
+          and not client.single,
+          f"an object over 5 GB is read from the public bucket and uploaded in parts: "
+          f"{reader.read} {client.multipart}")
 
     client = FakeClient(OBJECTS)
     pending, _ = bucket_copy.todo(pairs, source, {}, "_trial")
@@ -102,4 +125,4 @@ with tempfile.TemporaryDirectory() as tmp:
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)
-print("OK: bucket copies skip what is there, refuse what is gone and split large objects")
+print("OK: bucket copies skip what is there, refuse what is gone and relay large objects")
