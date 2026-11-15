@@ -30,8 +30,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 #: Largest object a single CopyObject accepts.
 SINGLE_COPY_BYTES = 5 * 1024**3
-#: Part size for the multipart upload of relayed objects.
-MULTIPART_CHUNK_BYTES = 512 * 1024**2
 COPY_ATTEMPTS = 5
 
 
@@ -103,26 +101,19 @@ def _dest(pair: Pair, under: str) -> str:
     return f"{under}/{pair.new}" if under else pair.new
 
 
-def _transfer_config():
-    from boto3.s3.transfer import TransferConfig
-
-    return TransferConfig(multipart_threshold=MULTIPART_CHUNK_BYTES,
-                          multipart_chunksize=MULTIPART_CHUNK_BYTES)
-
-
 def relay_one(client, reader, bucket: str, prefix: str, pair: Pair, under: str) -> None:
     """Copy one large object by reading it from the public bucket and uploading it in parts."""
+    from publish import _transfer_config  # the proxy's part size limit (413 on 512 MB)
     from verify_move import READ_BUCKET
 
     public_key = f"{bucket}/{prefix}/{pair.old}"
     content_type = reader.head_object(Bucket=READ_BUCKET, Key=public_key).get("ContentType")
     extra = {"ContentType": content_type} if content_type else {}
-    config = _transfer_config()
     with tempfile.TemporaryFile() as buffer:
-        reader.download_fileobj(READ_BUCKET, public_key, buffer, Config=config)
+        reader.download_fileobj(READ_BUCKET, public_key, buffer)
         buffer.seek(0)
         client.upload_fileobj(buffer, bucket, f"{prefix}/{_dest(pair, under)}",
-                              ExtraArgs=extra, Config=config)
+                              ExtraArgs=extra, Config=_transfer_config())
 
 
 def copy_one(client, bucket: str, prefix: str, pair: Pair, size: int, under: str,

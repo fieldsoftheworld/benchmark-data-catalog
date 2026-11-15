@@ -63,7 +63,7 @@ class FakeReader:
     def head_object(self, Bucket, Key):
         return {"ContentType": "application/vnd.apache.parquet"}
 
-    def download_fileobj(self, Bucket, Key, fileobj, Config):
+    def download_fileobj(self, Bucket, Key, fileobj):
         self.read.append((Bucket, Key))
         fileobj.write(Key.encode())
 
@@ -100,7 +100,6 @@ with tempfile.TemporaryDirectory() as tmp:
           f"a pair whose destination already has the size is skipped: {pending}")
 
     reader = FakeReader()
-    bucket_copy._transfer_config = lambda: None  # no boto3 here
     bucket_copy.run_copies(client, "ftw", P, pending, source, "", 4, reader=reader)
     check(reader.read == [("us-west-2.opendata.source.coop", f"ftw/{P}/lv_2020/lv_2020_fields.parquet")]
           and client.multipart == [(f"ftw/{P}/lv_2020/lv_2020_fields.parquet",
