@@ -93,3 +93,18 @@ SELECT * FROM read_parquet('items.parquet') LIMIT 5;
 ```
 
 See [AGENTS.md](https://source.coop/ftw/benchmark-data/ch/ch_sh_2025/AGENTS.md) for the schema, field notes and more queries.
+
+## Field embeddings
+
+`ch_sh_2025_field_embeddings.parquet` has one row per field in `ch_sh_2025_fields.parquet`, keyed by `id`. For each product it holds the mean (`<product>_mean`) and standard deviation (`<product>_std`, population std) of every embedding dimension over the field's 10 m pixels, as 64-value float lists, and the pixels used (`<product>_pixels`):
+
+- `aef_*`: [AlphaEarth Foundations Satellite Embedding, annual v1](https://source.coop/tge-labs/aef). 64 dimensions; each pixel's vector has unit length. CC-BY-4.0.
+- `olmoearth_*`: [OlmoEarth v1.3 embeddings, first 64 of 128 dimensions](https://source.coop/olmoearth/olmoearth-v1-3-embeddings). First 64 of 128 dimensions, which form a complete embedding on their own. Vectors are not normalised. Ai2 asks that 64- and 128-dimension vectors are not compared with each other. [OlmoEarth Artifact License](https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt): cite Ai2, and its use restrictions (Section 2) apply to anything derived from these columns.
+
+A field takes the pixels whose centre is inside it; a field too small to hold one uses every pixel it touches (`pixel_rule = 'touched'`). The values are already dequantised. Fields with no pixels a product covers have no value for it.
+
+```sql
+INSTALL spatial; LOAD spatial;
+SELECT f.*, e.aef_mean, e.olmoearth_mean FROM read_parquet('ch_sh_2025_fields.parquet') f
+JOIN read_parquet('ch_sh_2025_field_embeddings.parquet') e USING (id) LIMIT 5;
+```

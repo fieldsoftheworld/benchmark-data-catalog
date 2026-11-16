@@ -29,6 +29,7 @@ The collection ships these files alongside `collection.json`:
 | `styles/dominant-crop.json` | Dominant crop per chip |
 | `styles/crops.json` | Crops |
 | `styles/outline.json` | Field outlines |
+| `es_vc_2024_field_embeddings.parquet` | Per-field embedding statistics (AlphaEarth Foundations, OlmoEarth v1.3) |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -50,17 +51,28 @@ Columns in the chips table:
 - `hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
 - `split`: which benchmark split the chip belongs to (train / val / test)
+- `admin0_iso3`: ISO 3166-1 alpha-3 code of the country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024); GAUL gives disputed areas its own x-prefixed codes such as xJK
+- `admin0_name`: country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
+- `admin1_name`: first-level administrative unit (state, province, region): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
+- `admin2_name`: second-level administrative unit (district, county, department): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
 - `geometry`: the chip footprint, a square polygon in EPSG:4326
 - `bbox`: bounding box of the chip footprint
 
 FTW properties on each STAC item:
 
+- `ftw:admin0_iso3`: ISO 3166-1 alpha-3 code of the country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024); GAUL gives disputed areas its own x-prefixed codes such as xJK
+- `ftw:admin0_name`: country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
+- `ftw:admin1_name`: first-level administrative unit (state, province, region): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
+- `ftw:admin2_name`: second-level administrative unit (district, county, department): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
 - `ftw:calendar_year`: calendar year of the crop cycle the chip documents
 - `ftw:field_coverage_pct`: percent of the chip's area covered by mapped field polygons
 - `ftw:hcat_dominant_code`: EuroCrops HCAT code of the crop covering most of the chip's fields
 - `ftw:hcat_dominant_name_en`: English name for hcat_dominant_code
 - `ftw:hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `ftw:hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
+- `ftw:imagery_modes`: imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both
+- `ftw:mosaic_requested_year`: mosaic year the selection asked for
+- `ftw:mosaic_year`: mosaic year used
 - `ftw:split`: which benchmark split the chip belongs to (train / val / test)
 - `ftw:summer_harvest_day`: WorldCereal crop calendar: summer crops' end of season, day of year
 - `ftw:summer_planting_day`: WorldCereal crop calendar: summer crops' start of season, day of year
@@ -116,6 +128,21 @@ SELECT hcat_dominant_name_en AS crop, count(*) AS chips FROM read_parquet('es_vc
 ```sql
 SELECT count(*) AS fields FROM read_parquet('es_vc_2024_fields.parquet') f, (SELECT geometry FROM read_parquet('es_vc_2024_chips.parquet') LIMIT 1) c WHERE ST_Intersects(f.geometry, c.geometry);
 -- result: 137
+```
+
+## Field embeddings
+
+`es_vc_2024_field_embeddings.parquet` has one row per field in `es_vc_2024_fields.parquet`, keyed by `id`. For each product it holds the mean (`<product>_mean`) and standard deviation (`<product>_std`, population std) of every embedding dimension over the field's 10 m pixels, as 64-value float lists, and the pixels used (`<product>_pixels`):
+
+- `aef_*`: [AlphaEarth Foundations Satellite Embedding, annual v1](https://source.coop/tge-labs/aef). 64 dimensions; each pixel's vector has unit length. CC-BY-4.0.
+- `olmoearth_*`: [OlmoEarth v1.3 embeddings, first 64 of 128 dimensions](https://source.coop/olmoearth/olmoearth-v1-3-embeddings). First 64 of 128 dimensions, which form a complete embedding on their own. Vectors are not normalised. Ai2 asks that 64- and 128-dimension vectors are not compared with each other. [OlmoEarth Artifact License](https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt): cite Ai2, and its use restrictions (Section 2) apply to anything derived from these columns.
+
+A field takes the pixels whose centre is inside it; a field too small to hold one uses every pixel it touches (`pixel_rule = 'touched'`). The values are already dequantised. Fields with no pixels a product covers have no value for it.
+
+```sql
+INSTALL spatial; LOAD spatial;
+SELECT f.*, e.aef_mean, e.olmoearth_mean FROM read_parquet('es_vc_2024_fields.parquet') f
+JOIN read_parquet('es_vc_2024_field_embeddings.parquet') e USING (id) LIMIT 5;
 ```
 
 ## Related collections

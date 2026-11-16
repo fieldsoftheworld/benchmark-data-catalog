@@ -33,6 +33,8 @@ stages:
     # Border chips may cut wall-to-wall labels short; in presence-only data (or outside a
     # label extent) unlabelled pixels are unknown anyway, and sparse samples would lose every chip.
     drop_border_chips: false
+    admin_names: true
+    field_embeddings: true
   splits:
     # WRI's own split (the harmonized split column): its three test regions, all
     # annotated in 2020, are test and the rest train. Each chip takes its fields'

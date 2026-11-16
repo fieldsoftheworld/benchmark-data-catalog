@@ -21,6 +21,31 @@
       "title": "Source field boundary collection"
     },
     {
+      "rel": "derived_from",
+      "href": "https://source.coop/nlebovits/gaul-l2-admin",
+      "type": "text/html",
+      "title": "FAO Global Administrative Unit Layers (GAUL) 2024, CC-BY-4.0 (source of the ftw:admin* properties)"
+    },
+    {
+      "rel": "derived_from",
+      "href": "https://source.coop/tge-labs/aef",
+      "type": "text/html",
+      "title": "AlphaEarth Foundations Satellite Embedding dataset by Google and Google DeepMind, CC-BY-4.0 (source of the aef_* columns)"
+    },
+    {
+      "rel": "derived_from",
+      "href": "https://source.coop/olmoearth/olmoearth-v1-3-embeddings",
+      "type": "text/html",
+      "title": "OlmoEarth v1.3 embeddings by Ai2 (Allen Institute for AI), OlmoEarth Artifact License, including its Section 2 use restrictions (source of the olmoearth_* columns)"
+    },
+    {
+      "rel": "license",
+      "href": "https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt",
+      "type": "text/plain",
+      "title": "OlmoEarth Artifact License, for the olmoearth_* columns of the field_embeddings asset (including its Section 2 use restrictions)",
+      "ftw:applies_to": "field_embeddings"
+    },
+    {
       "rel": "child",
       "href": "./chips/33TUK/catalog.json",
       "type": "application/json",
@@ -307,7 +332,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-06T18:07:51Z",
+  "updated": "2026-11-15T19:49:00Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -489,7 +514,18 @@
           "crop_code"
         ]
       }
-    }
+    },
+    "backfills": [
+      {
+        "steps": [
+          "admin_names",
+          "field_embeddings"
+        ],
+        "ftwd_version": "0.1.0",
+        "ftwd_git_commit": "ddf06f29477deb77415f34e84187fa35873c4814",
+        "generated_at": "2026-11-15T19:48:11.330668+00:00"
+      }
+    ]
   },
   "title": "Croatia \u2014 2022",
   "extent": {
@@ -956,7 +992,7 @@
       "href": "./hr_2022_chips.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Chip definitions with field coverage",
-      "file:size": 1038238,
+      "file:size": 1052685,
       "table:columns": [
         {
           "name": "gzd",
@@ -995,6 +1031,22 @@
           "type": "varchar"
         },
         {
+          "name": "admin0_iso3",
+          "type": "varchar"
+        },
+        {
+          "name": "admin0_name",
+          "type": "varchar"
+        },
+        {
+          "name": "admin1_name",
+          "type": "varchar"
+        },
+        {
+          "name": "admin2_name",
+          "type": "varchar"
+        },
+        {
           "name": "geometry",
           "type": "geometry"
         },
@@ -1012,7 +1064,7 @@
       "href": "./items.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "STAC items in GeoParquet format (collection mirror)",
-      "file:size": 9364313,
+      "file:size": 9383542,
       "table:columns": [
         {
           "name": "type",
@@ -1031,12 +1083,12 @@
           "type": "varchar"
         },
         {
-          "name": "ftw:winter_harvest_day",
-          "type": "bigint"
+          "name": "ftw:admin2_name",
+          "type": "varchar"
         },
         {
-          "name": "ftw:winter_planting_day",
-          "type": "bigint"
+          "name": "ftw:admin1_name",
+          "type": "varchar"
         },
         {
           "name": "links",
@@ -1101,6 +1153,34 @@
         {
           "name": "ftw:summer_harvest_day",
           "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_planting_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:winter_harvest_day",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:mosaic_requested_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:mosaic_year",
+          "type": "bigint"
+        },
+        {
+          "name": "ftw:imagery_modes",
+          "type": "varchar[]"
+        },
+        {
+          "name": "ftw:admin0_iso3",
+          "type": "varchar"
+        },
+        {
+          "name": "ftw:admin0_name",
+          "type": "varchar"
         },
         {
           "name": "bbox",
@@ -1179,6 +1259,59 @@
         "style"
       ],
       "file:size": 710
+    },
+    "field_embeddings": {
+      "href": "./hr_2022_field_embeddings.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Per-field embedding statistics (AlphaEarth Foundations, OlmoEarth v1.3)",
+      "description": "Mean and standard deviation of each embedding dimension over each field's pixels, for 2022; joins onto the fields by `id`. AlphaEarth Foundations Satellite Embedding dataset by Google and Google DeepMind, CC-BY-4.0 (source of the aef_* columns). OlmoEarth v1.3 embeddings by Ai2 (Allen Institute for AI), OlmoEarth Artifact License, including its Section 2 use restrictions (source of the olmoearth_* columns).",
+      "file:size": 1275773268,
+      "table:columns": [
+        {
+          "name": "id",
+          "type": "varchar"
+        },
+        {
+          "name": "pixels",
+          "type": "integer"
+        },
+        {
+          "name": "pixel_rule",
+          "type": "varchar"
+        },
+        {
+          "name": "aef_pixels",
+          "type": "integer"
+        },
+        {
+          "name": "aef_mean",
+          "type": "float[]"
+        },
+        {
+          "name": "aef_std",
+          "type": "float[]"
+        },
+        {
+          "name": "olmoearth_pixels",
+          "type": "integer"
+        },
+        {
+          "name": "olmoearth_mean",
+          "type": "float[]"
+        },
+        {
+          "name": "olmoearth_std",
+          "type": "float[]"
+        }
+      ],
+      "table:row_count": 1373892,
+      "ftw:embedding_products": [
+        "aef",
+        "olmoearth"
+      ],
+      "roles": [
+        "data"
+      ]
     },
     "thumbnail": {
       "href": "./thumbnail.webp",
