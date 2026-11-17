@@ -7,6 +7,7 @@ files on disk. The ftwd side (collection edits, docs) is tested in ftwd itself.
 Run: python3 tests/test_backfill.py
 """
 import hashlib
+import importlib
 import json
 import sys
 import tempfile
@@ -14,7 +15,7 @@ from pathlib import Path
 
 try:
     import duckdb  # noqa: F401
-    from ftw_dataset_tools.api import backfill as ftwd_backfill  # noqa: F401
+    importlib.import_module("ftw_dataset_tools.api.backfill")
 except ImportError as missing:
     print(f"skip   {missing.name} is not installed (uv sync to run this gate)")
     raise SystemExit(0) from None
