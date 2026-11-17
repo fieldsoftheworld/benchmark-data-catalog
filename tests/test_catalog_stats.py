@@ -69,13 +69,14 @@ def write_dataset(base: Path, dataset_id: str, chips: list[tuple], fields: int,
 with tempfile.TemporaryDirectory() as tmp:
     base = Path(tmp)
     # 3 chips (one with no country), 5 items: each chip item plus imagery children.
-    write_dataset(base, "aa_2021", [("c1", "BRA", "Brazil"), ("c2", "BOL", "Bolivia"),
+    write_dataset(base / "aa", "aa_2021", [("c1", "BRA", "Brazil"), ("c2", "BOL", "Bolivia"),
                                     ("c3", None, None)],
                   fields=7, items=[(5, 50), (5, None), (5, 50), (0, 20), (0, 20)], filtered=False)
-    write_dataset(base, "bb_2022", [("d1", "BRA", "Brazil")], fields=4,
+    write_dataset(base / "bb", "bb_2022", [("d1", "BRA", "Brazil")], fields=4,
                   items=[(1, 2)], filtered=True)
 
-    a = catalog_stats.dataset_stats("aa_2021", base=str(base))
+    a = catalog_stats.dataset_stats("aa/aa_2021", base=str(base))
+    check((a["id"], a["source"]) == ("aa_2021", "aa"), f"id and source group: {a}")
     check(a["chips"] == 3, f"chips counted from the chips file, not items: {a['chips']}")
     check(a["fields"] == 7, f"fields from the footer: {a['fields']}")
     check(a["bytes"] == 155 + 111, f"item asset sizes plus sized collection assets: {a['bytes']}")
@@ -83,7 +84,7 @@ with tempfile.TemporaryDirectory() as tmp:
                              "BOL": {"name": "Bolivia", "chips": 1}},
           f"chips without a country are left out: {a['countries']}")
 
-    b = catalog_stats.dataset_stats("bb_2022", base=str(base))
+    b = catalog_stats.dataset_stats("bb/bb_2022", base=str(base))
     check(b["fields"] == 4, f"fields_filtered is counted when there is one: {b['fields']}")
 
     t = catalog_stats.totals([a, b])
@@ -94,11 +95,19 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = base / "catalog.json"
     catalog.write_text(json.dumps({"links": [
         {"rel": "root", "href": "./catalog.json"},
-        {"rel": "child", "href": "./bb_2022/collection.json"},
+        {"rel": "child", "href": "./bb/catalog.json"},
+        {"rel": "child", "href": "./aa/catalog.json"},
+    ]}))
+    (base / "aa" / "catalog.json").write_text(json.dumps({"links": [
+        {"rel": "root", "href": "../catalog.json"},
+        {"rel": "parent", "href": "../catalog.json"},
         {"rel": "child", "href": "./aa_2021/collection.json"},
     ]}))
-    ids = catalog_stats.published_ids(catalog)
-    check(ids == ["aa_2021", "bb_2022"], f"published ids are the root's children: {ids}")
+    (base / "bb" / "catalog.json").write_text(json.dumps({"links": [
+        {"rel": "child", "href": "./bb_2022/collection.json"},
+    ]}))
+    ids = catalog_stats.published_datasets(catalog)
+    check(ids == ["aa/aa_2021", "bb/bb_2022"], f"published datasets follow the source groups: {ids}")
 
 if errors:
     for e in errors:

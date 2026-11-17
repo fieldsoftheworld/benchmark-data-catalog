@@ -2,7 +2,7 @@
 """The manifest, the recipes, and the published tree agree.
 
 datasets.yaml names what this catalog publishes. datasets/<id>.yaml is the ftwd
-recipe for each. catalog/<id>/ is what was published. A dataset in one place
+recipe for each. catalog/<source>/<id>/ is what was published. A dataset in one place
 but not the others is a mistake: a recipe nobody builds, a collection nobody
 maintains, or a child link to nothing.
 
@@ -27,7 +27,15 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
+from common import (  # noqa: E402
+    CATALOG,
+    PORTOLAN_SCHEMA_RE,
+    PUBLIC_BASE,
+    STAGING,
+    load_manifest,
+    published_collections,
+    source_group,
+)
 from new_dataset import (  # noqa: E402
     DERIVED,
     HARMONIZED,
@@ -130,18 +138,20 @@ def check_built_collection(dataset_id: str) -> None:
     failing on something tools/thumbnail.py (a later plan step) hasn't
     written.
     """
-    collection = json.loads((CATALOG / dataset_id / "collection.json").read_text())
+    collection_path = PUBLISHED[dataset_id]
+    collection = json.loads(collection_path.read_text())
+    where = collection_path.relative_to(CATALOG.parent)
 
     catalog_version = (MANIFEST.get("catalog") or {}).get("version")
     if collection.get("version") != catalog_version:
         err(
-            f"catalog/{dataset_id}/collection.json: version {collection.get('version')!r} != "
+            f"{where}: version {collection.get('version')!r} != "
             f"datasets.yaml catalog.version {catalog_version!r}"
         )
 
     extensions = collection.get("stac_extensions") or []
     if not any(isinstance(e, str) and PORTOLAN_SCHEMA_RE.fullmatch(e) for e in extensions):
-        err(f"catalog/{dataset_id}/collection.json: stac_extensions is missing a Portolan schema URI")
+        err(f"{where}: stac_extensions is missing a Portolan schema URI")
 
     assets = collection.get("assets") or {}
     styles = {key: asset for key, asset in assets.items() if key.startswith("style-")}
@@ -152,7 +162,7 @@ def check_built_collection(dataset_id: str) -> None:
     defaults = [key for key, asset in styles.items() if "default" in (asset.get("roles") or [])]
     if len(defaults) != 1:
         err(
-            f"catalog/{dataset_id}/collection.json: expected exactly one style-* asset with role "
+            f"{where}: expected exactly one style-* asset with role "
             f"'default', found {len(defaults)} among {sorted(styles)}"
         )
 
@@ -160,14 +170,15 @@ def check_built_collection(dataset_id: str) -> None:
     thumb_style = (spec.get("thumbnail") or {}).get("style")
     if thumb_style and f"style-{thumb_style}" not in assets:
         err(
-            f"catalog/{dataset_id}/collection.json: datasets.yaml thumbnail.style {thumb_style!r} "
+            f"{where}: datasets.yaml thumbnail.style {thumb_style!r} "
             f"has no matching style-{thumb_style} asset"
         )
 
 
 declared = set(MANIFEST.get("datasets") or {})
 recipes = {p.stem for p in RECIPES.glob("*.yaml")}
-built = {p.parent.name for p in CATALOG.glob("*/collection.json")}
+PUBLISHED = published_collections(CATALOG)
+built = set(PUBLISHED)
 
 for missing in sorted(declared - recipes):
     err(f"{missing} is in datasets.yaml but datasets/{missing}.yaml does not exist")
@@ -176,12 +187,28 @@ for extra in sorted(recipes - declared):
 for missing in sorted(declared - built):
     print(f"note: {missing} is declared but not built yet (next plan: tools/build.py {missing})")
 for extra in sorted(built - declared):
-    err(f"catalog/{extra}/ is published but not in datasets.yaml")
+    err(f"{PUBLISHED[extra].parent.relative_to(CATALOG.parent)}/ is published but not in datasets.yaml")
 
+# The root links one catalog per source group; each group links the collections under it.
 root = json.loads((CATALOG / "catalog.json").read_text())
-children = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
-if children != built:
-    err(f"catalog.json children {sorted(children)} != built collections {sorted(built)}")
+groups = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
+published_groups = {path.parent.parent.name for path in PUBLISHED.values()}
+if groups != published_groups:
+    err(f"catalog.json children {sorted(groups)} != source groups {sorted(published_groups)}")
+linked = set()
+for group in sorted(groups & published_groups):
+    group_doc = json.loads((CATALOG / group / "catalog.json").read_text())
+    linked |= {Path(l["href"]).parent.name for l in group_doc["links"] if l["rel"] == "child"}
+if linked != built:
+    err(f"the group catalogs link {sorted(linked)} != built collections {sorted(built)}")
+for dataset_id, path in sorted(PUBLISHED.items()):
+    recipe_path = RECIPES / f"{dataset_id}.yaml"
+    if not recipe_path.is_file():
+        continue
+    group = source_group((yaml.safe_load(recipe_path.read_text()) or {}).get("source_via"))
+    if group and group != path.parent.parent.name:
+        err(f"{path.relative_to(CATALOG.parent)} is under {path.parent.parent.name}/ but "
+            f"datasets/{dataset_id}.yaml's source_via names {group}")
 
 for dataset_id in sorted(built):
     check_built_collection(dataset_id)

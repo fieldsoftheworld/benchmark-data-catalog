@@ -1,0 +1,90 @@
+{
+  "type": "Catalog",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json"
+  ],
+  "id": "sk",
+  "title": "Slovakia Agricultural Land Identification System",
+  "description": "Fields of the World benchmark collections cut from the harmonized field boundary collection Slovakia Agricultural Land Identification System (sk), one per year, each with train, validation and test splits.",
+  "version": "2.0.0-alpha.1",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Agent guide"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/sk",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2018/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2018"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2019/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2019"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2020/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2020"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2021/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2021"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2022/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2022"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2023/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2023"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2024/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2024"
+    },
+    {
+      "rel": "child",
+      "href": "./sk_2025/collection.json",
+      "type": "application/json",
+      "title": "Slovakia \u2014 2025"
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 ``tools/build.py`` writes a self-contained Portolan collection into
 ``staging/<id>/``. This script takes the git-owned slice of that output
 (``collection.json``, ``README.md``, ``AGENTS.md``, ``styles/*.json``,
-``chips/*/catalog.json``) and republishes it under ``catalog/<id>/`` with
+``chips/*/catalog.json``) and republishes it under ``catalog/<source>/<id>/`` with
 every ``root`` link pointed at the published root catalog instead of the
 staging copy of ``collection.json``. It also rebuilds ``items.parquet`` (which
 stays in staging; it is data, uploaded by ``upload_data.py``, never
@@ -51,8 +51,11 @@ from common import (  # noqa: E402
     PUBLIC_BASE,
     ROOT,
     STAGING,
+    dataset_relpath,
     public_url,
+    published_collections,
     read_json,
+    source_group,
     write_json,
 )
 
@@ -67,7 +70,7 @@ VERSION_EXTENSION_URI = "https://stac-extensions.github.io/version/v1.2.0/schema
 _WEB_MAP_LINKS_PREFIX = "https://stac-extensions.github.io/web-map-links/"
 WEB_MAP_LINKS_URI = f"{_WEB_MAP_LINKS_PREFIX}v1.3.0/schema.json"
 
-# Files copied verbatim from staging/<id>/ to catalog/<id>/, plus the two glob
+# Files copied verbatim from staging/<id>/ to catalog/<source>/<id>/, plus the two glob
 # patterns below (styles/*.json, chips/*/catalog.json). Everything else under
 # staging/<id>/ is data: bucket-only, never committed.
 COMMITTED = ("collection.json", "README.md", "AGENTS.md")
@@ -78,7 +81,7 @@ _MARK_START = "<!-- collections:start -->"
 _MARK_END = "<!-- collections:end -->"
 
 # The markers enrich_readme's "Browse" block sits between, in every
-# catalog/<id>/README.md, so a rerun replaces the block instead of stacking
+# catalog/<source>/<id>/README.md, so a rerun replaces the block instead of stacking
 # another copy of it under the description.
 _BROWSE_START = "<!-- browse:start -->"
 _BROWSE_END = "<!-- browse:end -->"
@@ -202,7 +205,7 @@ def _copy_collection_preserving_thumbnail(src: Path, dst: Path) -> None:
     """Copy ``collection.json``, carrying over an existing thumbnail asset.
 
     ``tools/thumbnail.py`` adds a ``role: thumbnail`` asset straight to the
-    published ``catalog/<id>/collection.json`` — staging's copy never has
+    published ``catalog/<source>/<id>/collection.json`` — staging's copy never has
     one. A plain overwrite here would silently drop that asset on every
     ``catalogize`` rerun, so when the catalog copy already carries a
     thumbnail and the fresh staging copy does not, it is carried forward.
@@ -217,7 +220,7 @@ def _copy_collection_preserving_thumbnail(src: Path, dst: Path) -> None:
 
 
 def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG) -> list[Path]:
-    """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<id>``.
+    """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<source>/<id>``.
 
     Returns the catalog-side paths written. Only ``COMMITTED`` and the two
     glob patterns (``styles/*.json``, ``chips/*/catalog.json``) are copied;
@@ -226,7 +229,7 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
     ``_copy_collection_preserving_thumbnail``.
     """
     src_root = staging / dataset_id
-    dst_root = catalog / dataset_id
+    dst_root = catalog / dataset_relpath(dataset_id, catalog=catalog)
     written = []
     for rel in _committed_relpaths(src_root):
         dst = dst_root / rel
@@ -246,9 +249,10 @@ def rewrite_root_links(doc: dict, depth: int) -> None:
     """Point every ``rel: root`` link in ``doc`` at the root catalog, in place.
 
     ``depth`` is how many directories ``doc``'s own location sits below the
-    dataset directory (1 for ``collection.json``, 3 for a chips sub-catalog,
-    4 for an item, 5 for an imagery child item) — equivalently, one more than
-    the number of directories between the dataset root and this document.
+    root catalog: a dataset sits at ``<source>/<id>/``, so 2 for its
+    ``collection.json``, 4 for a chips sub-catalog, 5 for an item or an
+    imagery child item next to it (``dataset_depth`` plus the path inside
+    the dataset).
     ``rel: self`` links are dropped everywhere; Portolan forbids them because
     a static catalog that hardcodes its own location cannot be mirrored.
 
@@ -270,7 +274,14 @@ def rewrite_root_links(doc: dict, depth: int) -> None:
     doc["links"] = links
 
 
-def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[Path]:
+def dataset_depth(dataset_id: str, *, catalog: Path = CATALOG) -> int:
+    """How many directories the dataset's own folder sits below the root catalog (2)."""
+    return len(PurePosixPath(dataset_relpath(dataset_id, catalog=catalog)).parts)
+
+
+def rewrite_staging_items(
+    dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG
+) -> list[Path]:
     """Rewrite `root` links under ``staging/<id>/chips/``, in place.
 
     Every JSON document under ``chips/`` — sub-catalogs, items, and imagery
@@ -287,6 +298,7 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
     printed as a note.
     """
     chips_root = staging / dataset_id / "chips"
+    above = dataset_depth(dataset_id, catalog=catalog) - 1
     touched = []
     skipped = 0
     if not chips_root.is_dir():
@@ -297,7 +309,7 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
             skipped += 1
             continue
         rel = path.relative_to(staging / dataset_id)
-        rewrite_root_links(doc, depth=len(rel.parts))
+        rewrite_root_links(doc, depth=above + len(rel.parts))
         write_json(path, doc)
         touched.append(path)
     if skipped:
@@ -309,7 +321,7 @@ def rewrite_staging_items(dataset_id: str, *, staging: Path = STAGING) -> list[P
 
 
 def _rewrite_item_links(
-    dataset_id: str, square: str, links: list[dict], item_dir: str | None = None
+    relpath: str, square: str, links: list[dict], item_dir: str | None = None
 ) -> list[dict]:
     """Structural links go to the published root/collection/sub-catalog.
 
@@ -320,8 +332,8 @@ def _rewrite_item_links(
     """
     targets = {
         "root": public_url("catalog.json"),
-        "collection": public_url(f"{dataset_id}/collection.json"),
-        "parent": public_url(f"{dataset_id}/chips/{square}/catalog.json"),
+        "collection": public_url(f"{relpath}/collection.json"),
+        "parent": public_url(f"{relpath}/chips/{square}/catalog.json"),
     }
     new_links = []
     for link in links:
@@ -332,12 +344,12 @@ def _rewrite_item_links(
         if rel in targets:
             link = {**link, "href": targets[rel]}
         elif item_dir and href.startswith("./"):
-            link = {**link, "href": public_url(f"{dataset_id}/chips/{square}/{item_dir}/{href[2:]}")}
+            link = {**link, "href": public_url(f"{relpath}/chips/{square}/{item_dir}/{href[2:]}")}
         new_links.append(link)
     return new_links
 
 
-def _rewrite_item_assets(dataset_id: str, item_dir: str, square: str, assets: dict) -> dict:
+def _rewrite_item_assets(relpath: str, item_dir: str, square: str, assets: dict) -> dict:
     """Rewrite every ``./file`` asset href to its public URL.
 
     ``item_dir`` is the *directory* the item's JSON sits in, not the item id:
@@ -351,7 +363,7 @@ def _rewrite_item_assets(dataset_id: str, item_dir: str, square: str, assets: di
     of asset keys shared by every row, ``None`` where a row has no such
     asset).
     """
-    prefix = f"{dataset_id}/chips/{square}/{item_dir}"
+    prefix = f"{relpath}/chips/{square}/{item_dir}"
     new_assets = {}
     for key, asset in assets.items():
         href = (asset or {}).get("href", "")
@@ -429,10 +441,11 @@ def _ensure_geoparquet_metadata(path: Path) -> bool:
     return True
 
 
-def _item_documents(dataset_id: str, chips_root: Path) -> list[dict]:
+def _item_documents(relpath: str, chips_root: Path) -> list[dict]:
     """Every item under ``chips_root``, links and asset hrefs made public.
 
-    Walks ``chips/<square>/<chip>/*.json`` and keeps each STAC ``Feature`` —
+    ``relpath`` is the dataset's published ``<source>/<id>``. Walks
+    ``chips/<square>/<chip>/*.json`` and keeps each STAC ``Feature`` —
     the chip items and the imagery child items alongside them — in a
     deterministic order: by square, then chip id, then file name, which is
     exactly sorted path order. Sub-catalogs and any non-STAC JSON are
@@ -455,14 +468,16 @@ def _item_documents(dataset_id: str, chips_root: Path) -> list[dict]:
             continue
         square, item_dir = rel.parts[0], rel.parts[1]
         doc["links"] = _rewrite_item_links(
-            dataset_id, square, doc.get("links") or [], item_dir=item_dir
+            relpath, square, doc.get("links") or [], item_dir=item_dir
         )
-        doc["assets"] = _rewrite_item_assets(dataset_id, item_dir, square, doc.get("assets") or {})
+        doc["assets"] = _rewrite_item_assets(relpath, item_dir, square, doc.get("assets") or {})
         items.append(doc)
     return items
 
 
-def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
+def rewrite_items_parquet(
+    dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG
+) -> Path:
     """Rebuild ``staging/<id>/items.parquet`` from the item JSON on disk.
 
     The mirror ftwd's ``stac`` stage writes is a snapshot of the chip items
@@ -480,7 +495,9 @@ def rewrite_items_parquet(dataset_id: str, *, staging: Path = STAGING) -> Path:
     from, hence the explicit ``format``.
     """
     path = staging / dataset_id / "items.parquet"
-    items = _item_documents(dataset_id, staging / dataset_id / "chips")
+    items = _item_documents(
+        dataset_relpath(dataset_id, catalog=catalog), staging / dataset_id / "chips"
+    )
     if not items:
         sys.exit(
             f"no item JSON found under {staging / dataset_id / 'chips'}; run: "
@@ -576,7 +593,7 @@ def _rewrite_via_link(doc: dict) -> None:
 
 
 def _ensure_parent_link(doc: dict) -> None:
-    """PTL-LNK-001: the collection needs a ``rel: parent`` link to the root catalog."""
+    """PTL-LNK-001: the collection needs a ``rel: parent`` link to its source group's catalog."""
     links = doc.setdefault("links", [])
     if any(link.get("rel") == "parent" for link in links):
         return
@@ -586,7 +603,7 @@ def _ensure_parent_link(doc: dict) -> None:
 def _ensure_llms_link(doc: dict) -> None:
     """The collection needs a ``rel: llms`` link so agents can find its ``llms.txt``.
 
-    ``write_llms`` writes ``catalog/<id>/llms.txt`` but nothing links to it
+    ``write_llms`` writes ``catalog/<source>/<id>/llms.txt`` but nothing links to it
     from the collection, so an agent walking the catalog by link traversal
     alone never finds it. Idempotent by ``rel``.
     """
@@ -792,7 +809,7 @@ def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = 
 def sanitize_config(
     dataset_ids: list[str], *, catalog: Path = CATALOG, confirm: bool = False
 ) -> list[Path]:
-    """The ``catalog/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
+    """The ``catalog/<source>/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
 
     With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
     same code a full catalogize run uses), so collections published before the fix
@@ -802,7 +819,7 @@ def sanitize_config(
     """
     changed = []
     for dataset_id in dataset_ids:
-        path = catalog / dataset_id / "collection.json"
+        path = catalog / dataset_relpath(dataset_id, catalog=catalog) / "collection.json"
         doc = read_json(path)
         if "ftw:config" not in doc:
             continue
@@ -830,10 +847,10 @@ def enrich_collection(
     recipe: dict,
     now: datetime | None = None,
 ) -> list[Path]:
-    """Enrich the just-copied ``catalog/<id>/collection.json`` (and README.md).
+    """Enrich the just-copied ``catalog/<source>/<id>/collection.json`` (and README.md).
 
-    Fixes the collection's own ``root`` link (depth 1), adds a ``parent``
-    link to the root catalog and a ``llms`` link to its own ``llms.txt``,
+    Fixes the collection's own ``root`` link (``dataset_depth``), adds a
+    ``parent`` link to its source group's catalog and a ``llms`` link to its own ``llms.txt``,
     appends the host provider once, fills in ``version`` and ``updated``,
     ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
     — for an "other" license — a ``license`` link exist, registers a
@@ -842,9 +859,10 @@ def enrich_collection(
     the manifest carries an ``ftw1`` block for this dataset, appends the FTW
     1.0 comparison to README.md.
     """
-    collection_path = catalog / dataset_id / "collection.json"
+    dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
+    collection_path = dataset_dir / "collection.json"
     doc = read_json(collection_path)
-    rewrite_root_links(doc, depth=1)
+    rewrite_root_links(doc, depth=dataset_depth(dataset_id, catalog=catalog))
     if "ftw:config" in doc:
         unresolved: list[str] = []
         doc["ftw:config"] = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
@@ -867,7 +885,7 @@ def enrich_collection(
     spec = (manifest.get("datasets") or {}).get(dataset_id) or {}
     section = ftw1_section(dataset_id, spec, staging=staging, recipe=recipe)
     if section:
-        readme_path = catalog / dataset_id / "README.md"
+        readme_path = dataset_dir / "README.md"
         text = readme_path.read_text()
         if not text.endswith("\n"):
             text += "\n"
@@ -956,15 +974,18 @@ def _replace_derived_from(text: str, *, recipe: dict, collection_title: str, fet
     return _DERIVED_FROM_RE.sub(lambda _m: _source_data_line(title, human, stac), text, count=1)
 
 
-def _browse_block(dataset_id: str, title: str, *, manifest: dict, has_thumbnail: bool) -> str:
-    """The marker-delimited "Browse" block: the thumbnail, then the three ways in."""
+def _browse_block(relpath: str, title: str, *, manifest: dict, has_thumbnail: bool) -> str:
+    """The marker-delimited "Browse" block: the thumbnail, then the three ways in.
+
+    ``relpath`` is the collection's published ``<source>/<id>``.
+    """
     lines = [_BROWSE_START]
     if has_thumbnail:
-        lines += [f"![{title} thumbnail]({public_url(f'{dataset_id}/thumbnail.webp')})", ""]
+        lines += [f"![{title} thumbnail]({public_url(f'{relpath}/thumbnail.webp')})", ""]
     lines.append(
-        f"Open this collection in the [data browser]({browser_url(f'{dataset_id}/collection.json')}), "
-        f"read the [agent guide]({human_url(manifest, f'{dataset_id}/AGENTS.md')}), or query "
-        f"[items.parquet]({public_url(f'{dataset_id}/items.parquet')}) directly."
+        f"Open this collection in the [data browser]({browser_url(f'{relpath}/collection.json')}), "
+        f"read the [agent guide]({human_url(manifest, f'{relpath}/AGENTS.md')}), or query "
+        f"[items.parquet]({public_url(f'{relpath}/items.parquet')}) directly."
     )
     lines.append(_BROWSE_END)
     return "\n".join(lines)
@@ -1046,7 +1067,8 @@ def enrich_readme(
     produces byte-identical files (a fresh copy each run, and marker-guarded
     insertion when a README is processed twice in place).
     """
-    dataset_dir = catalog / dataset_id
+    relpath = dataset_relpath(dataset_id, catalog=catalog)
+    dataset_dir = catalog / relpath
     readme_path = dataset_dir / "README.md"
     agents_path = dataset_dir / "AGENTS.md"
     collection_title = read_json(dataset_dir / "collection.json").get("title", dataset_id)
@@ -1060,13 +1082,13 @@ def enrich_readme(
         text = _insert_browse_block(
             text,
             _browse_block(
-                dataset_id,
+                relpath,
                 collection_title,
                 manifest=manifest,
                 has_thumbnail=(dataset_dir / "thumbnail.webp").is_file(),
             ),
         )
-        text = absolutize_links(text, base_rel=dataset_id, manifest=manifest)
+        text = absolutize_links(text, base_rel=relpath, manifest=manifest)
         readme_path.write_text(text)
         written.append(readme_path)
 
@@ -1076,10 +1098,10 @@ def enrich_readme(
             text,
             "## Accessing the data",
             f"Browse the collection in the [Portolan data browser]"
-            f"({browser_url(f'{dataset_id}/collection.json')}), or read the files below straight "
-            f"from [collection.json]({public_url(f'{dataset_id}/collection.json')}).",
+            f"({browser_url(f'{relpath}/collection.json')}), or read the files below straight "
+            f"from [collection.json]({public_url(f'{relpath}/collection.json')}).",
         )
-        text = absolutize_links(text, base_rel=dataset_id, manifest=manifest)
+        text = absolutize_links(text, base_rel=relpath, manifest=manifest)
         agents_path.write_text(text)
         written.append(agents_path)
 
@@ -1090,8 +1112,9 @@ def enrich_readme(
 
 
 def write_llms(dataset_id: str, *, catalog: Path = CATALOG) -> Path:
-    """Write ``catalog/<id>/llms.txt``: title, blurb, and public URLs of the metadata."""
-    doc = read_json(catalog / dataset_id / "collection.json")
+    """Write ``catalog/<source>/<id>/llms.txt``: title, blurb, and public URLs of the metadata."""
+    relpath = dataset_relpath(dataset_id, catalog=catalog)
+    doc = read_json(catalog / relpath / "collection.json")
     title = doc.get("title", dataset_id)
     description = (doc.get("description") or "").strip().split(". ")[0].rstrip(".") + "."
 
@@ -1100,9 +1123,9 @@ def write_llms(dataset_id: str, *, catalog: Path = CATALOG) -> Path:
         "",
         f"> {description}",
         "",
-        f"- [Collection]({public_url(f'{dataset_id}/collection.json')})",
-        f"- [README]({public_url(f'{dataset_id}/README.md')})",
-        f"- [Agent guide]({public_url(f'{dataset_id}/AGENTS.md')})",
+        f"- [Collection]({public_url(f'{relpath}/collection.json')})",
+        f"- [README]({public_url(f'{relpath}/README.md')})",
+        f"- [Agent guide]({public_url(f'{relpath}/AGENTS.md')})",
     ]
     for key, asset in sorted((doc.get("assets") or {}).items()):
         href = asset.get("href", "")
@@ -1110,9 +1133,9 @@ def write_llms(dataset_id: str, *, catalog: Path = CATALOG) -> Path:
             continue
         filename = href[2:] if href.startswith("./") else href
         title_ = asset.get("title", key)
-        lines.append(f"- [{title_}]({public_url(f'{dataset_id}/{filename}')})")
+        lines.append(f"- [{title_}]({public_url(f'{relpath}/{filename}')})")
 
-    path = catalog / dataset_id / "llms.txt"
+    path = catalog / relpath / "llms.txt"
     path.write_text("\n".join(lines) + "\n")
     return path
 
@@ -1211,10 +1234,10 @@ def _ensure_subcatalog_docs_links(doc: dict) -> None:
 
 
 def _subcatalog_readme(
-    dataset_id: str, collection_title: str, square: str, n_chips: int, *, manifest: dict
+    relpath: str, collection_title: str, square: str, n_chips: int, *, manifest: dict
 ) -> str:
     plural = "chip" if n_chips == 1 else "chips"
-    collection_readme = human_url(manifest, f"{dataset_id}/README.md")
+    collection_readme = human_url(manifest, f"{relpath}/README.md")
     return (
         f"# {collection_title} — MGRS square {square}\n\n"
         f"This square holds {n_chips} {plural} on the FTW grid. Each item carries the same "
@@ -1225,7 +1248,7 @@ def _subcatalog_readme(
 
 
 def _subcatalog_agents(
-    dataset_id: str, collection_title: str, square: str, *, manifest: dict
+    relpath: str, collection_title: str, square: str, *, manifest: dict
 ) -> str:
     """The square's agent guide, with every link and the query's path published.
 
@@ -1233,8 +1256,8 @@ def _subcatalog_agents(
     relative path: this file is published, and a reader who found it on the
     web has no collection directory to run it from.
     """
-    items = public_url(f"{dataset_id}/items.parquet")
-    guide = human_url(manifest, f"{dataset_id}/AGENTS.md")
+    items = public_url(f"{relpath}/items.parquet")
+    guide = human_url(manifest, f"{relpath}/AGENTS.md")
     query = f"SELECT * FROM read_parquet('{items}') WHERE id LIKE 'ftw-{square}%';"
     return (
         f"# {collection_title} — MGRS square {square}\n\n"
@@ -1270,7 +1293,7 @@ def enrich_subcatalogs(
 ) -> list[Path]:
     """Give every committed sub-catalog a title on each item link, its children, and its own docs.
 
-    For each ``catalog/<id>/chips/<square>/catalog.json``: sets ``title`` on
+    For each ``catalog/<source>/<id>/chips/<square>/catalog.json``: sets ``title`` on
     every item link (PTL-TTL-003), adds a ``rel: item`` link for every
     imagery child item sitting in one of its chip directories (PTL-LNK-002,
     see ``_add_child_item_links``), adds ``describedby``/``agents`` links
@@ -1285,7 +1308,8 @@ def enrich_subcatalogs(
     just listed do not inflate it.
     """
     written = []
-    for sub_path in sorted((catalog / dataset_id / "chips").glob("*/catalog.json")):
+    relpath = dataset_relpath(dataset_id, catalog=catalog)
+    for sub_path in sorted((catalog / relpath / "chips").glob("*/catalog.json")):
         square = sub_path.parent.name
         doc = read_json(sub_path)
         _add_item_titles(doc)
@@ -1296,13 +1320,13 @@ def enrich_subcatalogs(
 
         readme_path = sub_path.parent / "README.md"
         readme_path.write_text(
-            _subcatalog_readme(dataset_id, collection_title, square, n_chips, manifest=manifest)
+            _subcatalog_readme(relpath, collection_title, square, n_chips, manifest=manifest)
         )
         written.append(readme_path)
 
         agents_path = sub_path.parent / "AGENTS.md"
         agents_path.write_text(
-            _subcatalog_agents(dataset_id, collection_title, square, manifest=manifest)
+            _subcatalog_agents(relpath, collection_title, square, manifest=manifest)
         )
         written.append(agents_path)
 
@@ -1317,22 +1341,183 @@ def enrich_subcatalogs(
 
 
 def _built_collections(catalog: Path) -> list[tuple[str, dict]]:
-    return sorted(
-        ((p.parent.name, read_json(p)) for p in catalog.glob("*/collection.json")),
-        key=lambda pair: pair[0],
+    """``(dataset id, collection)`` for every published collection, sorted by id."""
+    return [(dataset_id, read_json(path)) for dataset_id, path in published_collections(catalog).items()]
+
+
+def _child_links(children: list[tuple[str, str]]) -> list[dict]:
+    """``rel: child`` links from ``(href, title)`` pairs, in the order given."""
+    return [
+        {"rel": "child", "href": href, "type": "application/json", "title": title}
+        for href, title in children
+    ]
+
+
+# --- source groups: catalog/<source>/catalog.json, README.md, AGENTS.md ----
+
+
+def _collection_source_via(doc: dict) -> str | None:
+    """The harmonized ``source_via`` a built collection records in its ``ftw:config``."""
+    return ((doc.get("ftw:config") or {}).get("config") or {}).get("source_via")
+
+
+def _collection_year(doc: dict) -> str:
+    year = ((doc.get("ftw:config") or {}).get("config") or {}).get("year")
+    return str(year) if year is not None else "—"
+
+
+def _group_members(group: str, catalog: Path) -> list[tuple[str, dict]]:
+    return [
+        (dataset_id, read_json(path))
+        for dataset_id, path in published_collections(catalog).items()
+        if path.parent.parent.name == group
+    ]
+
+
+def _group_title(group: str, source_via: str | None, *, catalog: Path, fetch_title) -> str:
+    """The harmonized collection's own title, kept once a group catalog carries it.
+
+    Read from the existing ``catalog/<source>/catalog.json`` first, so a rerun
+    neither needs the network nor rewrites the title when it is unreachable;
+    fetched from ``source_via`` otherwise, falling back to the group id.
+    """
+    path = catalog / group / "catalog.json"
+    if path.is_file():
+        title = read_json(path).get("title")
+        if title and title != group:
+            return title
+    return (fetch_title(source_via) if source_via else None) or group
+
+
+def _group_catalog(
+    group: str, title: str, source_page: str | None, members: list[tuple[str, dict]], *,
+    manifest: dict,
+) -> dict:
+    links = [
+        {"rel": "root", "href": "../catalog.json", "type": "application/json"},
+        {"rel": "parent", "href": "../catalog.json", "type": "application/json"},
+        {"rel": "describedby", "href": "./README.md", "type": "text/markdown", "title": "README"},
+        {"rel": "agents", "href": "./AGENTS.md", "type": "text/markdown", "title": "Agent guide"},
+    ]
+    if source_page:
+        links.append({"rel": "via", "href": source_page, "type": "text/html",
+                      "title": "Source field boundary collection"})
+    links += _child_links(
+        [(f"./{dataset_id}/collection.json", doc.get("title", dataset_id)) for dataset_id, doc in members]
+    )
+    return {
+        "type": "Catalog",
+        "stac_version": "1.1.0",
+        "stac_extensions": [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI],
+        "id": group,
+        "title": title,
+        "description": (
+            f"Fields of the World benchmark collections cut from the harmonized field boundary "
+            f"collection {title} ({group}), one per year, each with train, validation and test splits."
+        ),
+        "version": manifest["catalog"]["version"],
+        "links": links,
+    }
+
+
+def _source_line(title: str, source_page: str | None) -> str:
+    return f"[{title}]({source_page})" if source_page else title
+
+
+def _group_readme(
+    group: str, title: str, source_page: str | None, members: list[tuple[str, dict]], *,
+    manifest: dict,
+) -> str:
+    rows = "".join(
+        f"| [{doc.get('title', dataset_id)}]({human_url(manifest, f'{group}/{dataset_id}')}) "
+        f"| {_collection_year(doc)} | {_license_cell(doc)} "
+        f"| [browse]({browser_url(f'{group}/{dataset_id}/collection.json')}) |\n"
+        for dataset_id, doc in members
+    )
+    return (
+        f"# {title}: benchmark collections\n\n"
+        f"Fields of the World benchmark chips cut from the harmonized field boundary collection "
+        f"{_source_line(title, source_page)}, one collection per year. Each collection has its own "
+        f"README with what its chips, masks and imagery contain. Open this group in the "
+        f"[data browser]({browser_url(f'{group}/catalog.json')}) or go back to the "
+        f"[catalog]({human_url(manifest)}).\n\n"
+        "| Collection | Year | License | Browse |\n"
+        "| --- | --- | --- | --- |\n"
+        f"{rows}"
     )
 
 
-def _child_links(collections: list[tuple[str, dict]]) -> list[dict]:
-    return [
-        {
-            "rel": "child",
-            "href": f"./{dataset_id}/collection.json",
-            "type": "application/json",
-            "title": doc.get("title", dataset_id),
-        }
-        for dataset_id, doc in collections
-    ]
+def _group_agents(
+    group: str, title: str, source_page: str | None, members: list[tuple[str, dict]], *,
+    manifest: dict,
+) -> str:
+    collections = "".join(
+        f"- `{dataset_id}` ({_collection_year(doc)}): "
+        f"[agent guide]({human_url(manifest, f'{group}/{dataset_id}/AGENTS.md')}), "
+        f"[collection.json]({public_url(f'{group}/{dataset_id}/collection.json')}), "
+        f"[items.parquet]({public_url(f'{group}/{dataset_id}/items.parquet')})\n"
+        for dataset_id, doc in members
+    )
+    root_guide = human_url(manifest, "AGENTS.md")
+    return (
+        f"# {title}: benchmark collections\n\n"
+        "## Overview\n\n"
+        f"This group holds the Fields of the World benchmark collections cut from the harmonized "
+        f"field boundary collection {_source_line(title, source_page)} (`{group}`), one per year. "
+        f"See the [catalog agent guide]({root_guide}) for what every collection carries.\n\n"
+        "## Accessing the data\n\n"
+        f"{collections}\n"
+        "## Schema & field notes\n\n"
+        "Every column and asset is documented in each collection's own agent guide; the "
+        "collections in this group share one schema.\n\n"
+        "## Data quality & usage notes\n\n"
+        "Years of the same source can overlap in space. Keep each year's own train, validation "
+        "and test split rather than pooling chips across years, or the same field can land on "
+        "both sides of a split.\n\n"
+        "## Example queries\n\n"
+        "See each collection's agent guide for worked examples against its `items.parquet`.\n\n"
+        "## Related collections\n\n"
+        f"The [catalog agent guide]({root_guide}) lists every source group and collection.\n"
+    )
+
+
+def write_group(
+    group: str, *, catalog: Path = CATALOG, manifest: dict, fetch_title=fetch_collection_title
+) -> list[Path]:
+    """Write ``catalog/<group>/catalog.json``, ``README.md`` and ``AGENTS.md``.
+
+    The group is one harmonized source collection; its children are the
+    collections published under ``catalog/<group>/``, sorted by id. A group
+    left with no collection has its three files deleted (and says so); returns
+    [] then.
+    """
+    members = _group_members(group, catalog)
+    if not members:
+        for name in _GROUP_FILES:
+            path = catalog / group / name
+            if path.is_file():
+                path.unlink()
+                print(f"note   {group}: no collection left, deleted {path}")
+        return []
+    source_via = next(
+        (via for _, doc in members if (via := _collection_source_via(doc))), None
+    )
+    source = harmonized_source({"source_via": source_via}) if source_via else None
+    source_page = source[0] if source else None
+    title = _group_title(group, source_via, catalog=catalog, fetch_title=fetch_title)
+    args = (group, title, source_page, members)
+    group_dir = catalog / group
+    write_json(group_dir / "catalog.json", _group_catalog(*args, manifest=manifest))
+    (group_dir / "README.md").write_text(_group_readme(*args, manifest=manifest))
+    (group_dir / "AGENTS.md").write_text(_group_agents(*args, manifest=manifest))
+    return [group_dir / "catalog.json", group_dir / "README.md", group_dir / "AGENTS.md"]
+
+
+_GROUP_FILES = ("catalog.json", "README.md", "AGENTS.md")
+
+
+def _groups(catalog: Path) -> list[str]:
+    return sorted({path.parent.parent.name for path in published_collections(catalog).values()})
 
 
 # An imagery child item's id suffix: a season scene or a quarterly mosaic.
@@ -1453,7 +1638,7 @@ def _source_cell(doc: dict) -> str:
     return "—"
 
 
-def _thumbnail_cell(dataset_id: str, title: str, *, rendered: bool) -> str:
+def _thumbnail_cell(relpath: str, title: str, *, rendered: bool) -> str:
     """The Thumbnail column: a width-constrained ``<img>``, or ``—``.
 
     Deliberately not ``![title](href)``. Markdown image syntax carries no size,
@@ -1471,7 +1656,7 @@ def _thumbnail_cell(dataset_id: str, title: str, *, rendered: bool) -> str:
     """
     if not rendered:
         return "—"
-    href = public_url(f"{dataset_id}/thumbnail.webp")
+    href = public_url(f"{relpath}/thumbnail.webp")
     return f'<img src="{href}" alt="{title}" width="{THUMBNAIL_WIDTH_PX}">'
 
 
@@ -1524,12 +1709,14 @@ def _collection_row(
     imagery = _imagery_count(dataset_dir)
     crops = _crop_label_count(dataset_dir / "items.parquet")
     fields = _field_count(dataset_dir)
-    has_thumbnail = (catalog / dataset_id / "thumbnail.webp").is_file()
+    relpath = dataset_relpath(dataset_id, catalog=catalog)
+    has_thumbnail = (catalog / relpath / "thumbnail.webp").is_file()
     return {
         "id": dataset_id,
+        "relpath": relpath,
         "title": title,
-        "thumbnail": _thumbnail_cell(dataset_id, title, rendered=has_thumbnail),
-        "collection": f"[{title}]({human_url(manifest, dataset_id)})",
+        "thumbnail": _thumbnail_cell(relpath, title, rendered=has_thumbnail),
+        "collection": f"[{title}]({human_url(manifest, relpath)})",
         "chips": f"{counts['total']:,}" if counts else "—",
         "splits": (
             f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}" if counts else "—"
@@ -1538,7 +1725,7 @@ def _collection_row(
         "imagery_n": _count_cell(imagery),
         "license": _license_cell(doc),
         "source": _source_cell(doc),
-        "browse": f"[browse]({browser_url(f'{dataset_id}/collection.json')})",
+        "browse": f"[browse]({browser_url(f'{relpath}/collection.json')})",
         "n_chips": counts["total"] if counts else None,
         "n_imagery": imagery,
         "n_crops": crops,
@@ -1577,7 +1764,7 @@ def _collections_list(rows: list[dict]) -> str:
     """The same facts as the table, as a list, for llms.txt."""
     lines = []
     for row in rows:
-        collection_url = public_url(f"{row['id']}/collection.json")
+        collection_url = public_url(f"{row['relpath']}/collection.json")
         lines.append(
             f"- [{row['title']}]({collection_url}): {row['chips']} chips "
             f"({row['splits']} train/val/test), {row['imagery_n']} with imagery, "
@@ -1676,12 +1863,18 @@ def _replace_between_markers(path: Path, content: str) -> None:
 
 
 def regenerate_root(
-    manifest: dict, *, catalog: Path = CATALOG, staging: Path = STAGING, now: datetime | None = None
+    manifest: dict,
+    *,
+    catalog: Path = CATALOG,
+    staging: Path = STAGING,
+    now: datetime | None = None,
+    fetch_title=fetch_collection_title,
 ) -> list[Path]:
-    """Regenerate the root catalog's child links and the root docs' tables.
+    """Regenerate the source groups, the root catalog's child links and the root docs' tables.
 
-    Keeps every fixed link in ``catalog/catalog.json`` exactly as it is;
-    rebuilds the ``child`` links, sorted by dataset id, and drops any
+    Rewrites every ``catalog/<source>/`` group (``write_group``). Keeps every
+    fixed link in ``catalog/catalog.json`` exactly as it is; rebuilds the
+    ``child`` links, one per source group sorted by group id, and drops any
     ``rel: self`` link — Portolan forbids self links, and a hand-edit or an
     older ftwd is the only way one would appear here. Sets
     ``stac_extensions`` to the Portolan schema URI plus the version extension
@@ -1696,10 +1889,20 @@ def regenerate_root(
     root_path = catalog / "catalog.json"
     doc = read_json(root_path)
     collections = _built_collections(catalog)
+    written: list[Path] = []
+    groups = []
+    live = _groups(catalog)
+    # A group folder whose last collection was removed: write_group deletes its files.
+    emptied = {p.parent.name for p in catalog.glob("*/catalog.json")} - set(live)
+    for group in sorted(emptied):
+        write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title)
+    for group in live:
+        written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title)
+        groups.append((f"./{group}/catalog.json", read_json(catalog / group / "catalog.json")["title"]))
 
     doc["links"] = [
         link for link in doc["links"] if link.get("rel") not in ("child", "self")
-    ] + _child_links(collections)
+    ] + _child_links(groups)
     doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI]
     doc["version"] = manifest["catalog"]["version"]
     doc["updated"] = _now_iso(now)
@@ -1713,7 +1916,7 @@ def regenerate_root(
     _replace_between_markers(catalog / "AGENTS.md", _collections_block(rows, thumbnails=False))
     _replace_between_markers(catalog / "llms.txt", _collections_list(rows))
 
-    return [root_path, catalog / "README.md", catalog / "AGENTS.md", catalog / "llms.txt"]
+    return [*written, root_path, catalog / "README.md", catalog / "AGENTS.md", catalog / "llms.txt"]
 
 
 # --- the full pipeline for one dataset --------------------------------------
@@ -1734,6 +1937,17 @@ def _check_staged(dataset_id: str, staging: Path) -> None:
             sys.exit(f"{path} not found; run: uv run python tools/build.py {dataset_id} --through stac")
 
 
+def _check_group(dataset_id: str, recipe: dict, catalog: Path) -> None:
+    """Exit when ``catalog/`` has the dataset under another group than its recipe names."""
+    group = source_group(recipe.get("source_via"))
+    published = dataset_relpath(dataset_id, catalog=catalog).split("/")[0]
+    if group and group != published:
+        sys.exit(
+            f"{dataset_id}: published under catalog/{published}/ but its recipe's source_via "
+            f"names {group}; move it with tools/relayout.py or fix the recipe"
+        )
+
+
 def catalogize(
     dataset_id: str,
     *,
@@ -1742,24 +1956,26 @@ def catalogize(
     catalog: Path = CATALOG,
     now: datetime | None = None,
 ) -> list[Path]:
-    """Copy ``staging/<id>``'s git-owned metadata into ``catalog/<id>``, published.
+    """Copy ``staging/<id>``'s git-owned metadata into ``catalog/<source>/<id>``, published.
 
-    Returns every file written under ``catalog/<id>/``. ``items.parquet`` is
+    Returns every file written under ``catalog/<source>/<id>/``. ``items.parquet`` is
     rewritten too, but stays in ``staging/<id>/`` (it is data, never
     committed), so it is not part of the returned list.
     """
     _check_staged(dataset_id, staging)
     recipe = _load_recipe(dataset_id)
+    _check_group(dataset_id, recipe, catalog)
 
-    rewrite_staging_items(dataset_id, staging=staging)
-    rewrite_items_parquet(dataset_id, staging=staging)
+    rewrite_staging_items(dataset_id, staging=staging, catalog=catalog)
+    rewrite_items_parquet(dataset_id, staging=staging, catalog=catalog)
 
     written = copy_committed(dataset_id, staging=staging, catalog=catalog)
     written += enrich_collection(
         dataset_id, catalog=catalog, staging=staging, manifest=manifest, recipe=recipe, now=now
     )
     written += enrich_readme(dataset_id, catalog=catalog, manifest=manifest, recipe=recipe)
-    collection_title = read_json(catalog / dataset_id / "collection.json").get("title", dataset_id)
+    relpath = dataset_relpath(dataset_id, catalog=catalog)
+    collection_title = read_json(catalog / relpath / "collection.json").get("title", dataset_id)
     written += enrich_subcatalogs(
         dataset_id,
         catalog=catalog,
@@ -1768,13 +1984,14 @@ def catalogize(
         manifest=manifest,
     )
     written.append(write_llms(dataset_id, catalog=catalog))
+    written += write_group(relpath.split("/")[0], catalog=catalog, manifest=manifest)
 
     return list(dict.fromkeys(written))
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Copy staging/<id>'s git-owned metadata into catalog/<id>, published.",
+        description="Copy staging/<id>'s git-owned metadata into catalog/<source>/<id>, published.",
     )
     parser.add_argument("dataset_id", nargs="?", help="dataset id, e.g. 'lu' (see datasets.yaml)")
     parser.add_argument(
@@ -1782,14 +1999,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--sanitize-config", nargs="*", metavar="ID", default=None,
-        help="only make the local paths in catalog/<id>/collection.json's ftw:config "
+        help="only make the local paths in catalog/<source>/<id>/collection.json's ftw:config "
              "repository-relative (all built collections when no id is given); a dry run "
              "unless --confirm",
     )
     parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
     if args.sanitize_config is not None:
-        ids = args.sanitize_config or sorted(p.parent.name for p in CATALOG.glob("*/collection.json"))
+        ids = args.sanitize_config or sorted(published_collections(CATALOG))
         changed = sanitize_config(ids, confirm=args.confirm)
         for path in changed:
             print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")

@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import queue
 import sys
 import threading
@@ -193,26 +194,156 @@ def is_publishable(rel: Path) -> bool:
     return not any(part.startswith(".") for part in rel.parts)
 
 
-def collect_uploads(config: dict[str, str], root: Path = ROOT) -> list[Upload]:
+def collect_uploads(
+    config: dict[str, str], root: Path = ROOT, *, only: set[str] | None = None
+) -> list[Upload]:
     """Every file that would be uploaded, in sorted order.
 
     The walk is rooted at publish_dir and nothing else. This is the function
     that makes "nothing outside the published directory is published" true.
+    ``only`` narrows it further, to those datasets' ``<source>/<id>/`` folders
+    and their source groups' own files (``<source>/catalog.json``, README,
+    AGENTS: a new dataset changes its group's child links), with no root files.
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     base = root / config["publish_dir"]
     if not base.is_dir():
         sys.exit(f"publish_dir does not exist: {base}")
+    groups = _groups_of(only, base)
     uploads = []
     for path in sorted(base.rglob("*")):
         if not path.is_file():
             continue
         rel = path.relative_to(base)
+        if only is not None and not _in_only(rel.parts, only, groups):
+            continue
         if not is_publishable(rel):
             continue
         key = f"{prefix}/{rel.as_posix()}" if prefix else rel.as_posix()
         uploads.append(Upload(path, key, content_type_for(path, rel=rel)))
     return uploads
+
+
+def root_uploads(config: dict[str, str], root: Path = ROOT) -> list[Upload]:
+    """The root files (``catalog.json``, README, AGENTS, llms.txt...), directly under publish_dir."""
+    return [u for u in collect_uploads(config, root) if "/" not in u.local.relative_to(
+        root / config["publish_dir"]).as_posix()]
+
+
+def new_groups(
+    only: set[str], index: dict[str, tuple[int, str]], config: dict[str, str], root: Path = ROOT
+) -> set[str]:
+    """The ``only`` datasets' source groups whose ``catalog.json`` the bucket does not have yet.
+
+    A new group is reachable only once the root catalog links it, so an
+    ``--only`` publish of its first dataset has to carry the root files too.
+    """
+    _, prefix = split_s3_uri(config["write_prefix"])
+    head = f"{prefix}/" if prefix else ""
+    return {
+        group for group in _groups_of(only, root / config["publish_dir"])
+        if f"{head}{group}/catalog.json" not in index
+    }
+
+
+def is_root_file(upload: Upload, config: dict[str, str], root: Path = ROOT) -> bool:
+    """True for a file directly under publish_dir (the root catalog.json, README, AGENTS, llms.txt)."""
+    return len(upload.local.relative_to(root / config["publish_dir"]).parts) == 1
+
+
+def plan_root_files(
+    uploads: list[Upload],
+    only: set[str] | None,
+    index: dict[str, tuple[int, str]],
+    config: dict[str, str],
+    root: Path = ROOT,
+    *,
+    no_root: bool = False,
+) -> tuple[list[Upload], str | None]:
+    """``uploads`` with the root files added or removed, and a line saying why.
+
+    ``--only`` adds them when a dataset's group is new, so the root links it.
+    ``no_root`` keeps every root file out, even then (the move into source
+    groups publishes the root once, after every group is in place); the
+    groups' own files still go.
+    """
+    if no_root:
+        kept = [u for u in uploads if not is_root_file(u, config, root)]
+        dropped = len(uploads) - len(kept)
+        return kept, (f"--no-root: leaving out {dropped} root file(s)" if dropped else None)
+    if only is None:
+        return uploads, None
+    fresh = new_groups(only, index, config, root)
+    if not fresh:
+        return uploads, None
+    return uploads + root_uploads(config, root), (
+        f"new source group(s) {', '.join(sorted(fresh))}: publishing the root files too, "
+        "so the root catalog links them")
+
+
+def missing_data(
+    uploads: list[Upload],
+    listing: dict[str, tuple[int, str]],
+    config: dict[str, str],
+    root: Path = ROOT,
+) -> dict[str, list[str]]:
+    """Data a changed collection links that is neither staged nor in the bucket at its new key.
+
+    For each dataset with a changed file in this publish, every relative asset
+    href and ``rel: pmtiles`` link of its ``collection.json`` must resolve:
+    to a file under ``catalog/<source>/<id>/`` (published by this run), under
+    ``staging/<id>/`` (``upload_data.py`` carries it), or to an object at
+    ``<prefix>/<source>/<id>/<href>``. Publishing a moved collection before its
+    data is copied to the new keys would put links to missing objects live.
+    """
+    _, prefix = split_s3_uri(config["write_prefix"])
+    head = f"{prefix}/" if prefix else ""
+    base = root / config["publish_dir"]
+    staging = Path(config.get("data_dir") or "staging")
+    staging = staging if staging.is_absolute() else root / staging
+    changed = {
+        u.local.relative_to(base).parts[:2] for u in uploads
+        if len(u.local.relative_to(base).parts) >= 3 and not is_unchanged(u, listing)
+    }
+    missing: dict[str, list[str]] = {}
+    for group, dataset_id in sorted(changed):
+        collection = base / group / dataset_id / "collection.json"
+        if not collection.is_file():
+            continue
+        for href in _data_hrefs(json.loads(collection.read_text())):
+            rel = href.removeprefix("./")
+            if (collection.parent / rel).exists() or (staging / dataset_id / rel).exists():
+                continue
+            if f"{head}{group}/{dataset_id}/{rel}" not in listing:
+                missing.setdefault(dataset_id, []).append(rel)
+    return missing
+
+
+def _data_hrefs(doc: dict) -> list[str]:
+    """The relative hrefs of a collection's assets and ``rel: pmtiles`` links."""
+    hrefs = [a.get("href", "") for a in (doc.get("assets") or {}).values()]
+    hrefs += [l.get("href", "") for l in doc.get("links", []) if l.get("rel") == "pmtiles"]
+    return sorted({h for h in hrefs if h and "://" not in h and not h.startswith(("#", "/"))})
+
+
+def _groups_of(only: set[str] | None, base: Path) -> set[str]:
+    """The source groups the ``only`` datasets are published under."""
+    if only is None:
+        return set()
+    from common import published_collections
+
+    return {
+        path.parent.parent.name
+        for dataset_id, path in published_collections(base).items()
+        if dataset_id in only
+    }
+
+
+def _in_only(parts: tuple[str, ...], only: set[str], groups: set[str]) -> bool:
+    """True for a file inside an ``only`` dataset, or one of its group's own files."""
+    if len(parts) >= 3:
+        return parts[0] in groups and parts[1] in only
+    return len(parts) == 2 and parts[0] in groups
 
 
 def md5(path: Path) -> str:
@@ -333,9 +464,11 @@ def _transfer_config():
 # subfolders, so pages are fetched LIST_WORKERS at a time.
 LIST_WORKERS = 32
 # Folder levels below write_prefix that are split before a flat listing:
-# <dataset>/chips/<tile>/ in this bucket. Deeper, the folders are single chips
-# of a few files each, and one request per chip would cost more than it saves.
-LIST_SPLIT_DEPTH = 3
+# <source>/<dataset>/chips/<tile>/ in this bucket. Deeper, the folders are single
+# chips of a few files each, and one request per chip would cost more than it saves.
+LIST_SPLIT_DEPTH = 4
+# How deep a dataset's own folder sits below write_prefix: <source>/<dataset>/.
+DATASET_DEPTH = 2
 # The proxy answers some requests with a 520, which botocore does not retry.
 # One failed folder fails the whole listing, so each folder is retried from its
 # first page this many times, waiting LIST_RETRY_SECONDS * 2**attempt between.
@@ -349,23 +482,38 @@ def remote_index(
     config: dict[str, str],
     *,
     only: set[str] | None = None,
+    root: Path = ROOT,
 ) -> dict[str, tuple[int, str]]:
     """Size and ETag for every object under the prefix, or {} when unreadable.
 
-    ``only`` limits the listing to those dataset folders under the prefix.
-    Every key this tool writes is ``<prefix>/<rel>``, so the listing starts at
-    ``<prefix>/``.
+    Every key this tool writes is ``<prefix>/<rel>``. The listing covers the
+    root files at ``<prefix>/`` and the source groups ``catalog/`` publishes
+    (``<prefix>/<source>/``, recursively); any other top-level folder, such as
+    a dataset still at the old flat ``<prefix>/<id>/``, is never walked, so it
+    is not split chip by chip. ``only`` narrows that to those datasets'
+    ``<source>/<id>/`` folders plus their groups' own files and the root files
+    (placed by ``common.dataset_relpath`` against ``root``'s publish_dir).
     """
-    root = f"{prefix.rstrip('/')}/" if prefix else ""
+    from common import dataset_relpath, published_collections
+
+    top = f"{prefix.rstrip('/')}/" if prefix else ""
+    catalog = root / config["publish_dir"]
     if only is None:
-        roots = [(root, 0)]
+        groups = sorted({p.parent.parent.name for p in published_collections(catalog).values()})
+        roots = [(f"{top}{group}/", 1) for group in groups]
+        levels = [top]
     else:
-        roots = [(f"{root}{dataset_id}/", 1) for dataset_id in sorted(only)]
+        rels = [dataset_relpath(dataset_id, catalog=catalog, root=root) for dataset_id in sorted(only)]
+        roots = [(f"{top}{rel}/", DATASET_DEPTH) for rel in rels]
+        levels = [top, *sorted({f"{top}{rel.split('/')[0]}/" for rel in rels})]
     try:
         client = s3_client(
             aws_session(config), config.get("endpoint_url"), pool_size=LIST_WORKERS
         )
-        return _parallel_listing(client, bucket, roots)
+        index = _parallel_listing(client, bucket, roots)
+        for level in levels:  # the files at this level only, not its folders
+            index.update(_list_folder(client, bucket, level, False)[0])
+        return index
     except ImportError:
         print("note: boto3 is not installed; treating every file as changed")
         return {}
@@ -498,6 +646,8 @@ def pending_data(
     config: dict[str, str],
     index: dict[str, tuple[int, str]],
     root: Path = ROOT,
+    *,
+    only: set[str] | None = None,
 ) -> dict[str, int]:
     """Collections in the published directory with staged data not yet in the bucket.
 
@@ -509,7 +659,12 @@ def pending_data(
     # Imported here: upload_data imports this module.
     from upload_data import collect_data_uploads
 
-    ids = {p.parent.name for p in (root / config["publish_dir"]).glob("*/collection.json")}
+    from common import published_collections
+
+    published = published_collections(root / config["publish_dir"])
+    ids = set(published)
+    if only is not None:
+        ids &= only
     if not ids:
         return {}
     pending: dict[str, int] = {}
@@ -517,7 +672,8 @@ def pending_data(
     for dataset_id in sorted(ids):
         # Staging pruned after upload, or never here: the bucket must hold its mirror.
         if not (data_root(config, root) / dataset_id).is_dir():
-            key = f"{prefix}/{dataset_id}/items.parquet" if prefix else f"{dataset_id}/items.parquet"
+            rel = f"{published[dataset_id].parent.parent.name}/{dataset_id}/items.parquet"
+            key = f"{prefix}/{rel}" if prefix else rel
             if key not in index:
                 pending[dataset_id] = 1
     for upload in collect_data_uploads(config, root, only=ids):
@@ -546,7 +702,8 @@ def collections_to_check(
     parts = [u.local.relative_to(base).parts for u in uploads if not is_unchanged(u, listing)]
     if any(len(p) == 1 for p in parts):
         return None
-    return {p[0] for p in parts}
+    # <source>/<id>/...; a group's own files (<source>/catalog.json) measure nothing.
+    return {p[1] for p in parts if len(p) >= 3}
 
 
 def split_pending(
@@ -554,9 +711,14 @@ def split_pending(
     listing: dict[str, tuple[int, str]],
     config: dict[str, str],
     root: Path = ROOT,
+    *,
+    only: set[str] | None = None,
 ) -> tuple[dict[str, int], dict[str, int]]:
-    """Pending data as (blocking this publish, in collections this publish leaves alone)."""
-    pending = pending_data(config, listing, root)
+    """Pending data as (blocking this publish, in collections this publish leaves alone).
+
+    With ``only``, the listing covers those datasets alone, so no other is checked.
+    """
+    pending = pending_data(config, listing, root, only=only)
     only = collections_to_check(uploads, listing, config, root)
     if only is None:
         return pending, {}
@@ -584,7 +746,21 @@ def main() -> int:
         action="store_true",
         help="re-upload everything; skip the remote listing",
     )
+    parser.add_argument(
+        "--only",
+        action="append",
+        metavar="DATASET",
+        help="publish only this dataset's folder and its source group's files, listing only "
+             "them (repeatable; root files only when the group is new)",
+    )
+    parser.add_argument(
+        "--no-root",
+        action="store_true",
+        help="never upload the root files, even for a new source group (the move publishes "
+             "the root once, at the end)",
+    )
     args = parser.parse_args()
+    only = set(args.only) if args.only else None
 
     config = load_config()
 
@@ -597,13 +773,16 @@ def main() -> int:
         return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
-    uploads = collect_uploads(config)
+    uploads = collect_uploads(config, only=only)
     if not uploads:
         print(f"nothing under {config['publish_dir']}/ to publish",
               file=sys.stderr)
         return 1
 
-    index = {} if args.force else remote_index(bucket, prefix, config)
+    index = {} if args.force else remote_index(bucket, prefix, config, only=only)
+    uploads, why = plan_root_files(uploads, only, index, config, no_root=args.no_root)
+    if why:
+        print(why)
     changed = [u for u in uploads if args.force or not is_unchanged(u, index)]
 
     print(f"publish_dir: {config['publish_dir']}/")
@@ -625,12 +804,20 @@ def main() -> int:
         return 0
 
     # The data check needs the listing even when --force skipped it for the diff.
-    listing = remote_index(bucket, prefix, config) if args.force else index
+    listing = remote_index(bucket, prefix, config, only=only) if args.force else index
     if not listing:
         print("cannot list the bucket, so cannot confirm the data is uploaded; not publishing",
               file=sys.stderr)
         return 1
-    pending, unchanged_pending = split_pending(uploads, listing, config)
+    missing = missing_data(uploads, listing, config)
+    if missing:
+        print("\nnot publishing: these collections link data that is neither staged nor at its "
+              "new bucket key; copy the data first:", file=sys.stderr)
+        for dataset_id, hrefs in sorted(missing.items()):
+            shown = ", ".join(hrefs[:5]) + (f" and {len(hrefs) - 5} more" if len(hrefs) > 5 else "")
+            print(f"  {dataset_id}: {shown}", file=sys.stderr)
+        return 1
+    pending, unchanged_pending = split_pending(uploads, listing, config, only=only)
     if pending and collections_to_check(uploads, listing, config) is None:
         print("\na root file changed, and the root tables are measured from staging, so every "
               "collection's data is checked", file=sys.stderr)

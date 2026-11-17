@@ -5,10 +5,11 @@ This catches the most common hand-edit mistake: adding a child link before the
 directory it points at exists. Dependency-free and offline, so it runs in
 milliseconds on a clean checkout.
 
-Resolution order for a relative href found in ``catalog/<rel_dir>/<doc>``:
+Resolution order for a relative href found in ``catalog/<source>/<rel_dir>/<doc>``:
 
-1. ``catalog/<rel_dir>/<href>`` — the normal case.
-2. ``staging/<rel_dir>/<href>`` — a committed sub-catalog's ``rel: item`` link
+1. ``catalog/<source>/<rel_dir>/<href>`` — the normal case.
+2. ``staging/<rel_dir>/<href>`` — staging is flat (``staging/<id>/``, no source
+   group). A committed sub-catalog's ``rel: item`` link
    (``./<item>/<item>.json``) and a collection's data-suffixed asset href
    (``./chips.pmtiles``, ``./items.parquet``, ...) point at files ftwd wrote
    into ``staging/<id>/``, never committed. Checked only when ``staging/``
@@ -74,8 +75,10 @@ def resolve_href_status(
     if ci_light:
         return "skip" if (is_item or is_data) else "missing"
     if staging.exists():
-        rel_dir = path.parent.relative_to(base)
-        if (staging / rel_dir / href).resolve().exists():
+        # catalog/<source>/<id>/... is staging/<id>/...; the root and the group
+        # catalogs themselves have no staging copy.
+        parts = path.parent.relative_to(base).parts
+        if len(parts) >= 2 and (staging / Path(*parts[1:]) / href).resolve().exists():
             return "ok"
     return "missing"
 
@@ -96,7 +99,7 @@ def _self_test() -> None:
         tmp_path = Path(tmp)
         base = tmp_path / "catalog"
         staging = tmp_path / "staging"
-        doc_dir = base / "lu" / "chips" / "32UNA"
+        doc_dir = base / "g" / "lu" / "chips" / "32UNA"
         doc_dir.mkdir(parents=True)
         doc_path = doc_dir / "catalog.json"
         doc_path.write_text("{}")

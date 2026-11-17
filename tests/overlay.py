@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Shared helper: overlay staging item JSON onto a copy of catalog/.
 
-A committed sub-catalog (``catalog/<id>/chips/<square>/catalog.json``) carries
+A committed sub-catalog (``catalog/<source>/<id>/chips/<square>/catalog.json``) carries
 ``rel: item`` links like ``./<item>/<item>.json`` that point at files which
 exist only under ``staging/<id>/chips/<square>/<item>/`` — ftwd writes them
 there, and they are never committed (they are data, uploaded by
@@ -49,10 +49,10 @@ def _effective_staging(staging: Path) -> Path:
 def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
     """A temp copy of ``catalog/`` with staging item JSON overlaid onto it.
 
-    For every ``catalog/<id>/chips/<square>/catalog.json``, copies every
+    For every ``catalog/<source>/<id>/chips/<square>/catalog.json``, copies every
     ``*.json`` file under the matching ``staging/<id>/chips/<square>/<item>/``
     directory into the temp tree at the same relative place
-    (``<id>/chips/<square>/<item>/*.json``), recursively — an imagery child
+    (``<source>/<id>/chips/<square>/<item>/*.json``), recursively — an imagery child
     item sits one directory deeper still
     (``<id>/chips/<square>/<item>/<child>/<child>.json``, see
     ``tools/publish.py``'s ``_is_item_json``), and its rel:'item' link from
@@ -66,7 +66,7 @@ def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
     root = Path(tmp.name)
     shutil.copytree(catalog, root, dirs_exist_ok=True)
 
-    for sub_catalog in sorted(root.glob("*/chips/*/catalog.json")):
+    for sub_catalog in sorted(root.glob("*/*/chips/*/catalog.json")):
         square_dir = sub_catalog.parent
         dataset_id = square_dir.parent.parent.name
         square = square_dir.name
@@ -88,12 +88,12 @@ def overlay_tree(catalog: Path, staging: Path) -> tempfile.TemporaryDirectory:
 def has_staging_items(catalog: Path, staging: Path) -> bool:
     """True when a built collection has a staging item tree to overlay.
 
-    False on the skeleton (no ``catalog/*/collection.json`` yet), in CI where
+    False on the skeleton (no ``catalog/*/*/collection.json`` yet), in CI where
     ``staging/`` is not checked out at all, and wherever ``BDC_STAGING_DIR``
     is pointed at a directory that does not exist (see module docstring).
     """
     staging = _effective_staging(staging)
-    for collection in catalog.glob("*/collection.json"):
+    for collection in catalog.glob("*/*/collection.json"):
         dataset_id = collection.parent.name
         if (staging / dataset_id / "chips").is_dir():
             return True
@@ -114,7 +114,7 @@ def resolve_target(catalog: Path, staging: Path):
     if has_staging_items(catalog, staging):
         with overlay_tree(catalog, staging) as tmp_name:
             root = Path(tmp_name)
-            n_items = sum(1 for _ in root.glob("*/chips/*/*/**/*.json"))
+            n_items = sum(1 for _ in root.glob("*/*/chips/*/*/**/*.json"))
             print(f"mode   overlay ({n_items} item JSON files)")
             yield root
     else:

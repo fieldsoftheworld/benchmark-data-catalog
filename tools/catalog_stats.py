@@ -4,8 +4,10 @@
     uv run python tools/catalog_stats.py                  # writes work/stats.json
     uv run python tools/catalog_stats.py --out stats.json
 
-The published datasets are the root catalog's children (``catalog/catalog.json``,
-which only ever holds published collections). Per dataset it reads, from the
+The published datasets are the collections the root catalog links through its
+source groups (``catalog/catalog.json`` -> ``<source>/catalog.json`` ->
+``<source>/<id>/collection.json``; only published collections are linked). Per
+dataset it reads, from the
 public bucket, without listing it:
 
 - chips: the rows of the chips file (``items.parquet`` also holds each chip's imagery
@@ -38,13 +40,24 @@ from common import CATALOG, PUBLIC_BASE, ROOT  # noqa: E402
 
 
 
-def published_ids(catalog_json: Path = CATALOG / "catalog.json") -> list[str]:
-    """The ids the root catalog links as children: the published datasets."""
+def published_datasets(catalog_json: Path = CATALOG / "catalog.json", rel: str = "") -> list[str]:
+    """``<source>/<id>`` for every collection the root catalog links, through its groups.
+
+    Follows ``rel: child`` links: a child ``catalog.json`` (a source group) is
+    walked in turn, a child ``collection.json`` is a published dataset.
+    """
     links = json.loads(catalog_json.read_text())["links"]
-    return sorted(
-        link["href"].split("/")[-2] for link in links
-        if link["rel"] == "child" and link["href"].endswith("/collection.json")
-    )
+    found: list[str] = []
+    for link in links:
+        if link["rel"] != "child":
+            continue
+        child = link["href"].removeprefix("./")
+        folder = child.rsplit("/", 1)[0]
+        if child.endswith("/collection.json"):
+            found.append(f"{rel}{folder}")
+        elif child.endswith("/catalog.json"):
+            found += published_datasets(catalog_json.parent / child, f"{rel}{folder}/")
+    return sorted(found)
 
 
 def _read_json(url: str) -> dict:
@@ -101,9 +114,10 @@ def chips_by_country(con, chips_url: str) -> dict[str, dict]:
     return {iso: {"name": name, "chips": int(n)} for iso, name, n in rows}
 
 
-def dataset_stats(dataset_id: str, base: str = PUBLIC_BASE) -> dict:
-    """One published dataset's chips, fields, bytes and countries."""
-    root = f"{base}/{dataset_id}"
+def dataset_stats(relpath: str, base: str = PUBLIC_BASE) -> dict:
+    """One published dataset's chips, fields, bytes and countries, by its ``<source>/<id>``."""
+    root = f"{base}/{relpath}"
+    source, _, dataset_id = relpath.rpartition("/")
     collection = _read_json(f"{root}/collection.json")
     assets = collection.get("assets", {})
     from ftw_dataset_tools.api import admin_names
@@ -119,7 +133,7 @@ def dataset_stats(dataset_id: str, base: str = PUBLIC_BASE) -> dict:
     finally:
         con.close()
     vector_bytes = sum(int(a.get("file:size", 0)) for a in assets.values())
-    return {"id": dataset_id, "chips": chips, "fields": fields,
+    return {"id": dataset_id, "source": source or None, "chips": chips, "fields": fields,
             "bytes": chip_bytes + vector_bytes, "countries": countries}
 
 
@@ -146,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
 
-    ids = published_ids()
+    ids = published_datasets()
     start = time.time()
     with ThreadPoolExecutor(args.workers) as pool:
         per_dataset = list(pool.map(dataset_stats, ids))

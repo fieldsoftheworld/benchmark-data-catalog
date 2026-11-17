@@ -29,6 +29,12 @@ TESTS = [
     "test_merge_es_2025.py",
     "test_label_extent.py",
     "test_catalog_stats.py",
+    "test_backfill.py",
+    "test_relayout.py",
+    "test_bucket_copy.py",
+    "test_verify_move.py",
+    "test_prune_flat.py",
+    "test_migrate.py",
     "test_stac_valid.py",
     "test_conformance.py",
 ]

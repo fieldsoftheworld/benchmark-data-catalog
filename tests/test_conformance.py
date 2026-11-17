@@ -79,12 +79,12 @@ CI_LIGHT = os.environ.get("CI_LIGHT") == "1"
 # docs/conformance.md).
 CI_LIGHT_WAIVED = {"PTL-LNK-006", "PTL-COL-005"}
 
-# A committed sub-catalog: "<id>/chips/<square>/catalog.json".
-_SUBCATALOG_PATH_RE = re.compile(r"^[^/]+/chips/[^/]+/catalog\.json$")
+# A committed sub-catalog: "<source>/<id>/chips/<square>/catalog.json".
+_SUBCATALOG_PATH_RE = re.compile(r"^[^/]+/[^/]+/chips/[^/]+/catalog\.json$")
 
-# A dataset's own collection: "<id>/collection.json" (never a sub-catalog,
-# which is named catalog.json, not collection.json).
-_COLLECTION_PATH_RE = re.compile(r"^[^/]+/collection\.json$")
+# A dataset's own collection: "<source>/<id>/collection.json" (never a
+# sub-catalog, which is named catalog.json, not collection.json).
+_COLLECTION_PATH_RE = re.compile(r"^[^/]+/[^/]+/collection\.json$")
 
 
 def is_ci_light_metadata_only(finding: dict, *, ci_light: bool, catalog_only: bool) -> bool:
@@ -94,9 +94,9 @@ def is_ci_light_metadata_only(finding: dict, *, ci_light: bool, catalog_only: bo
     overlay mode, or with CI_LIGHT unset, is never waived. The two shapes:
 
     - PTL-LNK-006 on a committed sub-catalog's own path
-      (``<id>/chips/<square>/catalog.json``) whose message concerns a
+      (``<source>/<id>/chips/<square>/catalog.json``) whose message concerns a
       ``rel:'item'`` link.
-    - PTL-COL-005 on a dataset's own collection path (``<id>/collection.json``).
+    - PTL-COL-005 on a dataset's own collection path (``<source>/<id>/collection.json``).
     """
     if not (ci_light and catalog_only):
         return False
@@ -125,26 +125,26 @@ def _self_test_is_ci_light_metadata_only() -> None:
     item_link_finding = {
         "rule_id": "PTL-LNK-006",
         "severity": "error",
-        "path": "lu/chips/32UNA/catalog.json",
+        "path": "g/lu/chips/32UNA/catalog.json",
         "message": "link rel:'item' href './ftw-1/ftw-1.json' does not resolve to any file",
     }
     mirror_finding = {
         "rule_id": "PTL-COL-005",
         "severity": "error",
-        "path": "lu/collection.json",
+        "path": "g/lu/collection.json",
         "message": "collection registers item mirror 'items' but publishes no items; "
         "the mirror is a derived copy and the item JSON remains the normative representation",
     }
     non_item_link_finding = {
         "rule_id": "PTL-LNK-006",
         "severity": "error",
-        "path": "lu/chips/32UNA/catalog.json",
+        "path": "g/lu/chips/32UNA/catalog.json",
         "message": "link rel:'parent' href '../../catalog.json' must point to the containing object",
     }
     subcatalog_mirror_finding = {
         "rule_id": "PTL-COL-005",
         "severity": "error",
-        "path": "lu/chips/32UNA/catalog.json",
+        "path": "g/lu/chips/32UNA/catalog.json",
         "message": "collection registers item mirror 'items' but publishes no items",
     }
 
@@ -163,6 +163,10 @@ def _self_test_is_ci_light_metadata_only() -> None:
     _self_check(
         not is_ci_light_metadata_only(subcatalog_mirror_finding, ci_light=True, catalog_only=True),
         "a PTL-COL-005 finding on a sub-catalog path is never waived",
+    )
+    _self_check(
+        not is_ci_light_metadata_only({**mirror_finding, "path": "g/catalog.json"}, ci_light=True, catalog_only=True),
+        "a PTL-COL-005 finding on a source group's catalog is never waived",
     )
     _self_check(
         not is_ci_light_metadata_only(item_link_finding, ci_light=False, catalog_only=True),

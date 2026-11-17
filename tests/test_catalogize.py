@@ -564,7 +564,7 @@ with tempfile.TemporaryDirectory() as tmp:
     written1 = catalogize.catalogize("be_wal_2022", manifest=MANIFEST, staging=staging, catalog=catalog, now=now1)
 
     # --- files copied, and only those ---
-    be_wal_2022_dir = catalog / "be_wal_2022"
+    be_wal_2022_dir = catalog / "be_wal" / "be_wal_2022"
     all_files = {p.relative_to(be_wal_2022_dir) for p in be_wal_2022_dir.rglob("*") if p.is_file()}
     expected = {
         Path("collection.json"),
@@ -578,16 +578,17 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     check(all_files == expected, f"exactly the committed files are written, got {sorted(all_files)}")
     check(not (be_wal_2022_dir / "chips" / "32UNA" / "ftw-32UNA7238_2023").exists(), "item directories are never copied")
+    group_files = {catalog / "be_wal" / name for name in ("catalog.json", "README.md", "AGENTS.md")}
     check(
-        set(written1) == {be_wal_2022_dir / p for p in expected},
+        set(written1) == {be_wal_2022_dir / p for p in expected} | group_files,
         f"catalogize() returns exactly the files it wrote, got {sorted(written1)}",
     )
 
     collection = json.loads((be_wal_2022_dir / "collection.json").read_text())
 
-    # --- root link at depth 1, no self ---
+    # --- root link at depth 2 (catalog/<source>/<id>/), no self ---
     root_links = [l for l in collection["links"] if l["rel"] == "root"]
-    check(len(root_links) == 1 and root_links[0]["href"] == "../catalog.json", "collection root link at depth 1")
+    check(len(root_links) == 1 and root_links[0]["href"] == "../../catalog.json", "collection root link at depth 2")
     check(not any(l["rel"] == "self" for l in collection["links"]), "collection has no self link")
 
     # --- host provider appended once ---
@@ -644,10 +645,10 @@ with tempfile.TemporaryDirectory() as tmp:
         "web-map-links extension declared when a pmtiles link exists",
     )
 
-    # --- sub-catalog rewritten to depth 3, in both staging and catalog ---
+    # --- sub-catalog rewritten to depth 4, in both staging and catalog ---
     sub_catalog = json.loads((be_wal_2022_dir / "chips" / "32UNA" / "catalog.json").read_text())
     sub_root = [l for l in sub_catalog["links"] if l["rel"] == "root"][0]
-    check(sub_root["href"] == "../../../catalog.json", "sub-catalog root link at depth 3")
+    check(sub_root["href"] == "../../../../catalog.json", "sub-catalog root link at depth 4")
     staged_sub_catalog = json.loads((staging / "be_wal_2022" / "chips" / "32UNA" / "catalog.json").read_text())
     check(staged_sub_catalog == sub_catalog, "staging sub-catalog matches the copied catalog one (git-owned wins)")
 
@@ -709,7 +710,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # not inflate it.
     check("2 chips" in square_readme, "square README states the chip count for this square (2 chips, not 4 items)")
     check(
-        "[collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md)" in square_readme,
+        "[collection README](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022/README.md)" in square_readme,
         f"square README links back to the collection README by its published URL, got {square_readme}",
     )
 
@@ -724,7 +725,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ):
         check(heading in square_agents, f"square AGENTS.md has the {heading!r} heading")
     check(
-        "[collection agent guide](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md)" in square_agents,
+        "[collection agent guide](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022/AGENTS.md)" in square_agents,
         f"square AGENTS.md links the collection agent guide by its published URL, got {square_agents}",
     )
     check(
@@ -732,7 +733,7 @@ with tempfile.TemporaryDirectory() as tmp:
         "square AGENTS.md gives a DuckDB query filtered on this square",
     )
     check(
-        public_url("be_wal_2022/items.parquet") in square_agents,
+        public_url("be_wal/be_wal_2022/items.parquet") in square_agents,
         "square AGENTS.md query reads the collection's items.parquet by its public URL, so it "
         "runs for a reader who found this file on the web",
     )
@@ -741,12 +742,12 @@ with tempfile.TemporaryDirectory() as tmp:
         "no relative link survives in a square's docs",
     )
 
-    # --- staging item JSON rewritten to depth 4, no self ---
+    # --- staging item JSON rewritten to depth 5, no self ---
     item_doc = json.loads(
         (staging / "be_wal_2022" / "chips" / "32UNA" / "ftw-32UNA7238_2023" / "ftw-32UNA7238_2023.json").read_text()
     )
     item_root = [l for l in item_doc["links"] if l["rel"] == "root"][0]
-    check(item_root["href"] == "../../../../catalog.json", "staging item root link at depth 4")
+    check(item_root["href"] == "../../../../../catalog.json", "staging item root link at depth 5")
     check(not any(l["rel"] == "self" for l in item_doc["links"]), "staging item has no self link")
 
     # --- non-STAC JSON under chips/ is skipped, not rewritten or crashed on ---
@@ -765,10 +766,10 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # --- llms.txt written with public URLs ---
     llms = (be_wal_2022_dir / "llms.txt").read_text()
-    check(public_url("be_wal_2022/collection.json") in llms, "llms.txt links the collection")
-    check(public_url("be_wal_2022/items.parquet") in llms, "llms.txt links items.parquet")
-    check(public_url("be_wal_2022/be_wal_2022_chips.parquet") in llms, "llms.txt links the chips parquet")
-    check(public_url("be_wal_2022/chips.pmtiles") in llms, "llms.txt links the pmtiles")
+    check(public_url("be_wal/be_wal_2022/collection.json") in llms, "llms.txt links the collection")
+    check(public_url("be_wal/be_wal_2022/items.parquet") in llms, "llms.txt links items.parquet")
+    check(public_url("be_wal/be_wal_2022/be_wal_2022_chips.parquet") in llms, "llms.txt links the chips parquet")
+    check(public_url("be_wal/be_wal_2022/chips.pmtiles") in llms, "llms.txt links the pmtiles")
 
     # --- items.parquet: rebuilt from disk, public URLs, no local paths, GeoParquet typing ---
     items_path = staging / "be_wal_2022" / "items.parquet"
@@ -856,18 +857,18 @@ with tempfile.TemporaryDirectory() as tmp:
         "matched item's root link is the public root catalog URL",
     )
     check(
-        matched_links.get("collection") == public_url("be_wal_2022/collection.json"),
+        matched_links.get("collection") == public_url("be_wal/be_wal_2022/collection.json"),
         "matched item's collection link is the public collection URL",
     )
     check(
-        matched_links.get("parent") == public_url("be_wal_2022/chips/32UNA/catalog.json"),
+        matched_links.get("parent") == public_url("be_wal/be_wal_2022/chips/32UNA/catalog.json"),
         "matched item's parent link is the public sub-catalog URL",
     )
     check("self" not in matched_links, "self link dropped from items.parquet")
     matched_assets = dict(rows["ftw-32UNA7238_2023"]["assets"])
     check(
         matched_assets["instance"]["href"]
-        == public_url("be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_instance.tif"),
+        == public_url("be_wal/be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_instance.tif"),
         "asset href rewritten to public_url('<id>/chips/<square>/<item>/<file>')",
     )
 
@@ -877,7 +878,7 @@ with tempfile.TemporaryDirectory() as tmp:
     child_assets = dict(rows["ftw-32UNA7238_2023_planting_s2"]["assets"])
     check(
         child_assets["image"]["href"]
-        == public_url("be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_image_s2.tif"),
+        == public_url("be_wal/be_wal_2022/chips/32UNA/ftw-32UNA7238_2023/ftw-32UNA7238_2023_planting_image_s2.tif"),
         f"a child item's image asset is a public URL under its chip's directory, "
         f"got {child_assets['image']['href']!r}",
     )
@@ -887,7 +888,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     child_links = {l["rel"]: l["href"] for l in rows["ftw-32UNA7238_2023_planting_s2"]["links"]}
     check(
-        child_links.get("parent") == public_url("be_wal_2022/chips/32UNA/catalog.json"),
+        child_links.get("parent") == public_url("be_wal/be_wal_2022/chips/32UNA/catalog.json"),
         f"a child item's parent link is its square's public sub-catalog URL, got {child_links}",
     )
     check(
@@ -916,7 +917,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     for rel in ("chips/32UNA/catalog.json",):
         check(
-            (catalog / "be_wal_2022" / rel).read_text() == (staging / "be_wal_2022" / rel).read_text(),
+            (catalog / "be_wal" / "be_wal_2022" / rel).read_text() == (staging / "be_wal_2022" / rel).read_text(),
             f"{rel} stays git-owned-wins consistent after a second run",
         )
 
@@ -938,14 +939,31 @@ with tempfile.TemporaryDirectory() as tmp:
     # --- --root: regenerate child links and the marker tables ------------
     root_manifest = dict(MANIFEST)
     root_now = datetime(2026, 1, 3, tzinfo=UTC)
-    written_root = catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging, now=root_now)
-    check(len(written_root) == 4, "regenerate_root reports 4 files written")
+    written_root = catalogize.regenerate_root(
+        root_manifest, catalog=catalog, staging=staging, now=root_now, fetch_title=lambda _url: None
+    )
+    group_files = [catalog / "be_wal" / name for name in ("catalog.json", "README.md", "AGENTS.md")]
+    check(written_root[:3] == group_files and len(written_root) == 7,
+          f"regenerate_root reports the group's 3 files and the root's 4, got {written_root}")
 
     root_doc = json.loads((catalog / "catalog.json").read_text())
     child_links = [l for l in root_doc["links"] if l["rel"] == "child"]
     check(
-        child_links == [{"rel": "child", "href": "./be_wal_2022/collection.json", "type": "application/json", "title": "Luxembourg"}],
-        f"root catalog gets exactly one child link for be_wal_2022, got {child_links}",
+        [(l["href"], l["type"]) for l in child_links] == [("./be_wal/catalog.json", "application/json")],
+        f"root catalog gets exactly one child link, for be_wal_2022's source group, got {child_links}",
+    )
+    group_doc = json.loads((catalog / "be_wal" / "catalog.json").read_text())
+    check(
+        group_doc["type"] == "Catalog" and group_doc["id"] == "be_wal"
+        and [l for l in group_doc["links"] if l["rel"] == "child"]
+        == [{"rel": "child", "href": "./be_wal_2022/collection.json", "type": "application/json", "title": "Luxembourg"}]
+        and {l["rel"]: l["href"] for l in group_doc["links"] if l["rel"] in ("root", "parent")}
+        == {"root": "../catalog.json", "parent": "../catalog.json"},
+        f"the group catalog links the root and lists its collection, got {group_doc}",
+    )
+    check(
+        child_links[0]["title"] == group_doc["title"],
+        "the root's child link carries the group's title",
     )
     check(
         set(root_doc["stac_extensions"]) == {catalogize.PORTOLAN_SCHEMA_URI, catalogize.VERSION_EXTENSION_URI}
@@ -961,7 +979,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     root_readme = (catalog / "README.md").read_text()
     check(
-        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022) |" in root_readme,
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022) |" in root_readme,
         f"root README collections table links be_wal_2022's human page, got {root_readme}",
     )
     check("| Thumbnail | Collection |" in root_readme, "root README table leads with Thumbnail")
@@ -969,7 +987,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     root_agents = (catalog / "AGENTS.md").read_text()
     check(
-        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022) |" in root_agents,
+        "| [Luxembourg](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022) |" in root_agents,
         "root AGENTS.md collections table lists be_wal_2022",
     )
     check(
@@ -979,7 +997,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     root_llms = (catalog / "llms.txt").read_text()
     check(
-        f"[Luxembourg]({public_url('be_wal_2022/collection.json')})" in root_llms,
+        f"[Luxembourg]({public_url('be_wal/be_wal_2022/collection.json')})" in root_llms,
         "root llms.txt collection list links be_wal_2022's collection.json by public URL",
     )
 
@@ -1029,8 +1047,8 @@ with tempfile.TemporaryDirectory() as tmp:
     # "be_wal_2022" has a real staged chips parquet; "hr_2024" is built (a collection.json
     # exists) but its staging tree has been pruned, the state _collection_row
     # falls back to "—" for.
-    write_json(catalog / "be_wal_2022" / "collection.json", {"type": "Collection", "id": "be_wal_2022", "title": "Luxembourg"})
-    write_json(catalog / "hr_2024" / "collection.json", {"type": "Collection", "id": "hr_2024", "title": "Slovenia"})
+    write_json(catalog / "be_wal" / "be_wal_2022" / "collection.json", {"type": "Collection", "id": "be_wal_2022", "title": "Luxembourg"})
+    write_json(catalog / "hr" / "hr_2024" / "collection.json", {"type": "Collection", "id": "hr_2024", "title": "Slovenia"})
     (staging / "be_wal_2022").mkdir(parents=True, exist_ok=True)
     build_chips_parquet(staging / "be_wal_2022" / "be_wal_2022_chips.parquet")
 
@@ -1098,7 +1116,7 @@ with tempfile.TemporaryDirectory() as tmp:
     tmp = Path(tmp)
     staging = tmp / "staging"
     catalog = tmp / "catalog"
-    hr_2024_dir = catalog / "hr_2024"
+    hr_2024_dir = catalog / "hr" / "hr_2024"
     write_json(
         hr_2024_dir / "collection.json",
         {
@@ -1152,25 +1170,25 @@ with tempfile.TemporaryDirectory() as tmp:
     dirty = {"type": "Collection", "id": "x", "updated": "2026-01-01T00:00:00Z",
              "ftw:config": {"config": {"class_filter": {
                  "source": f"/home/ubuntu/benchmark-data-catalog/{REAL_FILTER}"}}}}
-    write_json(catalog / "x" / "collection.json", dirty)
+    write_json(catalog / "g" / "x" / "collection.json", dirty)
     clean_doc = {**dirty, "id": "y", "ftw:config": {"config": {"output_dir": "staging/y"}}}
-    write_json(catalog / "y" / "collection.json", clean_doc)
-    before = (catalog / "x" / "collection.json").read_text()
-    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [catalog / "x" / "collection.json"],
+    write_json(catalog / "g" / "y" / "collection.json", clean_doc)
+    before = (catalog / "g" / "x" / "collection.json").read_text()
+    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [catalog / "g" / "x" / "collection.json"],
           "the dry run names only the collection with a local path")
-    check((catalog / "x" / "collection.json").read_text() == before, "a dry run writes nothing")
+    check((catalog / "g" / "x" / "collection.json").read_text() == before, "a dry run writes nothing")
     catalogize.sanitize_config(["x", "y"], catalog=catalog, confirm=True)
-    after = json.loads((catalog / "x" / "collection.json").read_text())
+    after = json.loads((catalog / "g" / "x" / "collection.json").read_text())
     check(after["ftw:config"]["config"]["class_filter"]["source"] == REAL_FILTER
           and after["updated"] == dirty["updated"] and {**after, "ftw:config": None} == {**dirty, "ftw:config": None},
           f"--confirm rewrites ftw:config and nothing else: {after}")
     check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [], "a second pass finds nothing")
     # a path outside any checkout is skipped, not rewritten to a bare file name
     stray = {**dirty, "id": "z", "ftw:config": {"config": {"class_filter": {"source": "/tmp/f.yaml"}}}}
-    write_json(catalog / "z" / "collection.json", stray)
-    stray_text = (catalog / "z" / "collection.json").read_text()
+    write_json(catalog / "g" / "z" / "collection.json", stray)
+    stray_text = (catalog / "g" / "z" / "collection.json").read_text()
     check(catalogize.sanitize_config(["z"], catalog=catalog, confirm=True) == []
-          and (catalog / "z" / "collection.json").read_text() == stray_text,
+          and (catalog / "g" / "z" / "collection.json").read_text() == stray_text,
           "an unplaceable path is skipped, the file left as it is")
     # a checkout under another folder name (a git worktree) still finds the repository part
     # only a file this checkout has counts as placed; anything else is unresolved
@@ -1228,7 +1246,7 @@ with tempfile.TemporaryDirectory() as tmp:
         },
     )
     write_json(
-        catalog / "be_wal_2022" / "collection.json",
+        catalog / "be_wal" / "be_wal_2022" / "collection.json",
         {
             "type": "Collection",
             "id": "be_wal_2022",
@@ -1244,7 +1262,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
-    thumb_result = json.loads((catalog / "be_wal_2022" / "collection.json").read_text())
+    thumb_result = json.loads((catalog / "be_wal" / "be_wal_2022" / "collection.json").read_text())
     check(
         thumb_result["assets"]["thumbnail"]["href"] == "./thumbnail-new.webp",
         f"staging's own thumbnail asset wins over a stale catalog one, "
@@ -1266,7 +1284,7 @@ with tempfile.TemporaryDirectory() as tmp:
     try:
         raised = False
         try:
-            catalogize.rewrite_items_parquet("be_wal_2022", staging=staging)
+            catalogize.rewrite_items_parquet("be_wal_2022", staging=staging, catalog=Path(tmp) / "catalog")
         except OSError:
             raised = True
     finally:
@@ -1281,7 +1299,7 @@ with tempfile.TemporaryDirectory() as tmp:
     staging = Path(tmp) / "staging"
     (staging / "be_wal_2022" / "chips").mkdir(parents=True)
     try:
-        catalogize.rewrite_items_parquet("be_wal_2022", staging=staging)
+        catalogize.rewrite_items_parquet("be_wal_2022", staging=staging, catalog=Path(tmp) / "catalog")
         check(False, "rewrite_items_parquet should exit when there is no item JSON to rebuild from")
     except SystemExit as exc:
         check(
@@ -1303,11 +1321,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # --- sibling links in the mirror are absolute too -----------------------------
 _links = catalogize._rewrite_item_links(
-    "be_wal_2022", "31UFR",
+    "be_wal/be_wal_2022", "31UFR",
     [{"rel": "ftw:parent_chip", "href": "./ftw-1.json"}, {"rel": "via", "href": "https://x/y"}],
     item_dir="ftw-1",
 )
-check(_links[0]["href"] == catalogize.public_url("be_wal_2022/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
+check(_links[0]["href"] == catalogize.public_url("be_wal/be_wal_2022/chips/31UFR/ftw-1/ftw-1.json"), "a ./ sibling link becomes a public URL in the mirror")
 check(_links[1]["href"] == "https://x/y", "an absolute via link is untouched")
 
 # --- collection asset sizes follow the staged files ----------------------------
@@ -1349,7 +1367,7 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = tmp / "catalog"
 
     write_json(
-        catalog / "be_wal_2022" / "collection.json",
+        catalog / "be_wal" / "be_wal_2022" / "collection.json",
         {
             "type": "Collection",
             "id": "be_wal_2022",
@@ -1364,7 +1382,7 @@ with tempfile.TemporaryDirectory() as tmp:
             ],
         },
     )
-    (catalog / "be_wal_2022" / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
+    (catalog / "be_wal" / "be_wal_2022" / "thumbnail.webp").write_bytes(b"RIFF-not-really-a-webp")
     build_counted_chips_parquet(staging / "be_wal_2022" / "be_wal_2022_chips.parquet", train=1200, val=20, test=14)
     # Two chips, one of which has both season child items: one chip with imagery.
     build_mirror_ids(
@@ -1378,7 +1396,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     write_json(
-        catalog / "hr_2024" / "collection.json",
+        catalog / "hr" / "hr_2024" / "collection.json",
         {
             "type": "Collection",
             "id": "hr_2024",
@@ -1392,14 +1410,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
     be_wal_2022_row = catalogize._collection_row(
         "be_wal_2022",
-        json.loads((catalog / "be_wal_2022" / "collection.json").read_text()),
+        json.loads((catalog / "be_wal" / "be_wal_2022" / "collection.json").read_text()),
         staging=staging,
         catalog=catalog,
         manifest=MANIFEST,
     )
     hr_2024_row = catalogize._collection_row(
         "hr_2024",
-        json.loads((catalog / "hr_2024" / "collection.json").read_text()),
+        json.loads((catalog / "hr" / "hr_2024" / "collection.json").read_text()),
         staging=staging,
         catalog=catalog,
         manifest=MANIFEST,
@@ -1407,7 +1425,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     check(
         be_wal_2022_row["thumbnail"]
-        == f'<img src="{public_url("be_wal_2022/thumbnail.webp")}" alt="Luxembourg" '
+        == f'<img src="{public_url("be_wal/be_wal_2022/thumbnail.webp")}" alt="Luxembourg" '
         f'width="{catalogize.THUMBNAIL_WIDTH_PX}">',
         f"a rendered thumbnail becomes a width-constrained <img> in the row — markdown image "
         f"syntax carries no size and renders at native resolution, got {be_wal_2022_row['thumbnail']!r}",
@@ -1417,7 +1435,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"a collection with no thumbnail.webp gets '—', got {hr_2024_row['thumbnail']!r}",
     )
     check(
-        be_wal_2022_row["collection"] == "[Luxembourg](https://source.coop/ftw/benchmark-data/be_wal_2022)",
+        be_wal_2022_row["collection"] == "[Luxembourg](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022)",
         f"the Collection cell links the human page from the manifest, got {be_wal_2022_row['collection']!r}",
     )
     check(be_wal_2022_row["chips"] == "1,234", f"chips carry thousands separators, got {be_wal_2022_row['chips']!r}")
@@ -1446,7 +1464,7 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check(hr_2024_row["source"] == "—", f"no via link means no source cell, got {hr_2024_row['source']!r}")
     check(
-        be_wal_2022_row["browse"] == f"[browse]({catalogize.browser_url('be_wal_2022/collection.json')})",
+        be_wal_2022_row["browse"] == f"[browse]({catalogize.browser_url('be_wal/be_wal_2022/collection.json')})",
         f"the Browse cell links the data browser, got {be_wal_2022_row['browse']!r}",
     )
 
@@ -1471,7 +1489,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     listed = catalogize._collections_list([be_wal_2022_row, hr_2024_row])
     check(
-        f"[Luxembourg]({public_url('be_wal_2022/collection.json')}): 1,234 chips" in listed,
+        f"[Luxembourg]({public_url('be_wal/be_wal_2022/collection.json')}): 1,234 chips" in listed,
         f"llms.txt lists each collection by public URL with its chip count, got {listed!r}",
     )
     check("1 with imagery" in listed, f"llms.txt carries the imagery count, got {listed!r}")
@@ -1513,7 +1531,7 @@ Query `items.parquet` with DuckDB; see the [collection README](README.md).
 
 
 def build_collection_docs(catalog: Path, *, thumbnail: bool = False) -> Path:
-    be_wal_2022_dir = catalog / "be_wal_2022"
+    be_wal_2022_dir = catalog / "be_wal" / "be_wal_2022"
     write_json(be_wal_2022_dir / "collection.json", {"type": "Collection", "id": "be_wal_2022", "title": "Luxembourg"})
     (be_wal_2022_dir / "README.md").write_text(FTWD_README)
     (be_wal_2022_dir / "AGENTS.md").write_text(FTWD_AGENTS)
@@ -1570,9 +1588,9 @@ with tempfile.TemporaryDirectory() as tmp:
         "the Browse block sits between the description paragraph and the first section",
     )
     check(
-        f"Open this collection in the [data browser]({catalogize.browser_url('be_wal_2022/collection.json')}), "
-        f"read the [agent guide](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md), or query "
-        f"[items.parquet]({public_url('be_wal_2022/items.parquet')}) directly." in readme,
+        f"Open this collection in the [data browser]({catalogize.browser_url('be_wal/be_wal_2022/collection.json')}), "
+        f"read the [agent guide](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022/AGENTS.md), or query "
+        f"[items.parquet]({public_url('be_wal/be_wal_2022/items.parquet')}) directly." in readme,
         f"the Browse paragraph offers the browser, the agent guide and the mirror, got {readme}",
     )
     check("![" not in readme, "no thumbnail image when no thumbnail.webp has been rendered")
@@ -1580,11 +1598,11 @@ with tempfile.TemporaryDirectory() as tmp:
     # --- every relative link is absolute: markdown to the human page, data
     # files to the bucket ---
     check(
-        "[AGENTS.md](https://source.coop/ftw/benchmark-data/be_wal_2022/AGENTS.md)" in readme,
+        "[AGENTS.md](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022/AGENTS.md)" in readme,
         f"a relative markdown link becomes a source.coop page URL, got {readme}",
     )
     check(
-        f"[the styles]({public_url('be_wal_2022/styles/default.json')})" in readme,
+        f"[the styles]({public_url('be_wal/be_wal_2022/styles/default.json')})" in readme,
         f"a relative non-markdown link becomes a data.source.coop URL, got {readme}",
     )
     check(
@@ -1598,7 +1616,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     agents = (be_wal_2022_dir / "AGENTS.md").read_text()
     check(
-        catalogize.browser_url("be_wal_2022/collection.json") in agents,
+        catalogize.browser_url("be_wal/be_wal_2022/collection.json") in agents,
         f"AGENTS.md gains a data browser pointer, got {agents}",
     )
     check(
@@ -1608,7 +1626,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the pointer is the first paragraph under '## Accessing the data', got {agents}",
     )
     check(
-        "[collection README](https://source.coop/ftw/benchmark-data/be_wal_2022/README.md)" in agents,
+        "[collection README](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022/README.md)" in agents,
         f"AGENTS.md's relative links are absolute too, got {agents}",
     )
 
@@ -1640,13 +1658,75 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the source collection's own title is used when it can be read, got {readme}",
     )
     check(
-        readme.count(f"![Luxembourg thumbnail]({public_url('be_wal_2022/thumbnail.webp')})") == 1,
+        readme.count(f"![Luxembourg thumbnail]({public_url('be_wal/be_wal_2022/thumbnail.webp')})") == 1,
         f"the thumbnail image appears once in the Browse block, got {readme}",
     )
     check(
         readme.index("![Luxembourg thumbnail") < readme.index("Open this collection"),
         "the image comes before the Browse paragraph",
     )
+
+
+# --- source groups: the title is fetched once and kept; a moved recipe is refused --
+with tempfile.TemporaryDirectory() as tmp:
+    catalog = Path(tmp) / "catalog"
+    via = "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json"
+    write_json(catalog / "be_wal" / "be_wal_2022" / "collection.json", {
+        "type": "Collection", "id": "be_wal_2022", "title": "Luxembourg", "license": "CC-BY-4.0",
+        "ftw:config": {"config": {"year": 2022, "source_via": via}},
+    })
+    fetched: list[str] = []
+    group_manifest = {"catalog": {"version": "2.0.0-test", "human_base": "https://source.coop/ftw/benchmark-data"}}
+
+    def fetch_once(url: str) -> str:
+        fetched.append(url)
+        return "Wallonia field boundaries"
+
+    catalogize.write_group("be_wal", catalog=catalog, manifest=group_manifest, fetch_title=fetch_once)
+    catalogize.write_group("be_wal", catalog=catalog, manifest=group_manifest, fetch_title=fetch_once)
+    group = json.loads((catalog / "be_wal" / "catalog.json").read_text())
+    check(fetched == [via] and group["title"] == "Wallonia field boundaries",
+          f"the source title is fetched once, from source_via, and kept: {fetched}, {group['title']}")
+    readme = (catalog / "be_wal" / "README.md").read_text()
+    check("](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022)" in readme
+          and "](https://source.coop/ftw/harmonized-field-data/be_wal)" in readme
+          and "](./" not in readme and "](../" not in readme,
+          f"the group README links the collection and the source with absolute URLs: {readme}")
+    agents = (catalog / "be_wal" / "AGENTS.md").read_text()
+    check(public_url("be_wal/be_wal_2022/items.parquet") in agents
+          and all(h in agents for h in ("## Overview", "## Accessing the data", "## Schema & field notes",
+                                         "## Data quality & usage notes", "## Example queries",
+                                         "## Related collections")),
+          f"the group agent guide has the standard sections and the mirror's URL: {agents}")
+    check(catalogize.write_group("nothing", catalog=catalog, manifest=group_manifest) == [],
+          "a group with no collection writes nothing")
+
+    # A group whose last collection is removed: regenerating the root deletes its files.
+    write_json(catalog / "catalog.json", {"type": "Catalog", "id": "root", "links": []})
+    for name in ("README.md", "AGENTS.md", "llms.txt"):
+        (catalog / name).write_text(f"{catalogize._MARK_START}\n{catalogize._MARK_END}\n")
+    write_json(catalog / "gone" / "catalog.json", {"type": "Catalog", "id": "gone", "links": []})
+    (catalog / "gone" / "README.md").write_text("x")
+    (catalog / "gone" / "AGENTS.md").write_text("x")
+    out = io.StringIO()
+    with redirect_stdout(out):
+        catalogize.regenerate_root(group_manifest, catalog=catalog, staging=Path(tmp) / "staging",
+                                   fetch_title=lambda _u: None)
+    check(not any((catalog / "gone" / n).exists() for n in ("catalog.json", "README.md", "AGENTS.md"))
+          and "gone: no collection left" in out.getvalue(),
+          f"an emptied group's files are deleted, and it says so: {out.getvalue()!r}")
+    root_children = [l["href"] for l in json.loads((catalog / "catalog.json").read_text())["links"]
+                     if l["rel"] == "child"]
+    check(root_children == ["./be_wal/catalog.json"], f"the root no longer links it: {root_children}")
+
+    # A recipe whose source_via names another group than catalog/ has it under.
+    write_json(catalog / "lv" / "be_wal_2022" / "collection.json", {})
+    (catalog / "be_wal" / "be_wal_2022" / "collection.json").unlink()
+    try:
+        catalogize._check_group("be_wal_2022", {"source_via": via}, catalog)
+        check(False, "a collection published under another group than its recipe names is refused")
+    except SystemExit as exc:
+        check("catalog/lv/" in str(exc) and "be_wal" in str(exc), f"the refusal names both groups: {exc}")
 
 
 if errors:

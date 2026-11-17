@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a collection's manifest-chosen style into ``catalog/<id>/thumbnail.webp``.
+"""Render a collection's manifest-chosen style into ``catalog/<source>/<id>/thumbnail.webp``.
 
 Uses a running chiitiler (https://github.com/Kanahiro/chiitiler) tile server to
 rasterize the style server-side, frames a 3:2 window on the densest cluster of
@@ -9,7 +9,7 @@ WebP with Pillow before registering it as the collection's ``thumbnail`` asset.
 Start chiitiler first (``tools/chiitiler.sh``, or by hand — see that script),
 then:
 
-    uv run python tools/thumbnail.py lu             # writes catalog/lu/thumbnail.webp
+    uv run python tools/thumbnail.py lu             # writes catalog/<source>/lu/thumbnail.webp
     uv run python tools/thumbnail.py lu --zoom 13   # override the window zoom
     uv run python tools/thumbnail.py lu --rank 1    # second-densest cluster
     uv run python tools/thumbnail.py lu --style outline
@@ -41,7 +41,7 @@ rendering ``lu`` end to end):
   ``rewrite_style()`` below performs exactly that rewrite, reading
   minzoom/maxzoom from the PMTiles header.
 * The catalog's styles reference their PMTiles one directory up from the
-  style file (``pmtiles://../chips.pmtiles``, i.e. ``catalog/<id>/`` were it
+  style file (``pmtiles://../chips.pmtiles``, i.e. ``catalog/<source>/<id>/`` were it
   there) but the archives are not copied into ``catalog/`` — they live in
   ``staging/<id>/`` until upload. ``rewrite_style()`` resolves the archive's
   basename against ``STAGING/<id>/`` rather than the style file's real
@@ -62,7 +62,7 @@ from PIL import Image, ImageChops
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from common import CATALOG, STAGING, load_manifest, read_json, write_json  # noqa: E402
+from common import STAGING, dataset_dir, load_manifest, read_json, write_json  # noqa: E402
 
 DEFAULT_PORT = 13579
 DEFAULT_SIZE = 1024
@@ -242,7 +242,7 @@ def render(
     port: int = DEFAULT_PORT,
     size: int = DEFAULT_SIZE,
 ) -> Path | None:
-    """Render and write ``catalog/<dataset_id>/thumbnail.webp``.
+    """Render and write ``catalog/<source>/<dataset_id>/thumbnail.webp``.
 
     Returns the output path, or ``None`` if the dataset is not built yet
     (not an error — this is the normal state before ``tools/build.py`` and
@@ -258,7 +258,7 @@ def render(
     if not style_id or zoom is None:
         sys.exit(f"{dataset_id}: no thumbnail.style/zoom in datasets.yaml (and none given on the CLI)")
 
-    cdir = CATALOG / dataset_id
+    cdir = dataset_dir(dataset_id)
     collection_path = cdir / "collection.json"
     if not collection_path.exists():
         print(f"{dataset_id}: not built yet ({collection_path} missing), skipping")
@@ -268,7 +268,7 @@ def render(
     style_key = f"style-{style_id}"
     style_asset = (coll.get("assets") or {}).get(style_key)
     if not style_asset:
-        sys.exit(f"{dataset_id}: no {style_key} asset on catalog/{dataset_id}/collection.json")
+        sys.exit(f"{dataset_id}: no {style_key} asset on {collection_path}")
     style_path = cdir / style_asset["href"]
     if not style_path.exists():
         sys.exit(f"{dataset_id}: style file missing: {style_path}")

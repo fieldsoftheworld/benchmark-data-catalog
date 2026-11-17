@@ -1,0 +1,150 @@
+{
+  "type": "Catalog",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json"
+  ],
+  "id": "ch",
+  "title": "Field boundaries for Switzerland",
+  "description": "Fields of the World benchmark collections cut from the harmonized field boundary collection Field boundaries for Switzerland (ch), one per year, each with train, validation and test splits.",
+  "version": "2.0.0-alpha.1",
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Agent guide"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/harmonized-field-data/ch",
+      "type": "text/html",
+      "title": "Source field boundary collection"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ag_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Aargau \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ai_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Appenzell Innerrhoden \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ar_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Appenzell Ausserrhoden \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_be_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Bern \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_bl_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Basel-Landschaft \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_fr_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Fribourg \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ge_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Geneva \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ju_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Jura \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_lu_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Luzern \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_sg_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, St. Gallen \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_sh_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Schaffhausen \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_so_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Solothurn \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_sz_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Schwyz \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_tg_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Thurgau \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_ur_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Uri \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_vs_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Valais \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_zg_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Zug \u2014 2025"
+    },
+    {
+      "rel": "child",
+      "href": "./ch_zh_2025/collection.json",
+      "type": "application/json",
+      "title": "Switzerland, Z\u00fcrich \u2014 2025"
+    }
+  ]
+}

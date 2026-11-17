@@ -209,15 +209,20 @@ def record(dataset_ids: list[str], failures: dict[str, str], *, imagery: bool) -
             tracking.update(d, **{done_column: today, "ftwd_commit": commit, "issues": ""})
 
 
-def hold_lock():
-    """An exclusive lock on logs/run_batch.lock, held until the process exits."""
+#: The open lock file, kept referenced so the lock is held until the process exits.
+_lock_handle = None
+
+
+def hold_lock() -> None:
+    """Take an exclusive lock on logs/run_batch.lock, held until the process exits."""
+    global _lock_handle
     LOGS.mkdir(exist_ok=True)
     handle = (LOGS / "run_batch.lock").open("w")
     try:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         sys.exit("another run_batch.py is running (logs/run_batch.lock); wait for it")
-    return handle
+    _lock_handle = handle
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -238,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     for d in ids:
         tracking.row(d, rows)
 
-    lock = hold_lock()  # noqa: F841 - held for the life of the run
+    hold_lock()
     if args.mark_published:
         if not args.dataset_ids:
             sys.exit("--mark-published needs the dataset ids that were uploaded, not --next")

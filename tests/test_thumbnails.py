@@ -3,7 +3,7 @@
 
 Two kinds of checks:
 
-1. Per built collection (one with ``catalog/<id>/collection.json``): if
+1. Per built collection (one with ``catalog/<source>/<id>/collection.json``): if
    ``thumbnail.webp`` doesn't exist yet, that's a *note*, not an error — the
    thumbnail is a separate, later step from building/catalogizing a dataset,
    and this gate must stay green mid-workflow. If it does exist, it must
@@ -27,7 +27,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from common import CATALOG, load_manifest  # noqa: E402
+from common import CATALOG, load_manifest, published_collections  # noqa: E402
 import thumbnail  # noqa: E402
 
 try:
@@ -49,10 +49,10 @@ def check(condition: bool, message: str) -> None:
 
 # --- per built collection ---------------------------------------------------
 
-built = sorted(p.parent.name for p in CATALOG.glob("*/collection.json"))
+built = published_collections(CATALOG)
 
-for dataset_id in built:
-    cdir = CATALOG / dataset_id
+for dataset_id, collection_path in built.items():
+    cdir = collection_path.parent
     thumb_path = cdir / "thumbnail.webp"
     if not thumb_path.exists():
         print(f"note   {dataset_id}: no thumbnail.webp yet (run tools/thumbnail.py {dataset_id})")
@@ -61,7 +61,7 @@ for dataset_id in built:
     magic = thumb_path.read_bytes()[:16]
     check(
         magic[:4] == b"RIFF" and magic[8:12] == b"WEBP",
-        f"catalog/{dataset_id}/thumbnail.webp: missing RIFF....WEBP magic, got {magic!r}",
+        f"{cdir.relative_to(CATALOG.parent)}/thumbnail.webp: missing RIFF....WEBP magic, got {magic!r}",
     )
 
     with Image.open(thumb_path) as img:
@@ -69,33 +69,33 @@ for dataset_id in built:
     aspect = width / height if height else 0.0
     check(
         MIN_ASPECT <= aspect <= MAX_ASPECT,
-        f"catalog/{dataset_id}/thumbnail.webp: aspect {aspect:.3f} outside "
+        f"{cdir.relative_to(CATALOG.parent)}/thumbnail.webp: aspect {aspect:.3f} outside "
         f"[{MIN_ASPECT}, {MAX_ASPECT}] ({width}x{height})",
     )
     check(
         width >= MIN_WIDTH,
-        f"catalog/{dataset_id}/thumbnail.webp: width {width} < {MIN_WIDTH}",
+        f"{cdir.relative_to(CATALOG.parent)}/thumbnail.webp: width {width} < {MIN_WIDTH}",
     )
 
     collection = json.loads((cdir / "collection.json").read_text())
     assets = collection.get("assets") or {}
     thumb_asset = assets.get("thumbnail")
     if thumb_asset is None:
-        errors.append(f"catalog/{dataset_id}/collection.json: no 'thumbnail' asset registered")
+        errors.append(f"{cdir.relative_to(CATALOG.parent)}/collection.json: no 'thumbnail' asset registered")
     else:
         check(
             thumb_asset.get("href") == "./thumbnail.webp",
-            f"catalog/{dataset_id}/collection.json: thumbnail asset href "
+            f"{cdir.relative_to(CATALOG.parent)}/collection.json: thumbnail asset href "
             f"{thumb_asset.get('href')!r} != './thumbnail.webp'",
         )
         check(
             thumb_asset.get("type") == "image/webp",
-            f"catalog/{dataset_id}/collection.json: thumbnail asset type "
+            f"{cdir.relative_to(CATALOG.parent)}/collection.json: thumbnail asset type "
             f"{thumb_asset.get('type')!r} != 'image/webp'",
         )
         check(
             "thumbnail" in (thumb_asset.get("roles") or []),
-            f"catalog/{dataset_id}/collection.json: thumbnail asset roles "
+            f"{cdir.relative_to(CATALOG.parent)}/collection.json: thumbnail asset roles "
             f"{thumb_asset.get('roles')!r} missing 'thumbnail'",
         )
 
@@ -104,7 +104,7 @@ for dataset_id in built:
     if manifest_style:
         check(
             f"style-{manifest_style}" in assets,
-            f"catalog/{dataset_id}/collection.json: datasets.yaml thumbnail.style "
+            f"{cdir.relative_to(CATALOG.parent)}/collection.json: datasets.yaml thumbnail.style "
             f"{manifest_style!r} has no matching style-{manifest_style} asset",
         )
 
