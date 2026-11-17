@@ -26,11 +26,11 @@ the uploaders carry the bytes to the bucket.
   `<source>/<id>/` beside the metadata.
 - `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
   (`publish.py`, `upload_data.py`).
-- `tests/run_all.py` runs every gate. On a pull request or a push, CI runs it with the
-  links, STAC and conformance gates limited to the source groups the change touches
-  plus a small sample (`tests/scope.py`); those three take hours over the whole
-  catalog. A weekly run, also started by hand from the Actions tab, checks every
-  group, one job each.
+- `tests/run_all.py` runs every gate. The links, STAC and conformance gates read
+  every STAC object and take hours over the whole catalog, so CI runs them in one job
+  per source group (`tests/scope.py`): on a pull request or a push, the groups the
+  change touches plus a small sample; weekly, or when started by hand from the
+  Actions tab, every group.
 - `docs/build-log.md` records what each build actually did: ftwd commit,
   counts, timing.
 

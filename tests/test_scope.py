@@ -92,6 +92,21 @@ with tempfile.TemporaryDirectory() as tmp:
     check(changed.groups == {"a", "b", *sc.SAMPLE_GROUPS},
           "committed, uncommitted and untracked changes all count; a root file adds no group")
 
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "more")
+    git(repo, "checkout", "-q", "-b", "drop-link", "main")
+    root_doc = json.loads((catalog / "catalog.json").read_text())
+    root_doc["links"] = [l for l in root_doc["links"] if l["href"] != "./b/catalog.json"]
+    write_json(catalog / "catalog.json", root_doc)
+    dropped = sc.resolve_scope(repo, catalog, env={sc.BASE_ENV: "main"})
+    check(dropped.groups == {"b", *sc.SAMPLE_GROUPS},
+          "a group whose root child link was removed is in scope")
+    git(repo, "checkout", "-q", "--", ".")
+
+    write_json(catalog / "a" / "a 2026" / "collection.json", {"type": "Collection"})
+    spaced = sc.resolve_scope(repo, catalog, env={sc.BASE_ENV: "main"})
+    check(spaced.groups == {"a", *sc.SAMPLE_GROUPS}, "a path with a space is read whole")
+
     with sc.scoped_tree(catalog, named) as root:
         check(sorted(p.name for p in root.iterdir())
               == ["README.md", "_assets", "a", "b", "catalog.json"],

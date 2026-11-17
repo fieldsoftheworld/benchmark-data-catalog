@@ -80,7 +80,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from common import CATALOG, PORTOLAN_SCHEMA_RE, STAGING  # noqa: E402
 
 from overlay import resolve_target  # noqa: E402
-from scope import gate_scope  # noqa: E402
+from scope import gate_scope, scoped_tree  # noqa: E402
 
 INSTALL = "python -m pip install stac-check"
 
@@ -127,9 +127,16 @@ def declares_profile(doc: dict) -> bool:
     )
 
 
+#: Each worker loads the schemas again, so more than this buys little.
+MAX_WORKERS = min(8, os.cpu_count() or 1)
+
+
 def lint(path: str) -> tuple[bool, str, list[str]]:
     """stac-check's verdict on one file: valid, the error, the best-practice notes."""
-    linter = Linter(path, recursive=False)
+    try:
+        linter = Linter(path, recursive=False)
+    except Exception as exc:  # report it against the file, not as a bare traceback
+        return False, f"stac-check raised {exc!r}", []
     if not linter.valid_stac:
         return False, linter.error_msg, []
     return True, "", [n.strip() for n in linter.best_practices_msg[1:] if n.strip()]
@@ -166,11 +173,11 @@ def main() -> None:
     exempted: list[str] = []
 
     scope = gate_scope(ROOT, CATALOG)
-    with resolve_target(CATALOG, STAGING) as BASE:
+    with scoped_tree(CATALOG, scope) as scoped, resolve_target(scoped, STAGING) as BASE:
         objects = stac_objects(BASE, scope, errors)
         reachable = [rel for rel, can_crash in objects if can_crash]
         paths = [str(BASE / rel) for rel, _ in objects]
-        with ProcessPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as pool:
             verdicts = list(pool.map(lint, paths, chunksize=4))
 
     for (rel, _), (valid, error_msg, notes) in zip(objects, verdicts):

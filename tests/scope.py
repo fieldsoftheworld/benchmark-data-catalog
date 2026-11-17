@@ -20,8 +20,14 @@ only those groups.
 
 Each gate prints the scope it ran with, so a green run says what it read.
 
-Run ``python3 tests/scope.py --list-json`` to print every group as a JSON list
-(the full CI run's matrix).
+Run ``python3 tests/scope.py --groups-json`` to print the groups in scope as a
+JSON list (every group when no variable is set). CI runs one job per group in
+that list, so a change that touches every group does not become one long job.
+
+Limits, by design: no run checks the untrimmed root against every group at
+once. Nothing needs that today: there are no relative links between groups,
+and rashid has no rule across groups. A cross-group link would show up as a
+spurious PTL-LNK-006 in a scoped run, which is the cue to revisit this.
 """
 import contextlib
 import json
@@ -87,19 +93,48 @@ def _git(repo: Path, *args: str) -> str:
     return proc.stdout
 
 
+def _child_groups(doc: dict) -> set[str]:
+    """The first path segment of every child link in a root catalog."""
+    return {
+        Path(link.get("href", "")).parts[0]
+        for link in doc.get("links", [])
+        if link.get("rel") == "child" and Path(link.get("href", "")).parts
+    }
+
+
+def _root_link_changes(repo: Path, catalog: Path, merge_base: str) -> set[str]:
+    """Groups whose child link the root catalog gained or lost since ``merge_base``.
+
+    Dropping the root's link to a group is an error rashid only reports on a
+    tree that holds that group, so the group has to be in scope.
+    """
+    rel = (catalog / "catalog.json").relative_to(repo).as_posix()
+    proc = subprocess.run(
+        ["git", "show", f"{merge_base}:{rel}"], cwd=repo, capture_output=True, text=True
+    )
+    before = _child_groups(json.loads(proc.stdout)) if proc.returncode == 0 else set()
+    now_path = catalog / "catalog.json"
+    now = _child_groups(json.loads(now_path.read_text())) if now_path.is_file() else set()
+    return before ^ now
+
+
 def changed_groups(repo: Path, catalog: Path, base: str) -> set[str]:
-    """Groups with a file under catalog/ that differs from the merge base with ``base``."""
+    """Groups that differ from the merge base with ``base``.
+
+    A group is changed when a file under it changed (committed, uncommitted or
+    untracked), or when the root catalog's child link to it was added or removed.
+    """
     merge_base = _git(repo, "merge-base", base, "HEAD").strip()
-    rel = str(catalog.relative_to(repo))
-    paths = _git(repo, "diff", "--name-only", "--no-renames", merge_base, "--", rel).split()
-    paths += _git(repo, "ls-files", "--others", "--exclude-standard", "--", rel).split()
-    existing = set(list_groups(catalog))
-    out = set()
-    for path in paths:
-        parts = Path(path).relative_to(rel).parts
-        if len(parts) > 1 and parts[0] in existing:
-            out.add(parts[0])
-    return out
+    rel = catalog.relative_to(repo).as_posix()
+    paths = _git(repo, "diff", "-z", "--name-only", "--no-renames", merge_base, "--", rel)
+    paths += _git(repo, "ls-files", "-z", "--others", "--exclude-standard", "--", rel)
+    tops = {
+        Path(path).relative_to(rel).parts[0]
+        for path in paths.split("\0")
+        if path and len(Path(path).relative_to(rel).parts) > 1
+    }
+    tops |= _root_link_changes(repo, catalog, merge_base)
+    return tops & set(list_groups(catalog))
 
 
 def _named(value: str, all_groups: set[str], what: str) -> set[str]:
@@ -190,9 +225,14 @@ def gate_scope(repo: Path, catalog: Path) -> Scope | None:
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] != ["--list-json"]:
-        raise SystemExit("usage: python3 tests/scope.py --list-json")
+    if sys.argv[1:] != ["--groups-json"]:
+        raise SystemExit("usage: python3 tests/scope.py --groups-json")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
-    from common import CATALOG  # noqa: E402
+    from common import CATALOG, ROOT  # noqa: E402
 
-    print(json.dumps(list_groups(CATALOG)))
+    try:
+        chosen = resolve_scope(ROOT, CATALOG)
+    except ScopeError as exc:
+        raise SystemExit(f"error  {exc}") from exc
+    groups = list_groups(CATALOG) if chosen is None else sorted(chosen.groups)
+    print(json.dumps(groups))
