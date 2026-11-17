@@ -4,15 +4,26 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The full check: every group, one job each. The scoped runs below read the
+  # changed groups and a sample; this catches what they cannot, such as a new
+  # stac-check release that rejects an untouched collection.
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
 jobs:
   gates:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The scope compares against the base, so it needs the history.
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v5
         with:
@@ -27,7 +38,53 @@ jobs:
       # CI_LIGHT exempts asset hrefs with a data suffix from the link check.
       # The checkout holds the metadata and not the bytes. Structural links
       # and every non-data asset still resolve. Leave it unset locally.
+      #
+      # BDC_SCOPE_BASE limits the links, STAC and conformance gates to the
+      # groups changed since the base, plus a sample (tests/scope.py). All of
+      # them take hours; the full run below covers the rest.
       - name: Catalog gates
         env:
           CI_LIGHT: "1"
+          BDC_SCOPE_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
         run: uv run python tests/run_all.py
+
+  groups:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      groups: ${{ steps.list.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: echo "groups=$(python3 tests/scope.py --list-json)" >> "$GITHUB_OUTPUT"
+
+  full:
+    needs: groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.groups.outputs.groups) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install the environment (ftwd, validators, tooling)
+        run: uv sync --frozen
+
+      # The other gates do not depend on the group; the scoped runs cover them.
+      - name: Slow gates for ${{ matrix.group }}
+        env:
+          CI_LIGHT: "1"
+          BDC_SCOPE_GROUPS: ${{ matrix.group }}
+        run: |
+          status=0
+          for gate in test_links.py test_stac_valid.py test_conformance.py; do
+            echo "=== $gate"
+            uv run python "tests/$gate" || status=1
+          done
+          exit "$status"

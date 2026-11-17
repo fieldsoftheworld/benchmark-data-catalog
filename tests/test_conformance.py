@@ -50,6 +50,10 @@ all — without touching the real staging/ tree:
 
     CI_LIGHT=1 BDC_STAGING_DIR=/nonexistent uv run python tests/test_conformance.py
 
+BDC_SCOPE_GROUPS / BDC_SCOPE_BASE limit which groups rashid reads: it then
+checks a copy of the tree holding the root and the groups in scope, with the
+root's child links trimmed to match. See tests/scope.py.
+
 Run: python3 tests/test_conformance.py
 """
 import json
@@ -66,6 +70,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from common import CATALOG, STAGING  # noqa: E402
 
 from overlay import has_staging_items, resolve_target  # noqa: E402
+from scope import gate_scope, scoped_tree  # noqa: E402
 
 ACCEPTED: set[str] = set()
 
@@ -239,17 +244,17 @@ shown = ".".join(str(part) for part in version)
 if not MIN_VERSION <= version < MAX_VERSION:
     fail(f"rashid {shown} is outside the required range {SPEC}")
 
-with resolve_target(CATALOG, STAGING) as target:
+scope = gate_scope(ROOT, CATALOG)
+with scoped_tree(CATALOG, scope) as scoped, resolve_target(scoped, STAGING) as target:
     result = subprocess.run(
         ["rashid", "check", str(target), "--no-data", "--json"],
         capture_output=True,
         text=True,
     )
-
-# Same has_staging_items check resolve_target just made its overlay/catalog-
-# only decision on (and the same BDC_STAGING_DIR override, applied inside
-# it) — not: whether staging/ exists, but whether it has any item tree.
-catalog_only = not has_staging_items(CATALOG, STAGING)
+    # Same has_staging_items check resolve_target just made its overlay/catalog-
+    # only decision on (and the same BDC_STAGING_DIR override, applied inside
+    # it) — not: whether staging/ exists, but whether it has any item tree.
+    catalog_only = not has_staging_items(scoped, STAGING)
 
 try:
     report = json.loads(result.stdout)
@@ -291,4 +296,5 @@ if blocking:
     raise SystemExit(1)
 print(
     f"OK: rashid {shown} found no blocking errors in {CATALOG.relative_to(ROOT)}/"
+    + ("" if scope is None else " (the groups in scope)")
 )

@@ -57,13 +57,21 @@ collections yet has nothing reachable, so the expiry check stays quiet.
 CI installs stac-check unpinned on purpose. That is what makes this work: the
 next stac-check release flips this gate without anyone watching for it.
 
+## Scope and speed
+
+stac-check spends seconds of JSON Schema work on a large sub-catalog, so the
+files are linted in parallel, one process per core. BDC_SCOPE_GROUPS /
+BDC_SCOPE_BASE limit which groups are read; see tests/scope.py.
+
 Fails when stac-check is absent. A skip reports a green run for objects
 that no validator read. The failure message gives the install command.
 
 Run: python3 tests/test_stac_valid.py
 """
 import json
+import os
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -72,6 +80,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from common import CATALOG, PORTOLAN_SCHEMA_RE, STAGING  # noqa: E402
 
 from overlay import resolve_target  # noqa: E402
+from scope import gate_scope  # noqa: E402
 
 INSTALL = "python -m pip install stac-check"
 
@@ -118,15 +127,26 @@ def declares_profile(doc: dict) -> bool:
     )
 
 
-errors: list[str] = []
-exempted: list[str] = []
-reachable: list[str] = []
-checked = 0
+def lint(path: str) -> tuple[bool, str, list[str]]:
+    """stac-check's verdict on one file: valid, the error, the best-practice notes."""
+    linter = Linter(path, recursive=False)
+    if not linter.valid_stac:
+        return False, linter.error_msg, []
+    return True, "", [n.strip() for n in linter.best_practices_msg[1:] if n.strip()]
 
-with resolve_target(CATALOG, STAGING) as BASE:
-    for path in sorted(BASE.rglob("*.json")):
-        rel = path.relative_to(BASE)
+
+def stac_objects(base: Path, scope, errors: list[str]) -> list[tuple[Path, bool]]:
+    """Every STAC object under ``base`` that ``scope`` includes.
+
+    Each comes with whether the dialect crash can reach it. The JSON itself is
+    not kept: the whole catalog is gigabytes of it.
+    """
+    out = []
+    for path in sorted(base.rglob("*.json")):
+        rel = path.relative_to(base)
         if any(part.startswith(".") for part in rel.parts):
+            continue
+        if scope is not None and not scope.includes(rel):
             continue
         if path.name.endswith(".style.json") or "styles" in path.parts:
             continue
@@ -135,44 +155,59 @@ with resolve_target(CATALOG, STAGING) as BASE:
         except json.JSONDecodeError as exc:
             errors.append(f"{rel}: invalid JSON ({exc})")
             continue
-        if not isinstance(doc, dict) or doc.get("type") not in STAC_TYPES:
-            continue
+        if isinstance(doc, dict) and doc.get("type") in STAC_TYPES:
+            reachable = doc["type"] in EXTENSION_VALIDATED and declares_profile(doc)
+            out.append((rel, reachable))
+    return out
 
-        checked += 1
-        if doc["type"] in EXTENSION_VALIDATED and declares_profile(doc):
-            reachable.append(str(rel))
 
-        linter = Linter(str(path), recursive=False)
-        if not linter.valid_stac:
-            if is_dialect_crash(linter.error_msg):
+def main() -> None:
+    errors: list[str] = []
+    exempted: list[str] = []
+
+    scope = gate_scope(ROOT, CATALOG)
+    with resolve_target(CATALOG, STAGING) as BASE:
+        objects = stac_objects(BASE, scope, errors)
+        reachable = [rel for rel, can_crash in objects if can_crash]
+        paths = [str(BASE / rel) for rel, _ in objects]
+        with ProcessPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+            verdicts = list(pool.map(lint, paths, chunksize=4))
+
+    for (rel, _), (valid, error_msg, notes) in zip(objects, verdicts):
+        if not valid:
+            if is_dialect_crash(error_msg):
                 exempted.append(str(rel))
-                continue
-            errors.append(f"{rel}: {linter.error_msg}")
+            else:
+                errors.append(f"{rel}: {error_msg}")
             continue
-        for note in linter.best_practices_msg[1:]:
-            if note.strip():
-                print(f"note   {rel}: {note.strip()}")
+        for note in notes:
+            print(f"note   {rel}: {note}")
 
-if exempted:
-    for rel_str in exempted:
-        print(f"exempt {rel_str}: known stac-check dialect crash")
-    print(
-        f"exempt {len(exempted)} object(s) carried the exemption for {UPSTREAM_ISSUE}"
-    )
+    if exempted:
+        for rel_str in exempted:
+            print(f"exempt {rel_str}: known stac-check dialect crash")
+        print(
+            f"exempt {len(exempted)} object(s) carried the exemption for {UPSTREAM_ISSUE}"
+        )
 
-# The crash stopped on objects it can reach: stac-check is fixed.
-expired = bool(reachable) and not exempted
-if expired:
-    print(
-        f"error  stac-check no longer emits the Portolan dialect crash on "
-        f"{len(reachable)} reachable object(s). Upstream is fixed. Delete the "
-        f"exemption in tests/test_stac_valid.py and the section in "
-        f"docs/conformance.md. Tracking: {UPSTREAM_ISSUE}"
-    )
+    # The crash stopped on objects it can reach: stac-check is fixed.
+    expired = bool(reachable) and not exempted
+    if expired:
+        print(
+            f"error  stac-check no longer emits the Portolan dialect crash on "
+            f"{len(reachable)} reachable object(s). Upstream is fixed. Delete the "
+            f"exemption in tests/test_stac_valid.py and the section in "
+            f"docs/conformance.md. Tracking: {UPSTREAM_ISSUE}"
+        )
 
-if errors:
-    print("\n".join(f"error  {e}" for e in errors))
+    if errors:
+        print("\n".join(f"error  {e}" for e in errors))
 
-if errors or expired:
-    raise SystemExit(1)
-print(f"OK: {checked} STAC object(s) valid")
+    if errors or expired:
+        raise SystemExit(1)
+    print(f"OK: {len(objects)} STAC object(s) valid")
+
+
+# Guarded: the worker processes import this file to reach lint().
+if __name__ == "__main__":
+    main()
