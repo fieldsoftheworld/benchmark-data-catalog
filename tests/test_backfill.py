@@ -273,6 +273,21 @@ with tempfile.TemporaryDirectory() as tmp:
     except SystemExit:
         pass
 
+# --- where the crop names come from ---------------------------------------------
+import tracking  # noqa: E402
+
+_saved_row = tracking.row
+tracking.row = lambda d, rows=None: {
+    "pt_2025": {"harmonized_id": "pt", "year": "2025", "source_stem": ""},
+    "ch_ag_2025": {"harmonized_id": "ch", "year": "2025", "source_stem": "ch_ag"},
+}[d]
+hstage = Path("/h/staging")
+check(backfill.harmonized_edition("pt_2025", hstage)
+      == hstage / "pt" / "year=2025" / "pt-2025.parquet", "the edition is <id>/year=<y>/<id>-<y>")
+check(backfill.harmonized_edition("ch_ag_2025", hstage)
+      == hstage / "ch" / "year=2025" / "ch_ag-2025.parquet", "a sub-region uses its source stem")
+tracking.row = _saved_row
+
 if errors:
     for message in errors:
         print(f"FAIL   {message}")
