@@ -23,6 +23,10 @@ as ``rel: pmtiles``) — exactly the hrefs
 step 2 exists for. Every other missing href is still an error; CI_LIGHT never
 widens what structural links must resolve.
 
+BDC_SCOPE_GROUPS / BDC_SCOPE_BASE limit which groups are read; see
+tests/scope.py. Links from what is read still resolve against the whole tree,
+so a root link to a group out of scope must still resolve.
+
 Run: python3 tests/test_links.py
 """
 import json
@@ -35,6 +39,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from common import CATALOG as BASE, STAGING  # noqa: E402
+
+from scope import gate_scope  # noqa: E402
 
 errors: list[str] = []
 skipped = 0
@@ -177,7 +183,10 @@ def stac_documents() -> list[Path]:
     """Every STAC object under the published directory."""
     out = []
     for path in sorted(BASE.rglob("*.json")):
-        if any(part.startswith(".") for part in path.relative_to(BASE).parts):
+        rel = path.relative_to(BASE)
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        if SCOPE is not None and not SCOPE.includes(rel):
             continue
         if path.name.endswith(".style.json") or "styles" in path.parts:
             continue
@@ -193,6 +202,7 @@ def stac_documents() -> list[Path]:
     return out
 
 
+SCOPE = gate_scope(ROOT, BASE)
 documents = stac_documents()
 checked = 0
 

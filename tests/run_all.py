@@ -5,6 +5,10 @@ The list is explicit rather than globbed so that the gates are visible in one
 place and adding one is a deliberate edit. Run from anywhere:
 
     python3 tests/run_all.py
+
+``--skip-slow`` leaves out the gates that read the whole catalog, and
+``--only-slow`` runs just those (see tests/scope.py). CI runs the first once
+and the second once per source group.
 """
 import subprocess
 import sys
@@ -16,6 +20,7 @@ TESTS = [
     "test_manifest.py",
     "test_common.py",
     "test_overlay.py",
+    "test_scope.py",
     "test_ftwd_pin.py",
     "test_build.py",
     "test_batch_tools.py",
@@ -39,8 +44,20 @@ TESTS = [
     "test_conformance.py",
 ]
 
+# They read every STAC object, so they take a scope (tests/scope.py).
+SLOW = {"test_links.py", "test_stac_valid.py", "test_conformance.py"}
+
+MODES = {
+    (): TESTS,
+    ("--skip-slow",): [t for t in TESTS if t not in SLOW],
+    ("--only-slow",): [t for t in TESTS if t in SLOW],
+}
+selected = MODES.get(tuple(sys.argv[1:]))
+if selected is None:
+    raise SystemExit("usage: python3 tests/run_all.py [--skip-slow | --only-slow]")
+
 failed = []
-for name in TESTS:
+for name in selected:
     path = HERE / name
     if not path.exists():
         print(f"error  missing gate: {name}")

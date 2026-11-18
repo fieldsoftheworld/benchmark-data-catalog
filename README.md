@@ -26,7 +26,11 @@ the uploaders carry the bytes to the bucket.
   `<source>/<id>/` beside the metadata.
 - `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
   (`publish.py`, `upload_data.py`).
-- `tests/run_all.py` runs every gate; CI runs it on every pull request.
+- `tests/run_all.py` runs every gate. The links, STAC and conformance gates read
+  every STAC object and take hours over the whole catalog, so CI runs them in one job
+  per source group (`tests/scope.py`): on a pull request or a push, the groups the
+  change touches plus a small sample; weekly, or when started by hand from the
+  Actions tab, every group.
 - `docs/build-log.md` records what each build actually did: ftwd commit,
   counts, timing.
 
@@ -58,7 +62,8 @@ written that way.
 ## Working on it
 
     uv sync                            # installs the pinned ftwd and validators
-    uv run python tests/run_all.py     # gates
+    uv run python tests/run_all.py     # gates, every group (hours)
+    BDC_SCOPE_GROUPS=at,fr uv run python tests/run_all.py   # gates, two groups
     uv run python tools/publish.py     # dry run; --confirm uploads catalog/
 
 ftwd is pinned by git commit in `pyproject.toml` while its Portolan changes are
