@@ -45,8 +45,13 @@ def build(repo: Path) -> Path:
     (catalog / "README.md").write_text("root\n")
     write_json(catalog / "_assets" / "logo.json", {})
     for g in groups:
-        write_json(catalog / g / "catalog.json", {"type": "Catalog", "id": g, "links": []})
-        write_json(catalog / g / f"{g}_2024" / "collection.json", {"type": "Collection"})
+        write_json(catalog / g / "catalog.json", {
+            "type": "Catalog", "id": g,
+            "links": [{"rel": "child", "href": f"./{g}_{y}/collection.json"} for y in (2023, 2024)],
+        })
+        (catalog / g / "README.md").write_text(g + "\n")
+        for y in (2023, 2024):
+            write_json(catalog / g / f"{g}_{y}" / "collection.json", {"type": "Collection"})
     git(repo, "init", "-q", "-b", "main")
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "init")
@@ -69,7 +74,29 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not named.includes(Path(f"{sc.SAMPLE_GROUPS[0]}/catalog.json")),
           "a group not named is out of scope")
 
+    picked = sc.resolve_scope(repo, catalog, env={sc.DATASETS_ENV: "a_2024,b_2023"})
+    check(picked.groups == {"a", "b"} and picked.datasets == {"a_2024", "b_2023"},
+          "BDC_SCOPE_DATASETS names collections and puts their groups in scope")
+    check(picked.includes(Path("a/catalog.json")) and picked.includes(Path("a/README.md")),
+          "a dataset's group files are in scope")
+    check(picked.includes(Path("a/a_2024/chips/x/catalog.json")), "a named dataset is in scope")
+    check(not picked.includes(Path("a/a_2023/collection.json")),
+          "another dataset in the same group is not")
+    with sc.scoped_tree(catalog, picked) as root:
+        check(sorted(p.name for p in (root / "a").iterdir())
+              == ["README.md", "a_2024", "catalog.json"],
+              "the scoped tree holds the named dataset and its group's own files only")
+        group_children = [l["href"] for l in json.loads((root / "a" / "catalog.json").read_text())["links"]]
+        check(group_children == ["./a_2024/collection.json"],
+              "the group catalog's child links are trimmed to the named datasets")
+        root_children = [l["href"] for l in json.loads((root / "catalog.json").read_text())["links"]
+                         if l["rel"] == "child"]
+        check(root_children == ["./a/catalog.json", "./b/catalog.json"],
+              "the root keeps the groups that hold a named dataset")
+
     for env, what in [
+        ({sc.DATASETS_ENV: "a_2024,zz_2020"}, "an unknown dataset"),
+        ({sc.DATASETS_ENV: "a_2024", sc.GROUPS_ENV: "a"}, "a dataset scope with a group scope"),
         ({sc.GROUPS_ENV: "a,zz"}, "an unknown group"),
         ({sc.GROUPS_ENV: "a", sc.BASE_ENV: "main"}, "both variables"),
         ({sc.BASE_ENV: "no-such-ref"}, "a base ref git cannot find"),
