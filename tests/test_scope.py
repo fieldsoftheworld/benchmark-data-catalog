@@ -82,6 +82,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check(picked.includes(Path("a/a_2024/chips/x/catalog.json")), "a named dataset is in scope")
     check(not picked.includes(Path("a/a_2023/collection.json")),
           "another dataset in the same group is not")
+    other = sc.SAMPLE_GROUPS[0]
+    check(picked.includes(Path(f"{other}/catalog.json")),
+          "every group's own files are in scope, since catalogize --root rewrites them")
+    check(not picked.includes(Path(f"{other}/{other}_2024/collection.json")),
+          "a collection in another group is not")
     with sc.scoped_tree(catalog, picked) as root:
         check(sorted(p.name for p in (root / "a").iterdir())
               == ["README.md", "a_2024", "catalog.json"],
@@ -91,8 +96,11 @@ with tempfile.TemporaryDirectory() as tmp:
               "the group catalog's child links are trimmed to the named datasets")
         root_children = [l["href"] for l in json.loads((root / "catalog.json").read_text())["links"]
                          if l["rel"] == "child"]
-        check(root_children == ["./a/catalog.json", "./b/catalog.json"],
-              "the root keeps the groups that hold a named dataset")
+        check(len(root_children) == 4, "the root keeps every group")
+        check(sorted(p.name for p in (root / other).iterdir()) == ["README.md", "catalog.json"],
+              "another group is its own files alone")
+        check(json.loads((root / other / "catalog.json").read_text())["links"] == [],
+              "another group's child links are all trimmed")
 
     for env, what in [
         ({sc.DATASETS_ENV: "a_2024,zz_2020"}, "an unknown dataset"),

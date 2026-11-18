@@ -12,8 +12,9 @@ CI job gets. These three gates take a scope from the environment:
 - ``BDC_SCOPE_BASE=<git ref>``: the groups with a change under catalog/ since
   the merge base with that ref (committed, uncommitted or untracked), plus
   SAMPLE_GROUPS. PR and push CI use this.
-- ``BDC_SCOPE_DATASETS=at_2024,fr_2023``: those collections and the group
-  catalogs above them, and nothing else in their groups. tools/run_batch.py
+- ``BDC_SCOPE_DATASETS=at_2024,fr_2023``: those collections, plus every
+  group's own files (catalog.json, README, AGENTS), which ``catalogize.py
+  --root`` rewrites on every batch; no other collection. tools/run_batch.py
   uses this: a builder holds staging only for its own batch, so the other
   collections in a group would fail the overlay checks there.
 
@@ -81,15 +82,17 @@ class Scope:
         top = rel.parts[0]
         if top not in self.all_groups:
             return True
-        if top not in self.groups:
-            return False
-        return self.datasets is None or len(rel.parts) == 2 or rel.parts[1] in self.datasets
+        if self.datasets is not None:
+            # A group's own files are always read: catalogize --root rewrites
+            # every group's, whichever datasets a batch built.
+            return len(rel.parts) == 2 or (top in self.groups and rel.parts[1] in self.datasets)
+        return top in self.groups
 
     def describe(self) -> str:
         if self.datasets is not None:
             return (
-                f"scope  {len(self.datasets)} dataset(s) in {len(self.groups)} group(s)"
-                f" and the root ({self.reason}): {', '.join(sorted(self.datasets))}"
+                f"scope  {len(self.datasets)} dataset(s), every group's own files and the root"
+                f" ({self.reason}): {', '.join(sorted(self.datasets))}"
             )
         names = ", ".join(sorted(self.groups)) or "none"
         return (
@@ -238,7 +241,7 @@ def _copy_level(src: Path, dest: Path, here: Path, scope: Scope) -> None:
         if entry.is_dir():
             if not scope.includes(rel / "catalog.json"):
                 continue
-            if here == Path(".") and entry.name in scope.groups and scope.datasets is not None:
+            if here == Path(".") and entry.name in scope.all_groups and scope.datasets is not None:
                 _copy_level(entry, dest / entry.name, rel, scope)
             else:
                 shutil.copytree(entry, dest / entry.name, copy_function=_link_or_copy)

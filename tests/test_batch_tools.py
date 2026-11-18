@@ -339,11 +339,11 @@ with tempfile.TemporaryDirectory() as tmp:
     (cat / "g" / "g_2024").mkdir(parents=True)
     (cat / "g" / "g_2024" / "collection.json").write_text("{}")
     _env_saved = {k: os.environ.get(k) for k in run_batch.SCOPE_VARS}
-    os.environ["BDC_SCOPE_GROUPS"] = "other"
+    os.environ.update(BDC_SCOPE_GROUPS="other", BDC_SCOPE_BASE="main", BDC_SCOPE_DATASETS="x")
     argv, env = run_batch.batch_gates(["g_2024", "missing_2024"], catalog=cat)
     check(env.get("BDC_SCOPE_DATASETS") == "g_2024",
           "the gates read the batch's datasets that reached catalog/")
-    check("BDC_SCOPE_GROUPS" not in env, "an inherited scope is dropped")
+    check(not {"BDC_SCOPE_GROUPS", "BDC_SCOPE_BASE"} & env.keys(), "an inherited scope is dropped")
     check("--skip-slow" not in argv, "the slow gates run when a dataset reached catalog/")
     argv, env = run_batch.batch_gates(["missing_2024"], catalog=cat)
     check(argv[-1] == "--skip-slow" and "BDC_SCOPE_DATASETS" not in env,

@@ -288,6 +288,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nbuilt: {', '.join(ok) or 'none'}")
     if failed:
         print(f"failed: {', '.join(failed)} (see tracking.csv issues and logs/)")
+        print(
+            "        the gates did not read them, but a step may already have written their\n"
+            "        catalog/ files; revert those (git checkout -- catalog/) or rebuild them\n"
+            "        before publish.py, which uploads catalog/ whole"
+        )
     if batch_failure:
         print(f"{batch_failure}; fix before uploading")
         return 1
