@@ -12,6 +12,13 @@ CI job gets. These three gates take a scope from the environment:
 - ``BDC_SCOPE_BASE=<git ref>``: the groups with a change under catalog/ since
   the merge base with that ref (committed, uncommitted or untracked), plus
   SAMPLE_GROUPS. PR and push CI use this.
+- ``BDC_SCOPE_DATASETS=at_2024,fr_2023``: those collections, plus every
+  group's own files (catalog.json, README, AGENTS), which ``catalogize.py
+  --root`` rewrites on every batch; no other collection. tools/run_batch.py
+  uses this: a builder holds staging only for its own batch, so the other
+  collections in a group would fail the overlay checks there.
+
+Only one of the three may be set.
 
 The root's own files (catalog.json, the docs, _assets/) are in every scope. A
 group that is out of scope is not read at all: rashid gets a copy of the tree
@@ -41,6 +48,7 @@ from pathlib import Path
 
 GROUPS_ENV = "BDC_SCOPE_GROUPS"
 BASE_ENV = "BDC_SCOPE_BASE"
+DATASETS_ENV = "BDC_SCOPE_DATASETS"
 
 #: Checked in every scoped run, so a change outside catalog/ (a gate, a
 #: checker version in uv.lock) still meets real collections. Small, so they
@@ -54,11 +62,15 @@ class ScopeError(Exception):
 
 @dataclass(frozen=True)
 class Scope:
-    """The groups in scope, out of every group in the catalog."""
+    """The groups in scope, out of every group in the catalog.
+
+    ``datasets``, when set, narrows each group to those collections.
+    """
 
     groups: frozenset[str]
     all_groups: frozenset[str]
     reason: str
+    datasets: frozenset[str] | None = None
 
     def includes(self, rel: Path) -> bool:
         """True when ``rel`` (relative to catalog/) is in scope.
@@ -68,9 +80,20 @@ class Scope:
         if len(rel.parts) <= 1:
             return True
         top = rel.parts[0]
-        return top in self.groups or top not in self.all_groups
+        if top not in self.all_groups:
+            return True
+        if self.datasets is not None:
+            # A group's own files are always read: catalogize --root rewrites
+            # every group's, whichever datasets a batch built.
+            return len(rel.parts) == 2 or (top in self.groups and rel.parts[1] in self.datasets)
+        return top in self.groups
 
     def describe(self) -> str:
+        if self.datasets is not None:
+            return (
+                f"scope  {len(self.datasets)} dataset(s), every group's own files and the root"
+                f" ({self.reason}): {', '.join(sorted(self.datasets))}"
+            )
         names = ", ".join(sorted(self.groups)) or "none"
         return (
             f"scope  {len(self.groups)} of {len(self.all_groups)} group(s) and the root"
@@ -145,14 +168,33 @@ def _named(value: str, all_groups: set[str], what: str) -> set[str]:
     return names
 
 
+def _dataset_scope(catalog: Path, value: str, all_groups: set[str]) -> Scope:
+    """The collections ``value`` names, each in the group that holds it."""
+    datasets = {name.strip() for name in value.split(",") if name.strip()}
+    groups, unknown = set(), []
+    for dataset_id in sorted(datasets):
+        found = [p.parent.parent.name for p in catalog.glob(f"*/{dataset_id}/collection.json")]
+        if len(found) != 1:
+            unknown.append(dataset_id)
+        groups.update(found)
+    if unknown:
+        raise ScopeError(
+            f"{DATASETS_ENV} names dataset(s) not in the catalog once: {', '.join(unknown)}"
+        )
+    return Scope(frozenset(groups), frozenset(all_groups), DATASETS_ENV, frozenset(datasets))
+
+
 def resolve_scope(repo: Path, catalog: Path, env=None) -> Scope | None:
     """The scope the environment asks for, or None for every group."""
     env = os.environ if env is None else env
     all_groups = set(list_groups(catalog))
     groups_value = env.get(GROUPS_ENV, "").strip()
     base = env.get(BASE_ENV, "").strip()
-    if groups_value and base:
-        raise ScopeError(f"set {GROUPS_ENV} or {BASE_ENV}, not both")
+    datasets_value = env.get(DATASETS_ENV, "").strip()
+    if sum(map(bool, (groups_value, base, datasets_value))) > 1:
+        raise ScopeError(f"set one of {GROUPS_ENV}, {BASE_ENV} and {DATASETS_ENV}")
+    if datasets_value:
+        return _dataset_scope(catalog, datasets_value, all_groups)
     if groups_value:
         groups = _named(groups_value, all_groups, GROUPS_ENV)
         return Scope(frozenset(groups), frozenset(all_groups), f"{GROUPS_ENV}")
@@ -178,13 +220,36 @@ def _link_or_copy(src: str, dst: str) -> None:
         shutil.copy2(src, dst)
 
 
-def _trim_root(doc: dict, scope: Scope) -> dict:
-    """The root catalog with child links to out-of-scope groups removed."""
+def _trim(doc: dict, scope: Scope, here: Path) -> dict:
+    """A catalog at ``here`` (relative to catalog/) without child links out of scope."""
     def keep(link: dict) -> bool:
         if link.get("rel") != "child":
             return True
-        return scope.includes(Path(link.get("href", "")))
+        return scope.includes(here / link.get("href", ""))
     return {**doc, "links": [link for link in doc.get("links", []) if keep(link)]}
+
+
+def _copy_level(src: Path, dest: Path, here: Path, scope: Scope) -> None:
+    """Copy one level (the root or a group) of the tree, as ``scope`` includes it.
+
+    Its catalog.json is trimmed; a directory below it is copied whole when in
+    scope, except a group, which is copied level by level the same way.
+    """
+    dest.mkdir(exist_ok=True)
+    for entry in sorted(src.iterdir()):
+        rel = here / entry.name
+        if entry.is_dir():
+            if not scope.includes(rel / "catalog.json"):
+                continue
+            if here == Path(".") and entry.name in scope.all_groups and scope.datasets is not None:
+                _copy_level(entry, dest / entry.name, rel, scope)
+            else:
+                shutil.copytree(entry, dest / entry.name, copy_function=_link_or_copy)
+        elif entry.name == "catalog.json":
+            doc = _trim(json.loads(entry.read_text()), scope, here)
+            (dest / entry.name).write_text(json.dumps(doc, indent=2) + "\n")
+        else:
+            _link_or_copy(str(entry), str(dest / entry.name))
 
 
 @contextlib.contextmanager
@@ -193,24 +258,15 @@ def scoped_tree(catalog: Path, scope: Scope | None):
 
     rashid validates a directory tree and refuses symlinks, so a scoped run
     gets a real tree: hard links (or copies) of the root files, ``_assets/`` and
-    each group in scope, and a root catalog.json trimmed to those groups.
+    what is in scope of each group, with each catalog.json's child links
+    trimmed to match.
     """
     if scope is None:
         yield catalog
         return
     with tempfile.TemporaryDirectory(prefix="bdc-scope-") as tmp:
-        root = Path(tmp)
-        for entry in sorted(catalog.iterdir()):
-            rel = entry.relative_to(catalog)
-            if entry.is_dir():
-                if scope.includes(rel / "catalog.json"):
-                    shutil.copytree(entry, root / rel, copy_function=_link_or_copy)
-            elif entry.name == "catalog.json":
-                doc = _trim_root(json.loads(entry.read_text()), scope)
-                (root / rel).write_text(json.dumps(doc, indent=2) + "\n")
-            else:
-                _link_or_copy(str(entry), str(root / rel))
-        yield root
+        _copy_level(catalog, Path(tmp), Path("."), scope)
+        yield Path(tmp)
 
 
 def gate_scope(repo: Path, catalog: Path) -> Scope | None:

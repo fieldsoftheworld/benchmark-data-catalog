@@ -15,6 +15,11 @@ concurrently (``--jobs``), each logging to ``logs/<id>.log``. Then, once for
 the whole batch: ``catalogize.py --root``, thumbnails one at a time through a
 single chiitiler (started here if none is running), and the gates.
 
+The gates that read every STAC object (links, STAC, conformance) are
+scoped to the batch's datasets that reached catalog/ (BDC_SCOPE_DATASETS, see
+tests/scope.py). A builder holds staging only for its own batch, and over the
+whole catalog those gates take hours. Run them unscoped before publishing.
+
 The imagery pass runs ``--from select_images``, ``--only docs`` and
 ``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
 --root`` (after the thumbnails, so the root tables see them) and the gates.
@@ -34,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import os
 import subprocess
 import sys
 import time
@@ -46,7 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import tracking  # noqa: E402
 from build import subprocess_env  # noqa: E402
-from common import ROOT, installed_ftwd  # noqa: E402
+from common import CATALOG, ROOT, installed_ftwd  # noqa: E402
 from label_extent import reads_extent  # noqa: E402
 
 LOGS = ROOT / "logs"
@@ -185,7 +191,25 @@ def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> dict[str, s
     return failures
 
 
-def finish_batch() -> str | None:
+#: What tests/scope.py reads. A batch sets its own scope and drops any other.
+SCOPE_VARS = ("BDC_SCOPE_GROUPS", "BDC_SCOPE_BASE", "BDC_SCOPE_DATASETS")
+
+
+def batch_gates(dataset_ids: list[str], catalog: Path = CATALOG) -> tuple[list[str], dict]:
+    """The run_all command and environment for a batch.
+
+    The slow gates are scoped to the datasets that reached catalog/; when none
+    did, they are left out.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in SCOPE_VARS}
+    argv = [sys.executable, str(ROOT / "tests" / "run_all.py")]
+    present = [d for d in dataset_ids if any(catalog.glob(f"*/{d}/collection.json"))]
+    if not present:
+        return [*argv, "--skip-slow"], env
+    return argv, {**env, "BDC_SCOPE_DATASETS": ",".join(present)}
+
+
+def finish_batch(dataset_ids: list[str]) -> str | None:
     """Regenerate the root catalog, then run the gates; why the batch failed, or None.
 
     The root tables measure every collection's chips, imagery and thumbnail, so
@@ -194,7 +218,8 @@ def finish_batch() -> str | None:
     root = subprocess.run(tool_argv(["catalogize.py", "--root"], ""), cwd=ROOT, check=False)
     if root.returncode != 0:
         return "catalogize --root failed"
-    gates = subprocess.run([sys.executable, str(ROOT / "tests" / "run_all.py")], cwd=ROOT)
+    argv, env = batch_gates(dataset_ids)
+    gates = subprocess.run(argv, cwd=ROOT, env=env, check=False)
     return None if gates.returncode == 0 else "the batch's gates failed (tests/run_all.py)"
 
 
@@ -253,7 +278,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"{'imagery' if args.imagery else 'metadata'} pass: {', '.join(ids)}")
     failures = run_pass(ids, imagery=args.imagery, jobs=args.jobs)
-    batch_failure = finish_batch()
+    batch_failure = finish_batch([d for d in ids if d not in failures])
     if batch_failure:
         failures |= {d: batch_failure for d in ids if d not in failures}
     record(ids, failures, imagery=args.imagery)
@@ -263,6 +288,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nbuilt: {', '.join(ok) or 'none'}")
     if failed:
         print(f"failed: {', '.join(failed)} (see tracking.csv issues and logs/)")
+        print(
+            "        the gates did not read them, but a step may already have written their\n"
+            "        catalog/ files; revert those (git checkout -- catalog/) or rebuild them\n"
+            "        before publish.py, which uploads catalog/ whole"
+        )
     if batch_failure:
         print(f"{batch_failure}; fix before uploading")
         return 1

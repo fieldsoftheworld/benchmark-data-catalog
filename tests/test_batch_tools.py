@@ -9,6 +9,7 @@ the network or runs ftwd.
 
 Run: python3 tests/test_batch_tools.py
 """
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -316,8 +317,10 @@ tracking.load = lambda path=None: []
 tracking.row = lambda d, rows: {}
 for gate_failure, expect_built in ((None, True), ("the batch's gates failed", False)):
     updates.clear()
-    run_batch.finish_batch = lambda failure=gate_failure: failure
+    gated: list[list[str]] = []
+    run_batch.finish_batch = lambda ids, failure=gate_failure: gated.append(ids) or failure
     run_batch.main(["a", "b"])
+    check(gated == [["a"]], "the gates are scoped to the datasets that built")
     check(("built" in updates["a"]) == expect_built, f"a built={expect_built} when gates {gate_failure}")
     check("built" not in updates["b"], "a failed build is never marked built")
     if gate_failure:
@@ -329,6 +332,27 @@ except SystemExit:
     pass
 (run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
  tracking.load, tracking.row) = _saved
+
+# --- run_batch.py scopes the slow gates to the batch ------------------------
+with tempfile.TemporaryDirectory() as tmp:
+    cat = Path(tmp)
+    (cat / "g" / "g_2024").mkdir(parents=True)
+    (cat / "g" / "g_2024" / "collection.json").write_text("{}")
+    _env_saved = {k: os.environ.get(k) for k in run_batch.SCOPE_VARS}
+    os.environ.update(BDC_SCOPE_GROUPS="other", BDC_SCOPE_BASE="main", BDC_SCOPE_DATASETS="x")
+    argv, env = run_batch.batch_gates(["g_2024", "missing_2024"], catalog=cat)
+    check(env.get("BDC_SCOPE_DATASETS") == "g_2024",
+          "the gates read the batch's datasets that reached catalog/")
+    check(not {"BDC_SCOPE_GROUPS", "BDC_SCOPE_BASE"} & env.keys(), "an inherited scope is dropped")
+    check("--skip-slow" not in argv, "the slow gates run when a dataset reached catalog/")
+    argv, env = run_batch.batch_gates(["missing_2024"], catalog=cat)
+    check(argv[-1] == "--skip-slow" and "BDC_SCOPE_DATASETS" not in env,
+          "with nothing in catalog/, the slow gates are left out")
+    for k, v in _env_saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
 # --- run_batch.py checks the label extent before ftwd reads the recipe -----
 _saved_steps = (run_batch._run, run_batch.reads_extent, run_batch.LOGS)

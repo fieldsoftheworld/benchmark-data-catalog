@@ -64,6 +64,7 @@ written that way.
     uv sync                            # installs the pinned ftwd and validators
     uv run python tests/run_all.py     # gates, every group (hours)
     BDC_SCOPE_GROUPS=at,fr uv run python tests/run_all.py   # gates, two groups
+    BDC_SCOPE_DATASETS=at_2024 uv run python tests/run_all.py  # gates, one collection
     uv run python tools/publish.py     # dry run; --confirm uploads catalog/
 
 ftwd is pinned by git commit in `pyproject.toml` while its Portolan changes are
@@ -207,7 +208,10 @@ which means rebuilding that dataset from its chips).
 
 `run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
 logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the
-gates once for the batch, and records the outcome in `tracking.csv`. It never
+gates once for the batch, and records the outcome in `tracking.csv`. The links,
+STAC and conformance gates read only the batch's datasets
+(`BDC_SCOPE_DATASETS`, see `tests/scope.py`): the builder has staging for those
+alone, and the rest of the catalog was checked when it was built. It never
 uploads: it prints the `upload_data.py --only ...` and `publish.py` commands
 to run with the maintainer's say-so, then `--mark-published`.
 
