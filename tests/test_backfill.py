@@ -288,6 +288,38 @@ check(backfill.harmonized_edition("ch_ag_2025", hstage)
       == hstage / "ch" / "year=2025" / "ch_ag-2025.parquet", "a sub-region uses its source stem")
 tracking.row = _saved_row
 
+# --- how the crop names are joined -----------------------------------------------
+import types  # noqa: E402
+
+calls = []
+fake = types.SimpleNamespace(add_crop_names=lambda path, source, by="id": calls.append((
+    path.name, by)) or types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=True))
+_saved_module = sys.modules.get("ftw_dataset_tools.api.crop_names")
+sys.modules["ftw_dataset_tools.api.crop_names"] = fake
+import ftw_dataset_tools.api as _api  # noqa: E402
+
+_saved_attr = getattr(_api, "crop_names", None)
+_api.crop_names = fake
+try:
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"}}}
+    files = backfill.add_crop_names("fr_2024", doc, Path("/d"), Path("/s.parquet"), "code")
+    check(calls == [("f.parquet", "code"), ("ff.parquet", "code")],
+          f"both field files are joined by the given key: {calls}")
+    check(set(files) == {"fields", "fields_filtered"}, "the joined files are returned by key")
+    calls.clear()
+    backfill.add_crop_names("fr_2022", {"assets": {"fields": {"href": "./f.parquet"}}},
+                            Path("/d"), Path("/s.parquet"))
+    check(calls == [("f.parquet", "id")], "the join is by id unless told otherwise")
+finally:
+    if _saved_module is None:
+        sys.modules.pop("ftw_dataset_tools.api.crop_names", None)
+    else:
+        sys.modules["ftw_dataset_tools.api.crop_names"] = _saved_module
+    if _saved_attr is None:
+        delattr(_api, "crop_names")
+    else:
+        _api.crop_names = _saved_attr
+
 if errors:
     for message in errors:
         print(f"FAIL   {message}")

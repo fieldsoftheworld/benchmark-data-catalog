@@ -21,6 +21,9 @@ from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
 harmonized catalog's staging, rebuilt with names). The join is by field id and refuses
 any field whose crop:code differs there (ftwd ``api.crop_names``). Give the option on
 every later run too: the backfill record lists the steps of the latest run.
+``--crop-names-by code`` names each field from its crop code instead, for an edition
+named from a code table whose ids no longer match the benchmark's (fr_2024: IGN
+replaced RPG 3.0 with RPG 4.0); it refuses a code with more than one name.
 
 The bucket is read at ``<source>/<id>/``; ``--read-flat`` reads the old flat
 ``<id>/`` instead, for the pass that moves a dataset into its source group.
@@ -359,7 +362,9 @@ def harmonized_edition(dataset_id: str, harmonized_staging: Path) -> Path:
     )
 
 
-def add_crop_names(dataset_id: str, doc: dict, root: Path, source: Path) -> dict[str, Path]:
+def add_crop_names(
+    dataset_id: str, doc: dict, root: Path, source: Path, by: str = "id"
+) -> dict[str, Path]:
     """Join the crop names onto the dataset's field files; the files, by asset key."""
     from ftw_dataset_tools.api import crop_names
 
@@ -368,7 +373,7 @@ def add_crop_names(dataset_id: str, doc: dict, root: Path, source: Path) -> dict
         if key not in doc["assets"]:
             continue
         path = root / str(doc["assets"][key]["href"]).removeprefix("./")
-        result = crop_names.add_crop_names(path, source)
+        result = crop_names.add_crop_names(path, source, by=by)
         print(f"{dataset_id}: {key}: {', '.join(result.columns)} on {result.named:,} of "
               f"{result.rows:,} fields{'' if result.changed else ' (unchanged)'}", flush=True)
         files[key] = path
@@ -383,6 +388,7 @@ def backfill_dataset(
     staging: Path = STAGING,
     read_flat: bool = False,
     crop_names_from: Path | None = None,
+    crop_names_by: str = "id",
 ) -> None:
     """Fetch, enrich and catalogize one published dataset."""
     from catalogize import catalogize
@@ -410,7 +416,7 @@ def backfill_dataset(
     crop_name_files = {}
     if crop_names_from is not None:
         source = harmonized_edition(dataset_id, crop_names_from)
-        crop_name_files = add_crop_names(dataset_id, doc, root, source)
+        crop_name_files = add_crop_names(dataset_id, doc, root, source, crop_names_by)
 
     changed, items = update_items(root, chips, year)
     print(f"{dataset_id}: admin names on {changed:,} of {items:,} chip items changed", flush=True)
@@ -443,6 +449,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--crop-names-from", type=Path, metavar="DIR",
                         help="the harmonized catalog's staging, rebuilt with crop names: join "
                              "crop:name onto the field files from each dataset's edition")
+    parser.add_argument("--crop-names-by", choices=("id", "code"), default="id",
+                        help="join the names by field id (default), or by crop code for an "
+                             "edition named from a code table whose ids no longer match")
     parser.add_argument("--allow-uncommitted-ftwd", action="store_true",
                         help="run with an ftwd that is not installed from a git commit (testing)")
     args = parser.parse_args(argv)
@@ -471,6 +480,7 @@ def main(argv: list[str] | None = None) -> int:
             manifest=manifest,
             read_flat=args.read_flat,
             crop_names_from=args.crop_names_from,
+            crop_names_by=args.crop_names_by,
         )
         if enable_recipe_steps(ROOT / "datasets" / f"{dataset_id}.yaml"):
             print(f"{dataset_id}: turned on {', '.join(RECIPE_STEPS)} in its recipe", flush=True)
