@@ -302,13 +302,16 @@ _saved_attr = getattr(_api, "crop_names", None)
 _api.crop_names = fake
 try:
     doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"}}}
-    files = backfill.add_crop_names("fr_2024", doc, Path("/d"), Path("/s.parquet"), "code")
+    files = backfill.field_files(doc, Path("/d"))
+    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet")},
+          f"both field files are staged by asset key: {files}")
+    check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
+          == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
+    backfill.add_crop_names("fr_2024", files, Path("/s.parquet"), "code")
     check(calls == [("f.parquet", "code"), ("ff.parquet", "code")],
           f"both field files are joined by the given key: {calls}")
-    check(set(files) == {"fields", "fields_filtered"}, "the joined files are returned by key")
     calls.clear()
-    backfill.add_crop_names("fr_2022", {"assets": {"fields": {"href": "./f.parquet"}}},
-                            Path("/d"), Path("/s.parquet"))
+    backfill.add_crop_names("fr_2022", {"fields": Path("/d/f.parquet")}, Path("/s.parquet"))
     check(calls == [("f.parquet", "id")], "the join is by id unless told otherwise")
 finally:
     if _saved_module is None:
@@ -319,6 +322,55 @@ finally:
         delattr(_api, "crop_names")
     else:
         _api.crop_names = _saved_attr
+
+# --- which flag combinations are refused, and refusals skip one dataset -------------
+import contextlib  # noqa: E402
+import io  # noqa: E402
+
+for argv, why in (
+    (["fr_2024", "--crop-names-by", "code"], "--crop-names-by without --crop-names-from"),
+    (["fr_2024", "fr_2022", "--crop-names-from", "/h", "--crop-names-by", "code"],
+     "--crop-names-by code with two datasets"),
+):
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            backfill.main(argv)
+        check(False, f"{why} is refused")
+    except SystemExit as stop:
+        check(stop.code == 2, f"{why} is a usage error")
+
+import build  # noqa: E402
+import common  # noqa: E402
+from ftw_dataset_tools.api.crop_names import CropNameError  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    published = Path(tmp)
+    (published / "collection.json").write_text("{}")
+    ran = []
+
+    def _fake_backfill(dataset_id, **kwargs):
+        ran.append((dataset_id, kwargs["crop_names_by"]))
+        if dataset_id == "bad":
+            raise CropNameError(Path("/f"), "3 field(s) not in the edition")
+
+    saved = (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+             build._check_recipe, common.load_manifest)
+    backfill.dataset_dir = lambda dataset_id: published
+    backfill.backfill_dataset = _fake_backfill
+    backfill.enable_recipe_steps = lambda recipe: ran.append(("recipe", recipe.stem)) and False
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    try:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = backfill.main(["bad", "good", "--allow-uncommitted-ftwd"])
+        check(code == 1, "a run with a refused dataset exits 1")
+        check(ran == [("bad", "id"), ("good", "id"), ("recipe", "good")],
+              f"the refused dataset is skipped and the next one still runs: {ran}")
+        check("bad: crop names refused" in err.getvalue(), "the refusal is reported briefly")
+    finally:
+        (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+         build._check_recipe, common.load_manifest) = saved
 
 if errors:
     for message in errors:
