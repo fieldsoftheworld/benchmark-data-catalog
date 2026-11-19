@@ -393,16 +393,20 @@ def add_crop_names(
     """Join the crop names onto the dataset's field files, all of them or none.
 
     Each file is joined into a temp file first; the field files are replaced only
-    once every join has succeeded.
+    once every join has succeeded, and only those whose names changed, so an
+    unchanged file keeps its bytes (and its published checksum).
     """
     from ftw_dataset_tools.api import crop_names
 
+    changed = []
     try:
         for key, path in files.items():
             result = crop_names.add_crop_names(path, source, _named_path(path), by=by)
             print(f"{dataset_id}: {key}: {', '.join(result.columns)} on {result.named:,} of "
                   f"{result.rows:,} fields{'' if result.changed else ' (unchanged)'}", flush=True)
-        for path in files.values():
+            if result.changed:
+                changed.append(path)
+        for path in changed:
             _named_path(path).replace(path)
     finally:
         for path in files.values():

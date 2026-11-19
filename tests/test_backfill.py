@@ -293,6 +293,7 @@ import types  # noqa: E402
 
 calls = []
 fail_on = set()
+unchanged = set()
 
 
 def _fake_join(path, source, output, by="id"):
@@ -300,7 +301,8 @@ def _fake_join(path, source, output, by="id"):
     if path.name in fail_on:
         raise ValueError(f"refused {path.name}")
     output.write_text(f"named {path.read_text()}")
-    return types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=True)
+    changed = path.name not in unchanged
+    return types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=changed)
 
 
 fake = types.SimpleNamespace(add_crop_names=_fake_join)
@@ -329,6 +331,17 @@ try:
               "both field files are replaced once both joins succeed")
         check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
               "no temp file is left")
+
+        for path in files.values():
+            path.write_text(path.stem)
+        unchanged.add("ff.parquet")
+        backfill.add_crop_names("fr_2023", files, Path("/s.parquet"))
+        unchanged.clear()
+        check([p.read_text() for p in files.values()] == ["named f", "ff"],
+              "a file whose names did not change keeps its bytes")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "the unchanged file's temp file is removed too")
+        calls.clear()
 
         calls.clear()
         for path in files.values():
