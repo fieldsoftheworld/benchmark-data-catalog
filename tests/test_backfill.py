@@ -42,6 +42,9 @@ check(not backfill.wanted("chips/33UXP/c_2024/c_2024_q1_image_s2.tif", top), "ra
 check(not backfill.wanted("chips/33UXP/README.md", top), "sub-catalog docs are not")
 check(backfill.wanted("ds_chips.parquet", top), "the chips file is read")
 check(not backfill.wanted("ds_boundary_lines.parquet", top), "boundary lines are not")
+check(backfill.wanted("ds_boundary_lines.parquet", top | {"ds_boundary_lines.parquet"}),
+      "boundary lines are, when the collection lists them")
+check("boundary_lines" in backfill._TOP_LEVEL_ASSETS, "boundary lines are a top-level asset")
 check(not backfill.wanted("fields.pmtiles", top), "tiles are not")
 check(not backfill.wanted("styles/ds_chips.parquet", top), "only top-level files match by name")
 
@@ -313,10 +316,13 @@ import ftw_dataset_tools.api as _api  # noqa: E402
 _saved_attr = getattr(_api, "crop_names", None)
 _api.crop_names = fake
 try:
-    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"}}}
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"},
+                      "boundary_lines": {"href": "./bl.parquet"},
+                      "fields_tiles": {"href": "./fields.pmtiles"}}}
     files = backfill.field_files(doc, Path("/d"))
-    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet")},
-          f"both field files are staged by asset key: {files}")
+    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet"),
+                    "boundary_lines": Path("/d/bl.parquet")},
+          f"every field file is staged by asset key, and nothing else: {files}")
     check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
           == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
     with tempfile.TemporaryDirectory() as tmp:

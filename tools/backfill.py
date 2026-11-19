@@ -16,8 +16,8 @@ state without rebuilding it, working in ``staging/<id>/``:
    updated files, then ``catalogize`` into ``catalog/<source>/<id>/``.
 
 ``--crop-names-from <dir>`` also joins ``crop:name`` (and ``crop:name_en``) onto the
-fields and fields_filtered files from the harmonized edition the dataset was built
-from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
+fields, fields_filtered and boundary_lines files from the harmonized edition the
+dataset was built from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
 harmonized catalog's staging, rebuilt with names). The join is by field id and refuses
 any field whose crop:code differs there (ftwd ``api.crop_names``). Give the option on
 every later run too: each run fetches the published field files again, and the backfill
@@ -46,7 +46,7 @@ Nothing is uploaded. Publish afterwards the usual way:
     uv run python tools/upload_data.py --only rw_rwanda_ml_2021 --confirm
     uv run python tools/publish.py --only rw_rwanda_ml_2021 --confirm
 
-Rasters, PMTiles and boundary lines are never fetched: nothing here changes them.
+Rasters and PMTiles are never fetched: nothing here changes them.
 """
 from __future__ import annotations
 
@@ -82,7 +82,9 @@ FETCH_ATTEMPTS = 4
 SMALL_OBJECT_BYTES = 8 * 1024 * 1024
 
 # Top-level files the backfill reads. Everything under chips/ that is JSON is read too.
-_TOP_LEVEL_ASSETS = ("chips", "fields", "fields_filtered")
+_TOP_LEVEL_ASSETS = ("chips", "fields", "fields_filtered", "boundary_lines")
+# The files that carry each field's crop columns, so its crop names.
+FIELD_ASSETS = ("fields", "fields_filtered", "boundary_lines")
 # Read when published, so a rerun keeps it instead of recomputing hours of embeddings.
 _OPTIONAL_ASSETS = ("field_embeddings",)
 # Files the backfill writes itself, so they may differ from the bucket or be new.
@@ -378,7 +380,7 @@ def field_files(doc: dict, root: Path) -> dict[str, Path]:
     """The dataset's staged field files, by asset key."""
     return {
         key: root / str(doc["assets"][key]["href"]).removeprefix("./")
-        for key in ("fields", "fields_filtered")
+        for key in FIELD_ASSETS
         if key in doc["assets"]
     }
 
