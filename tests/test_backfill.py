@@ -273,6 +273,178 @@ with tempfile.TemporaryDirectory() as tmp:
     except SystemExit:
         pass
 
+# --- where the crop names come from ---------------------------------------------
+import tracking  # noqa: E402
+
+_saved_row = tracking.row
+tracking.row = lambda d, rows=None: {
+    "pt_2025": {"harmonized_id": "pt", "year": "2025", "source_stem": ""},
+    "ch_ag_2025": {"harmonized_id": "ch", "year": "2025", "source_stem": "ch_ag"},
+}[d]
+hstage = Path("/h/staging")
+check(backfill.harmonized_edition("pt_2025", hstage)
+      == hstage / "pt" / "year=2025" / "pt-2025.parquet", "the edition is <id>/year=<y>/<id>-<y>")
+check(backfill.harmonized_edition("ch_ag_2025", hstage)
+      == hstage / "ch" / "year=2025" / "ch_ag-2025.parquet", "a sub-region uses its source stem")
+tracking.row = _saved_row
+
+# --- how the crop names are joined -----------------------------------------------
+import types  # noqa: E402
+
+calls = []
+fail_on = set()
+unchanged = set()
+
+
+def _fake_join(path, source, output, by="id"):
+    calls.append((path.name, by))
+    if path.name in fail_on:
+        raise ValueError(f"refused {path.name}")
+    output.write_text(f"named {path.read_text()}")
+    changed = path.name not in unchanged
+    return types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=changed)
+
+
+fake = types.SimpleNamespace(add_crop_names=_fake_join)
+_saved_module = sys.modules.get("ftw_dataset_tools.api.crop_names")
+sys.modules["ftw_dataset_tools.api.crop_names"] = fake
+import ftw_dataset_tools.api as _api  # noqa: E402
+
+_saved_attr = getattr(_api, "crop_names", None)
+_api.crop_names = fake
+try:
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"}}}
+    files = backfill.field_files(doc, Path("/d"))
+    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet")},
+          f"both field files are staged by asset key: {files}")
+    check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
+          == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        files = {"fields": d / "f.parquet", "fields_filtered": d / "ff.parquet"}
+        for path in files.values():
+            path.write_text(path.stem)
+        backfill.add_crop_names("fr_2024", files, Path("/s.parquet"), "code")
+        check(calls == [("f.parquet", "code"), ("ff.parquet", "code")],
+              f"both field files are joined by the given key: {calls}")
+        check([p.read_text() for p in files.values()] == ["named f", "named ff"],
+              "both field files are replaced once both joins succeed")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "no temp file is left")
+
+        for path in files.values():
+            path.write_text(path.stem)
+        unchanged.add("ff.parquet")
+        backfill.add_crop_names("fr_2023", files, Path("/s.parquet"))
+        unchanged.clear()
+        check([p.read_text() for p in files.values()] == ["named f", "ff"],
+              "a file whose names did not change keeps its bytes")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "the unchanged file's temp file is removed too")
+        calls.clear()
+
+        calls.clear()
+        for path in files.values():
+            path.write_text(path.stem)
+        fail_on.add("ff.parquet")
+        try:
+            backfill.add_crop_names("fr_2022", files, Path("/s.parquet"))
+            check(False, "a refused join is raised")
+        except ValueError:
+            pass
+        fail_on.clear()
+        check(calls == [("f.parquet", "id"), ("ff.parquet", "id")], "the join is by id by default")
+        check([p.read_text() for p in files.values()] == ["f", "ff"],
+              "a refusal on fields_filtered leaves fields as it was too")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "a refusal leaves no temp file")
+finally:
+    if _saved_module is None:
+        sys.modules.pop("ftw_dataset_tools.api.crop_names", None)
+    else:
+        sys.modules["ftw_dataset_tools.api.crop_names"] = _saved_module
+    if _saved_attr is None:
+        delattr(_api, "crop_names")
+    else:
+        _api.crop_names = _saved_attr
+
+# --- a run without --crop-names-from keeps the earlier crop-names record -----------
+import geopandas as gpd  # noqa: E402
+from shapely.geometry import box  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    named, unnamed = Path(tmp) / "named.parquet", Path(tmp) / "unnamed.parquet"
+    gpd.GeoDataFrame({"id": ["a"], "crop:name": ["Weizen"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(named)
+    gpd.GeoDataFrame({"id": ["a"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(unnamed)
+    record = {"source": "fr/year=2024/fr-2024.parquet", "by": "code"}
+    doc = {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": record}]}}
+    check(backfill.earlier_crop_names(doc, {"fields": named}) == record,
+          "the earlier record is kept while the fields still have names")
+    check(backfill.earlier_crop_names(doc, {"fields": named, "fields_filtered": unnamed}) is None,
+          "not when a field file has lost them")
+    check(backfill.earlier_crop_names({"ftw:config": {}}, {"fields": named}) is None,
+          "names from the build itself have no record to keep")
+
+# --- the call into ftwd matches the installed ftwd -----------------------------------
+import inspect  # noqa: E402
+
+from ftw_dataset_tools.api import backfill as ftwd_backfill  # noqa: E402
+
+_params = inspect.signature(ftwd_backfill.update_collection).parameters
+check({"field_files", "crop_names"} <= set(_params),
+      f"the pinned ftwd's update_collection takes field_files and crop_names: {list(_params)}")
+
+# --- which flag combinations are refused, and refusals skip one dataset -------------
+import contextlib  # noqa: E402
+import io  # noqa: E402
+
+for argv, why in (
+    (["fr_2024", "--crop-names-by", "code"], "--crop-names-by without --crop-names-from"),
+    (["fr_2024", "fr_2022", "--crop-names-from", "/h", "--crop-names-by", "code"],
+     "--crop-names-by code with two datasets"),
+):
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            backfill.main(argv)
+        check(False, f"{why} is refused")
+    except SystemExit as stop:
+        check(stop.code == 2, f"{why} is a usage error")
+
+import build  # noqa: E402
+import common  # noqa: E402
+from ftw_dataset_tools.api.crop_names import CropNameError  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    published = Path(tmp)
+    (published / "collection.json").write_text("{}")
+    ran = []
+
+    def _fake_backfill(dataset_id, **kwargs):
+        ran.append((dataset_id, kwargs["crop_names_by"]))
+        if dataset_id == "bad":
+            raise CropNameError(Path("/f"), "3 field(s) not in the edition")
+
+    saved = (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+             build._check_recipe, common.load_manifest)
+    backfill.dataset_dir = lambda dataset_id: published
+    backfill.backfill_dataset = _fake_backfill
+    backfill.enable_recipe_steps = lambda recipe: ran.append(("recipe", recipe.stem)) and False
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    try:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = backfill.main(["bad", "good", "--allow-uncommitted-ftwd"])
+        check(code == 1, "a run with a refused dataset exits 1")
+        check(ran == [("bad", "id"), ("good", "id"), ("recipe", "good")],
+              f"the refused dataset is skipped and the next one still runs: {ran}")
+        check("bad: crop names refused" in err.getvalue(), "the refusal is reported briefly")
+    finally:
+        (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+         build._check_recipe, common.load_manifest) = saved
+
 if errors:
     for message in errors:
         print(f"FAIL   {message}")

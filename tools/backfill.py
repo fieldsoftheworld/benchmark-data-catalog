@@ -15,6 +15,28 @@ state without rebuilding it, working in ``staging/<id>/``:
 4. rebuild ``items.parquet``, rewrite the styles, README.md and AGENTS.md from the
    updated files, then ``catalogize`` into ``catalog/<source>/<id>/``.
 
+``--crop-names-from <dir>`` also joins ``crop:name`` (and ``crop:name_en``) onto the
+fields and fields_filtered files from the harmonized edition the dataset was built
+from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
+harmonized catalog's staging, rebuilt with names). The join is by field id and refuses
+any field whose crop:code differs there (ftwd ``api.crop_names``). Give the option on
+every later run too: each run fetches the published field files again, and the backfill
+record lists the steps of the latest run.
+``--crop-names-by code`` names each field from its crop code instead, for an edition
+named from a code table whose ids no longer match the benchmark's (fr_2024: IGN
+replaced RPG 3.0 with RPG 4.0); it refuses a code with more than one name, and it takes
+one dataset per run so no other dataset loses the per-field check by mistake.
+es_2025 and es_po_2025 can only be named by code: their merge rewrote the ids (and the
+regional gap parcels have no crop:code, so they stay unnamed).
+
+The field assets' size, checksum and columns are always read from the staged files,
+so the collection describes the files that will be uploaded either way. A run without
+the option keeps the earlier run's crop-names record while the fetched field files
+still carry crop:name. The names are joined first, into temp files that replace the
+field files only when every join succeeded, so a dataset whose names are refused is
+left as fetched (as published): it is reported and skipped, and the run carries on
+with the others and exits 1.
+
 The bucket is read at ``<source>/<id>/``; ``--read-flat`` reads the old flat
 ``<id>/`` instead, for the pass that moves a dataset into its source group.
 
@@ -340,6 +362,72 @@ def enable_recipe_steps(recipe: Path) -> bool:
     return edited
 
 
+def harmonized_edition(dataset_id: str, harmonized_staging: Path) -> Path:
+    """The harmonized edition a dataset was built from, under ``harmonized_staging``."""
+    import tracking
+
+    r = tracking.row(dataset_id)
+    year = r["year"]
+    return (
+        harmonized_staging / r["harmonized_id"] / f"year={year}"
+        / f"{tracking.source_stem(r)}-{year}.parquet"
+    )
+
+
+def field_files(doc: dict, root: Path) -> dict[str, Path]:
+    """The dataset's staged field files, by asset key."""
+    return {
+        key: root / str(doc["assets"][key]["href"]).removeprefix("./")
+        for key in ("fields", "fields_filtered")
+        if key in doc["assets"]
+    }
+
+
+def _named_path(path: Path) -> Path:
+    return path.with_name(f".{path.name}.named")
+
+
+def add_crop_names(
+    dataset_id: str, files: dict[str, Path], source: Path, by: str = "id"
+) -> None:
+    """Join the crop names onto the dataset's field files, all of them or none.
+
+    Each file is joined into a temp file first; the field files are replaced only
+    once every join has succeeded, and only those whose names changed, so an
+    unchanged file keeps its bytes (and its published checksum).
+    """
+    from ftw_dataset_tools.api import crop_names
+
+    changed = []
+    try:
+        for key, path in files.items():
+            result = crop_names.add_crop_names(path, source, _named_path(path), by=by)
+            print(f"{dataset_id}: {key}: {', '.join(result.columns)} on {result.named:,} of "
+                  f"{result.rows:,} fields{'' if result.changed else ' (unchanged)'}", flush=True)
+            if result.changed:
+                changed.append(path)
+        for path in changed:
+            _named_path(path).replace(path)
+    finally:
+        for path in files.values():
+            _named_path(path).unlink(missing_ok=True)
+
+
+def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
+    """The crop-names record of the last backfill, while the field files still have names."""
+    import pyarrow.parquet as pq
+
+    from ftw_dataset_tools.api.backfill import BACKFILL_KEY
+
+    runs = (doc.get("ftw:config") or {}).get(BACKFILL_KEY) or []
+    earlier = runs[-1].get("crop_names") if runs else None
+    if not earlier or not files:
+        return None
+    if all("crop:name" in pq.read_schema(path).names for path in files.values()):
+        return earlier
+    return None
+
+
 def backfill_dataset(
     dataset_id: str,
     *,
@@ -347,6 +435,8 @@ def backfill_dataset(
     manifest: dict,
     staging: Path = STAGING,
     read_flat: bool = False,
+    crop_names_from: Path | None = None,
+    crop_names_by: str = "id",
 ) -> None:
     """Fetch, enrich and catalogize one published dataset."""
     from catalogize import catalogize
@@ -364,6 +454,18 @@ def backfill_dataset(
     embeddings = root / f"{dataset_id}_field_embeddings.parquet"
     print(f"{dataset_id}: fetched {fetched:,} file(s)", flush=True)
 
+    # First, so a refusal leaves staging as fetched (as published).
+    files = field_files(doc, root)
+    if crop_names_from is not None:
+        source = harmonized_edition(dataset_id, crop_names_from)
+        add_crop_names(dataset_id, files, source, crop_names_by)
+        crop_names = {
+            "source": source.relative_to(crop_names_from).as_posix(),
+            "by": crop_names_by,
+        }
+    else:
+        crop_names = earlier_crop_names(doc, files)
+
     admin_names.add_admin_names(chips)
     if field_embeddings.is_current(embeddings, fields, year=year):
         print(f"{dataset_id}: keeping {embeddings.name}", flush=True)
@@ -375,7 +477,12 @@ def backfill_dataset(
     print(f"{dataset_id}: admin names on {changed:,} of {items:,} chip items changed", flush=True)
 
     backfill.update_collection(
-        doc, chips_file=chips, admin_names_added=True, field_embeddings_file=embeddings
+        doc,
+        chips_file=chips,
+        admin_names_added=True,
+        field_embeddings_file=embeddings,
+        field_files=files,
+        crop_names=crop_names,
     )
     # The stac stage describes its chip-only mirror; catalogize later swaps in the full
     # one and refreshes only its size, so the columns come from this file, as in a build.
@@ -395,9 +502,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--read-flat", action="store_true",
                         help="read the bucket's old flat <id>/ folder (the move into source groups)")
+    parser.add_argument("--crop-names-from", type=Path, metavar="DIR",
+                        help="the harmonized catalog's staging, rebuilt with crop names: join "
+                             "crop:name onto the field files from each dataset's edition")
+    parser.add_argument("--crop-names-by", choices=("id", "code"),
+                        help="join the names by field id (default), or by crop code for an "
+                             "edition named from a code table whose ids no longer match "
+                             "(one dataset per run)")
     parser.add_argument("--allow-uncommitted-ftwd", action="store_true",
                         help="run with an ftwd that is not installed from a git commit (testing)")
     args = parser.parse_args(argv)
+    if args.crop_names_by is not None and args.crop_names_from is None:
+        parser.error("--crop-names-by needs --crop-names-from")
+    if args.crop_names_by == "code" and len(args.dataset_ids) > 1:
+        parser.error("--crop-names-by code takes one dataset per run")
 
     from build import _check_recipe
     from common import load_manifest
@@ -407,17 +525,39 @@ def main(argv: list[str] | None = None) -> int:
         if not (dataset_dir(dataset_id) / "collection.json").is_file():
             parser.error(f"{dataset_id} is not published (no catalog/<source>/{dataset_id}/collection.json)")
         _check_recipe(dataset_id)
+        if args.crop_names_from is not None:
+            edition = harmonized_edition(dataset_id, args.crop_names_from)
+            if not edition.is_file():
+                parser.error(f"{dataset_id}: no harmonized edition at {edition}")
     from ftw_dataset_tools.api.source import installed_git_commit
 
     if installed_git_commit() is None and not args.allow_uncommitted_ftwd:
         parser.error("ftwd is not installed from a git commit, so the collections could not "
                      "record which ftwd added the columns (--allow-uncommitted-ftwd to test)")
+    from ftw_dataset_tools.api.crop_names import CropNameError
+
+    refused = []
     for dataset_id in args.dataset_ids:
-        backfill_dataset(
-            dataset_id, workers=args.workers, manifest=manifest, read_flat=args.read_flat
-        )
+        try:
+            backfill_dataset(
+                dataset_id,
+                workers=args.workers,
+                manifest=manifest,
+                read_flat=args.read_flat,
+                crop_names_from=args.crop_names_from,
+                crop_names_by=args.crop_names_by or "id",
+            )
+        except CropNameError as err:
+            print(f"{dataset_id}: crop names refused, skipped (staging/{dataset_id} left as "
+                  f"fetched): {err}", file=sys.stderr, flush=True)
+            refused.append(dataset_id)
+            continue
         if enable_recipe_steps(ROOT / "datasets" / f"{dataset_id}.yaml"):
             print(f"{dataset_id}: turned on {', '.join(RECIPE_STEPS)} in its recipe", flush=True)
+    if refused:
+        print(f"crop names refused for {len(refused)} dataset(s): {', '.join(refused)}",
+              file=sys.stderr, flush=True)
+        return 1
     return 0
 
 
