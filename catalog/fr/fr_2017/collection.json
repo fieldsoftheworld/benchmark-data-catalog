@@ -920,7 +920,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-15T17:30:54Z",
+  "updated": "2026-11-19T04:32:42Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -1425,11 +1425,16 @@
       {
         "steps": [
           "admin_names",
-          "field_embeddings"
+          "field_embeddings",
+          "crop_names"
         ],
+        "crop_names": {
+          "source": "fr/year=2017/fr-2017.parquet",
+          "by": "id"
+        },
         "ftwd_version": "0.1.0",
-        "ftwd_git_commit": "ddf06f29477deb77415f34e84187fa35873c4814",
-        "generated_at": "2026-11-15T17:20:20.543309+00:00"
+        "ftwd_git_commit": "78d22d930e519554490de8c77bbad97b7c767af8",
+        "generated_at": "2026-11-19T04:17:56.485197+00:00"
       }
     ]
   },
@@ -1498,7 +1503,7 @@
       "href": "./fr_2017_fields.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field boundary polygons",
-      "file:size": 3189790271,
+      "file:size": 3353734353,
       "table:columns": [
         {
           "name": "metrics:area",
@@ -1514,6 +1519,10 @@
         },
         {
           "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
           "type": "varchar"
         },
         {
@@ -1550,7 +1559,7 @@
       "href": "./fr_2017_fields_filtered.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field polygons after the class filter",
-      "file:size": 2781995208,
+      "file:size": 2911426635,
       "table:columns": [
         {
           "name": "metrics:area",
@@ -1566,6 +1575,10 @@
         },
         {
           "name": "crop:code",
+          "type": "varchar"
+        },
+        {
+          "name": "crop:name",
           "type": "varchar"
         },
         {
