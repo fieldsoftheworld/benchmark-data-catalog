@@ -30,9 +30,12 @@ es_2025 and es_po_2025 can only be named by code: their merge rewrote the ids (a
 regional gap parcels have no crop:code, so they stay unnamed).
 
 The field assets' size, checksum and columns are always read from the staged files,
-so the collection describes the files that will be uploaded either way. A dataset whose
-names are refused is reported and skipped; the run carries on with the others and
-exits 1.
+so the collection describes the files that will be uploaded either way. A run without
+the option keeps the earlier run's crop-names record while the fetched field files
+still carry crop:name. The names are joined first, into temp files that replace the
+field files only when every join succeeded, so a dataset whose names are refused is
+left as fetched (as published): it is reported and skipped, and the run carries on
+with the others and exits 1.
 
 The bucket is read at ``<source>/<id>/``; ``--read-flat`` reads the old flat
 ``<id>/`` instead, for the pass that moves a dataset into its source group.
@@ -380,16 +383,45 @@ def field_files(doc: dict, root: Path) -> dict[str, Path]:
     }
 
 
+def _named_path(path: Path) -> Path:
+    return path.with_name(f".{path.name}.named")
+
+
 def add_crop_names(
     dataset_id: str, files: dict[str, Path], source: Path, by: str = "id"
 ) -> None:
-    """Join the crop names onto the dataset's field files."""
+    """Join the crop names onto the dataset's field files, all of them or none.
+
+    Each file is joined into a temp file first; the field files are replaced only
+    once every join has succeeded.
+    """
     from ftw_dataset_tools.api import crop_names
 
-    for key, path in files.items():
-        result = crop_names.add_crop_names(path, source, by=by)
-        print(f"{dataset_id}: {key}: {', '.join(result.columns)} on {result.named:,} of "
-              f"{result.rows:,} fields{'' if result.changed else ' (unchanged)'}", flush=True)
+    try:
+        for key, path in files.items():
+            result = crop_names.add_crop_names(path, source, _named_path(path), by=by)
+            print(f"{dataset_id}: {key}: {', '.join(result.columns)} on {result.named:,} of "
+                  f"{result.rows:,} fields{'' if result.changed else ' (unchanged)'}", flush=True)
+        for path in files.values():
+            _named_path(path).replace(path)
+    finally:
+        for path in files.values():
+            _named_path(path).unlink(missing_ok=True)
+
+
+def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
+    """The crop-names record of the last backfill, while the field files still have names."""
+    import pyarrow.parquet as pq
+
+    from ftw_dataset_tools.api.backfill import BACKFILL_KEY
+
+    runs = (doc.get("ftw:config") or {}).get(BACKFILL_KEY) or []
+    earlier = runs[-1].get("crop_names") if runs else None
+    if not earlier or not files:
+        return None
+    if all("crop:name" in pq.read_schema(path).names for path in files.values()):
+        return earlier
+    return None
 
 
 def backfill_dataset(
@@ -418,15 +450,8 @@ def backfill_dataset(
     embeddings = root / f"{dataset_id}_field_embeddings.parquet"
     print(f"{dataset_id}: fetched {fetched:,} file(s)", flush=True)
 
-    admin_names.add_admin_names(chips)
-    if field_embeddings.is_current(embeddings, fields, year=year):
-        print(f"{dataset_id}: keeping {embeddings.name}", flush=True)
-    else:
-        result = field_embeddings.add_field_embeddings(fields, embeddings, year=year, workers=workers)
-        print(f"{dataset_id}: {field_embeddings.field_embeddings_summary(result)}", flush=True)
-
+    # First, so a refusal leaves staging as fetched (as published).
     files = field_files(doc, root)
-    crop_names = None
     if crop_names_from is not None:
         source = harmonized_edition(dataset_id, crop_names_from)
         add_crop_names(dataset_id, files, source, crop_names_by)
@@ -434,6 +459,15 @@ def backfill_dataset(
             "source": source.relative_to(crop_names_from).as_posix(),
             "by": crop_names_by,
         }
+    else:
+        crop_names = earlier_crop_names(doc, files)
+
+    admin_names.add_admin_names(chips)
+    if field_embeddings.is_current(embeddings, fields, year=year):
+        print(f"{dataset_id}: keeping {embeddings.name}", flush=True)
+    else:
+        result = field_embeddings.add_field_embeddings(fields, embeddings, year=year, workers=workers)
+        print(f"{dataset_id}: {field_embeddings.field_embeddings_summary(result)}", flush=True)
 
     changed, items = update_items(root, chips, year)
     print(f"{dataset_id}: admin names on {changed:,} of {items:,} chip items changed", flush=True)
@@ -510,7 +544,8 @@ def main(argv: list[str] | None = None) -> int:
                 crop_names_by=args.crop_names_by or "id",
             )
         except CropNameError as err:
-            print(f"{dataset_id}: crop names refused, skipped: {err}", file=sys.stderr, flush=True)
+            print(f"{dataset_id}: crop names refused, skipped (staging/{dataset_id} left as "
+                  f"fetched): {err}", file=sys.stderr, flush=True)
             refused.append(dataset_id)
             continue
         if enable_recipe_steps(ROOT / "datasets" / f"{dataset_id}.yaml"):

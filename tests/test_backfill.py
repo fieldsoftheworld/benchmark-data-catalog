@@ -292,8 +292,18 @@ tracking.row = _saved_row
 import types  # noqa: E402
 
 calls = []
-fake = types.SimpleNamespace(add_crop_names=lambda path, source, by="id": calls.append((
-    path.name, by)) or types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=True))
+fail_on = set()
+
+
+def _fake_join(path, source, output, by="id"):
+    calls.append((path.name, by))
+    if path.name in fail_on:
+        raise ValueError(f"refused {path.name}")
+    output.write_text(f"named {path.read_text()}")
+    return types.SimpleNamespace(columns=("crop:name",), named=1, rows=1, changed=True)
+
+
+fake = types.SimpleNamespace(add_crop_names=_fake_join)
 _saved_module = sys.modules.get("ftw_dataset_tools.api.crop_names")
 sys.modules["ftw_dataset_tools.api.crop_names"] = fake
 import ftw_dataset_tools.api as _api  # noqa: E402
@@ -307,12 +317,34 @@ try:
           f"both field files are staged by asset key: {files}")
     check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
           == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
-    backfill.add_crop_names("fr_2024", files, Path("/s.parquet"), "code")
-    check(calls == [("f.parquet", "code"), ("ff.parquet", "code")],
-          f"both field files are joined by the given key: {calls}")
-    calls.clear()
-    backfill.add_crop_names("fr_2022", {"fields": Path("/d/f.parquet")}, Path("/s.parquet"))
-    check(calls == [("f.parquet", "id")], "the join is by id unless told otherwise")
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        files = {"fields": d / "f.parquet", "fields_filtered": d / "ff.parquet"}
+        for path in files.values():
+            path.write_text(path.stem)
+        backfill.add_crop_names("fr_2024", files, Path("/s.parquet"), "code")
+        check(calls == [("f.parquet", "code"), ("ff.parquet", "code")],
+              f"both field files are joined by the given key: {calls}")
+        check([p.read_text() for p in files.values()] == ["named f", "named ff"],
+              "both field files are replaced once both joins succeed")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "no temp file is left")
+
+        calls.clear()
+        for path in files.values():
+            path.write_text(path.stem)
+        fail_on.add("ff.parquet")
+        try:
+            backfill.add_crop_names("fr_2022", files, Path("/s.parquet"))
+            check(False, "a refused join is raised")
+        except ValueError:
+            pass
+        fail_on.clear()
+        check(calls == [("f.parquet", "id"), ("ff.parquet", "id")], "the join is by id by default")
+        check([p.read_text() for p in files.values()] == ["f", "ff"],
+              "a refusal on fields_filtered leaves fields as it was too")
+        check(sorted(p.name for p in d.iterdir()) == ["f.parquet", "ff.parquet"],
+              "a refusal leaves no temp file")
 finally:
     if _saved_module is None:
         sys.modules.pop("ftw_dataset_tools.api.crop_names", None)
@@ -322,6 +354,34 @@ finally:
         delattr(_api, "crop_names")
     else:
         _api.crop_names = _saved_attr
+
+# --- a run without --crop-names-from keeps the earlier crop-names record -----------
+import geopandas as gpd  # noqa: E402
+from shapely.geometry import box  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    named, unnamed = Path(tmp) / "named.parquet", Path(tmp) / "unnamed.parquet"
+    gpd.GeoDataFrame({"id": ["a"], "crop:name": ["Weizen"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(named)
+    gpd.GeoDataFrame({"id": ["a"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(unnamed)
+    record = {"source": "fr/year=2024/fr-2024.parquet", "by": "code"}
+    doc = {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": record}]}}
+    check(backfill.earlier_crop_names(doc, {"fields": named}) == record,
+          "the earlier record is kept while the fields still have names")
+    check(backfill.earlier_crop_names(doc, {"fields": named, "fields_filtered": unnamed}) is None,
+          "not when a field file has lost them")
+    check(backfill.earlier_crop_names({"ftw:config": {}}, {"fields": named}) is None,
+          "names from the build itself have no record to keep")
+
+# --- the call into ftwd matches the installed ftwd -----------------------------------
+import inspect  # noqa: E402
+
+from ftw_dataset_tools.api import backfill as ftwd_backfill  # noqa: E402
+
+_params = inspect.signature(ftwd_backfill.update_collection).parameters
+check({"field_files", "crop_names"} <= set(_params),
+      f"the pinned ftwd's update_collection takes field_files and crop_names: {list(_params)}")
 
 # --- which flag combinations are refused, and refusals skip one dataset -------------
 import contextlib  # noqa: E402
