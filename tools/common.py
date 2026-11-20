@@ -37,6 +37,44 @@ PORTOLAN_SCHEMA_RE = re.compile(
     r"https://schemas\.portolan-sdi\.org/portolan/v\d+\.\d+\.\d+/schema\.json"
 )
 
+# The Portolan profile version this catalog is migrated to and generates
+# against (PORTO-CORE-006: every catalog and collection MUST declare the
+# versioned schema URI). ftw_dataset_tools.api.stac.PORTOLAN_SCHEMA_URI tracks
+# whatever version is bundled with the pinned ftwd commit (v0.1.2 as of the
+# pin in pyproject.toml) — its own Portolan conformance work is still an open
+# PR there (see the pyproject.toml comment on the pin), so this repo cannot
+# just import its constant and get v0.3.0. Pinning the target version here,
+# the way the skill's reference generators do, makes the choice explicit and
+# lets catalogize.py overrule whatever older URI ftwd/an older catalogize run
+# wrote. Bump this when the catalog's target spec version changes, and bump
+# ftwd's pin (and drop this override) once its own PR lands.
+PORTOLAN_SCHEMA_URI = "https://schemas.portolan-sdi.org/portolan/v0.3.0/schema.json"
+
+
+def canonicalize_portolan_schema(doc: dict) -> bool:
+    """Replace any declared Portolan schema URI in ``doc`` with ``PORTOLAN_SCHEMA_URI``.
+
+    Only replaces an existing entry (whatever version ftwd or an older
+    catalogize run stamped); never adds a declaration to an object that
+    carries none. Whether a chip sub-catalog
+    (``catalog/<source>/<id>/chips/<square>/catalog.json``) declares the
+    Portolan extension at all varies by the ftwd version that built it
+    (verified: every one of fi's lacks it, every one of wri_trazo_ml's has
+    it); rashid 0.4.0 reports no finding either way (PORTO-CORE-006 says
+    every catalog MUST declare it, but the validator does not check
+    intermediate browsing sub-catalogs at that granularity today — see
+    docs/conformance.md). Returns whether anything changed, so a caller can
+    skip a rewrite.
+    """
+    extensions = doc.get("stac_extensions")
+    if not isinstance(extensions, list):
+        return False
+    changed = False
+    for i, entry in enumerate(extensions):
+        if isinstance(entry, str) and PORTOLAN_SCHEMA_RE.fullmatch(entry) and entry != PORTOLAN_SCHEMA_URI:
+            extensions[i] = PORTOLAN_SCHEMA_URI
+            changed = True
+    return changed
 
 def public_url(rel: str) -> str:
     """The public URL for ``rel``, joined onto ``public_base``."""
