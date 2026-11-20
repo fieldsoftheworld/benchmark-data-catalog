@@ -43,8 +43,7 @@ check(not backfill.wanted("chips/33UXP/README.md", top), "sub-catalog docs are n
 check(backfill.wanted("ds_chips.parquet", top), "the chips file is read")
 check(not backfill.wanted("ds_boundary_lines.parquet", top), "boundary lines are not")
 check(backfill.wanted("ds_boundary_lines.parquet", top | {"ds_boundary_lines.parquet"}),
-      "boundary lines are, when the collection lists them")
-check("boundary_lines" in backfill._TOP_LEVEL_ASSETS, "boundary lines are a top-level asset")
+      "boundary lines are, when asked for")
 check(not backfill.wanted("fields.pmtiles", top), "tiles are not")
 check(not backfill.wanted("styles/ds_chips.parquet", top), "only top-level files match by name")
 
@@ -97,6 +96,7 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog, staging = base / "catalog", base / "staging"
     collection = {"id": "ds", "assets": {
         "chips": {"href": "./ds_chips.parquet"}, "fields": {"href": "./ds_fields.parquet"},
+        "boundary_lines": {"href": "./ds_boundary_lines.parquet"},
     }}
     (catalog / "g" / "ds").mkdir(parents=True)
     (catalog / "g" / "ds" / "collection.json").write_text(json.dumps(collection))
@@ -118,7 +118,7 @@ with tempfile.TemporaryDirectory() as tmp:
     backfill._client = lambda: client
     fetched = backfill.fetch("ds", staging=staging, catalog=catalog)
     check(sorted(client.downloaded) == [pre + "chips/S/c/c.json", pre + "ds_chips.parquet"],
-          f"fetch downloads the stale files it reads, got {client.downloaded}")
+          f"fetch downloads the stale files it reads, not the boundary lines: {client.downloaded}")
     check(fetched == 2, f"fetch reports two files, got {fetched}")
     check(json.loads((staging / "ds" / "collection.json").read_text()) == collection,
           "fetch takes collection.json from catalog/<source>/<id>/")
@@ -129,6 +129,10 @@ with tempfile.TemporaryDirectory() as tmp:
           f"read_flat reads the old flat <id>/ folder, got {client.downloaded}")
     (staging / "ds" / "chips/S/c/c.json").unlink()
     backfill.fetch("ds", staging=staging, catalog=catalog)
+    client.downloaded.clear()
+    backfill.fetch("ds", staging=staging, catalog=catalog, boundary_lines=True)
+    check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
+          f"boundary_lines=True reads the boundary lines too, got {client.downloaded}")
     del objects[pre + "ds_fields.parquet"]
     try:
         backfill.fetch("ds", staging=staging, catalog=catalog)
@@ -320,9 +324,12 @@ try:
                       "boundary_lines": {"href": "./bl.parquet"},
                       "fields_tiles": {"href": "./fields.pmtiles"}}}
     files = backfill.field_files(doc, Path("/d"))
+    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet")},
+          f"the field polygons are staged by asset key: {files}")
+    files = backfill.field_files(doc, Path("/d"), backfill.FIELD_ASSETS)
     check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet"),
                     "boundary_lines": Path("/d/bl.parquet")},
-          f"every field file is staged by asset key, and nothing else: {files}")
+          f"to name them, the boundary lines too, and no tiles: {files}")
     check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
           == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
     with tempfile.TemporaryDirectory() as tmp:
@@ -392,6 +399,14 @@ with tempfile.TemporaryDirectory() as tmp:
           "not when a field file has lost them")
     check(backfill.earlier_crop_names({"ftw:config": {}}, {"fields": named}) is None,
           "names from the build itself have no record to keep")
+    staged = {"fields": named, "fields_filtered": named, "boundary_lines": unnamed}
+    polygons = {k: v for k, v in staged.items() if k in backfill.POLYGON_ASSETS}
+    check(backfill.earlier_crop_names(doc, polygons) == record,
+          "boundary lines named by no run yet do not drop the record")
+
+check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
+      == {"source": f"{backfill.HARMONIZED}/pt/year=2023/pt-2023.parquet", "by": "id"},
+      "the record gives the edition's published URL")
 
 # --- the call into ftwd matches the installed ftwd -----------------------------------
 import inspect  # noqa: E402

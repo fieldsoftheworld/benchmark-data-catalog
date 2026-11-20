@@ -17,11 +17,12 @@ state without rebuilding it, working in ``staging/<id>/``:
 
 ``--crop-names-from <dir>`` also joins ``crop:name`` (and ``crop:name_en``) onto the
 fields, fields_filtered and boundary_lines files from the harmonized edition the
-dataset was built from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
-harmonized catalog's staging, rebuilt with names). The join is by field id and refuses
-any field whose crop:code differs there (ftwd ``api.crop_names``). Give the option on
-every later run too: each run fetches the published field files again, and the backfill
-record lists the steps of the latest run.
+dataset was built from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet``
+(the harmonized catalog's staging, rebuilt with names; the record gives the edition's
+published URL). The join is by field id and refuses any field whose crop:code differs
+there (ftwd ``api.crop_names``). Give the option on every later run too: each run
+fetches the published field files again, and the backfill record lists the steps of the
+latest run.
 ``--crop-names-by code`` names each field from its crop code instead, for an edition
 named from a code table whose ids no longer match the benchmark's (fr_2024: IGN
 replaced RPG 3.0 with RPG 4.0); it refuses a code with more than one name, and it takes
@@ -31,8 +32,9 @@ regional gap parcels have no crop:code, so they stay unnamed).
 
 The field assets' size, checksum and columns are always read from the staged files,
 so the collection describes the files that will be uploaded either way. A run without
-the option keeps the earlier run's crop-names record while the fetched field files
-still carry crop:name. The names are joined first, into temp files that replace the
+the option reads neither the boundary lines (they stay as published) nor any edition,
+and keeps the earlier run's crop-names record while the fetched fields and
+fields_filtered still carry crop:name. The names are joined first, into temp files that replace the
 field files only when every join succeeded, so a dataset whose names are refused is
 left as fetched (as published): it is reported and skipped, and the run carries on
 with the others and exits 1.
@@ -81,10 +83,14 @@ FETCH_ATTEMPTS = 4
 # ones are a single GET, which costs far less per object.
 SMALL_OBJECT_BYTES = 8 * 1024 * 1024
 
-# Top-level files the backfill reads. Everything under chips/ that is JSON is read too.
-_TOP_LEVEL_ASSETS = ("chips", "fields", "fields_filtered", "boundary_lines")
-# The files that carry each field's crop columns, so its crop names.
-FIELD_ASSETS = ("fields", "fields_filtered", "boundary_lines")
+# The field polygons: read and refreshed by every run, with the chips file. Everything
+# under chips/ that is JSON is read too.
+POLYGON_ASSETS = ("fields", "fields_filtered")
+# Every file that carries the fields' crop columns. The boundary lines are read only to
+# join crop names into them; they are as large as the fields, so not otherwise.
+FIELD_ASSETS = (*POLYGON_ASSETS, "boundary_lines")
+# Where the harmonized editions are published, for the crop-names record.
+HARMONIZED = "https://data.source.coop/ftw/harmonized-field-data"
 # Read when published, so a rerun keeps it instead of recomputing hours of embeddings.
 _OPTIONAL_ASSETS = ("field_embeddings",)
 # Files the backfill writes itself, so they may differ from the bucket or be new.
@@ -219,15 +225,22 @@ def check_staging(
 
 
 def fetch(
-    dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG, read_flat: bool = False
+    dataset_id: str,
+    *,
+    staging: Path = STAGING,
+    catalog: Path = CATALOG,
+    read_flat: bool = False,
+    boundary_lines: bool = False,
 ) -> int:
     """Make ``staging/<id>`` hold what the backfill reads, as published. Returns files fetched.
 
     Reads ``<prefix>/<source>/<id>/``, or the old flat ``<prefix>/<id>/`` with ``read_flat``.
+    ``boundary_lines`` reads the boundary lines too, to name them.
     """
     catalog_dir = dataset_dir(dataset_id, catalog=catalog)
     doc = read_json(catalog_dir / "collection.json")
-    top_level = _asset_names(doc, _TOP_LEVEL_ASSETS)
+    keys = FIELD_ASSETS if boundary_lines else POLYGON_ASSETS
+    top_level = _asset_names(doc, ("chips", *keys))
     client = _client()
     remote_rel = dataset_id if read_flat else dataset_relpath(dataset_id, catalog=catalog)
     listing = _listing(client, remote_rel)
@@ -376,11 +389,13 @@ def harmonized_edition(dataset_id: str, harmonized_staging: Path) -> Path:
     )
 
 
-def field_files(doc: dict, root: Path) -> dict[str, Path]:
+def field_files(
+    doc: dict, root: Path, keys: tuple[str, ...] = POLYGON_ASSETS
+) -> dict[str, Path]:
     """The dataset's staged field files, by asset key."""
     return {
         key: root / str(doc["assets"][key]["href"]).removeprefix("./")
-        for key in FIELD_ASSETS
+        for key in keys
         if key in doc["assets"]
     }
 
@@ -415,8 +430,17 @@ def add_crop_names(
             _named_path(path).unlink(missing_ok=True)
 
 
+def crop_names_record(source: Path, crop_names_from: Path, by: str) -> dict:
+    """The crop-names record: the edition's published URL, and what the join was by."""
+    return {"source": f"{HARMONIZED}/{source.relative_to(crop_names_from).as_posix()}", "by": by}
+
+
 def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
-    """The crop-names record of the last backfill, while the field files still have names."""
+    """The crop-names record of the last backfill, while the field files still have names.
+
+    ``files`` are the field polygons: datasets named before the boundary lines were have
+    names in those only.
+    """
     import pyarrow.parquet as pq
 
     from ftw_dataset_tools.api.backfill import BACKFILL_KEY
@@ -446,7 +470,8 @@ def backfill_dataset(
     from ftw_dataset_tools.api import admin_names, backfill, field_embeddings
 
     start = time.monotonic()
-    fetched = fetch(dataset_id, staging=staging, read_flat=read_flat)
+    naming = crop_names_from is not None
+    fetched = fetch(dataset_id, staging=staging, read_flat=read_flat, boundary_lines=naming)
     root = staging / dataset_id
     collection_path = root / "collection.json"
     doc = read_json(collection_path)
@@ -457,14 +482,11 @@ def backfill_dataset(
     print(f"{dataset_id}: fetched {fetched:,} file(s)", flush=True)
 
     # First, so a refusal leaves staging as fetched (as published).
-    files = field_files(doc, root)
-    if crop_names_from is not None:
+    files = field_files(doc, root, FIELD_ASSETS if naming else POLYGON_ASSETS)
+    if naming:
         source = harmonized_edition(dataset_id, crop_names_from)
         add_crop_names(dataset_id, files, source, crop_names_by)
-        crop_names = {
-            "source": source.relative_to(crop_names_from).as_posix(),
-            "by": crop_names_by,
-        }
+        crop_names = crop_names_record(source, crop_names_from, crop_names_by)
     else:
         crop_names = earlier_crop_names(doc, files)
 
