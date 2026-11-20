@@ -1026,7 +1026,15 @@ with tempfile.TemporaryDirectory() as tmp:
     collection3 = json.loads((be_wal_2022_dir / "collection.json").read_text())
     check(
         collection3.get("assets", {}).get("thumbnail")
-        == {"href": "./thumbnail.webp", "type": "image/webp", "roles": ["thumbnail"], "title": "Thumbnail"},
+        == {
+            "href": "./thumbnail.webp",
+            "type": "image/webp",
+            "roles": ["thumbnail"],
+            "title": "Thumbnail",
+            # fill_asset_descriptions (PORTO-CORE-088) fills the one field this
+            # fixture's hand-added asset was missing; everything else survives.
+            "description": "Preview image of the collection rendered with its default map style.",
+        },
         f"a thumbnail asset added to the catalog copy survives catalogize() rerunning, "
         f"got {collection3.get('assets', {}).get('thumbnail')}",
     )
