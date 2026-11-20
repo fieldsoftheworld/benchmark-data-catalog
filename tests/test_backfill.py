@@ -447,6 +447,20 @@ with tempfile.TemporaryDirectory() as tmp:
     why = backfill.unpublished_edition(edition, h, _HeadClient({}))
     check(why is not None and "cannot be read" in why, f"a missing one is refused: {why}")
 
+with tempfile.TemporaryDirectory() as tmp:
+    big = Path(tmp) / "big.bin"
+    big.write_bytes(bytes(range(256)) * (70 * 4096))  # 70 MiB: two 64 MiB parts
+    etag = backfill.multipart_etag(big, 64 << 20)
+    check(etag.endswith("-2"), f"a 70 MiB file is two 64 MiB parts: {etag}")
+    remote = backfill.Remote("k", big.stat().st_size, etag)
+    check(backfill.same_bytes(big, remote), "the multipart ETag of the same bytes matches")
+    other = Path(tmp) / "other.bin"
+    other.write_bytes(b"\xff" + big.read_bytes()[1:])
+    check(not backfill.same_bytes(other, remote),
+          "a file of the same size with other bytes does not")
+    check(not backfill.same_bytes(big, backfill.Remote("k", big.stat().st_size, "0" * 32 + "-3")),
+          "nor does a part count no known part size gives")
+
 check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
       == {"source": f"{backfill.HARMONIZED}/pt/year=2023/pt-2023.parquet", "by": "id"},
       "the record gives the edition's published URL")
@@ -507,6 +521,34 @@ with tempfile.TemporaryDirectory() as tmp:
         check("bad: crop names refused" in err.getvalue(), "the refusal is reported briefly")
     finally:
         (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+         build._check_recipe, common.load_manifest) = saved
+
+# main refuses a naming run whose edition is not the published one
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    saved = (backfill.dataset_dir, backfill.harmonized_edition, backfill.unpublished_edition,
+             build._check_recipe, common.load_manifest)
+    published = h / "published"
+    published.mkdir()
+    (published / "collection.json").write_text("{}")
+    edition = h / "pt" / "year=2021" / "pt-2021.parquet"
+    edition.parent.mkdir(parents=True)
+    edition.write_bytes(b"local rebuild")
+    backfill.dataset_dir = lambda dataset_id: published
+    backfill.harmonized_edition = lambda dataset_id, root: edition
+    backfill.unpublished_edition = lambda path, root: "it differs; upload it first"
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    try:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            backfill.main(["pt_2021", "--crop-names-from", str(h)])
+        check(False, "an unpublished edition stops the run")
+    except SystemExit as stop:
+        check(stop.code == 2 and "upload it first" in err.getvalue(),
+              f"an unpublished edition is a usage error naming why: {stop.code} {err.getvalue()!r}")
+    finally:
+        (backfill.dataset_dir, backfill.harmonized_edition, backfill.unpublished_edition,
          build._check_recipe, common.load_manifest) = saved
 
 if errors:

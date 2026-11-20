@@ -34,8 +34,8 @@ The field assets' size, checksum and columns are always read from the staged fil
 so the collection describes the files that will be uploaded either way. A run without
 the option reads neither the boundary lines (they stay as published) nor any edition,
 and keeps the earlier run's crop-names record while the fetched fields and
-fields_filtered still carry crop:name. The names are joined first, into temp files that replace the
-field files only when every join succeeded, so a dataset whose names are refused is
+fields_filtered still carry crop:name. The names are joined first, into temp files that
+replace the field files only when every join succeeded, so a dataset whose names are refused is
 left as fetched (as published): it is reported and skipped, and the run carries on
 with the others and exits 1.
 
@@ -187,6 +187,31 @@ def _download(client, remote: Remote, path: Path) -> None:
 def _asset_names(doc: dict, keys: tuple[str, ...]) -> set[str]:
     assets = doc.get("assets", {})
     return {str(assets[key]["href"]).removeprefix("./") for key in keys if key in assets}
+
+
+# Part sizes the catalogs' uploaders use (64 MiB), then boto3's and the AWS CLI's default.
+_PART_SIZES = (64 << 20, 16 << 20, 8 << 20)
+
+
+def multipart_etag(path: Path, part_size: int) -> str:
+    """The ETag S3 gives ``path`` uploaded in ``part_size`` parts: md5 of the parts' md5s."""
+    digests = []
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(part_size), b""):
+            digests.append(hashlib.md5(block).digest())  # noqa: S324 - S3's ETag, not security
+    joined = hashlib.md5(b"".join(digests)).hexdigest()  # noqa: S324
+    return f"{joined}-{len(digests)}"
+
+
+def same_bytes(path: Path, remote: Remote) -> bool:
+    """Whether ``path`` holds the published object's bytes, multipart uploads included."""
+    if not path.is_file() or path.stat().st_size != remote.size:
+        return False
+    if "-" not in remote.etag:
+        return _md5(path) == remote.etag
+    parts = int(remote.etag.rsplit("-", 1)[1])
+    sizes = [size for size in _PART_SIZES if -(-remote.size // size) == parts]
+    return any(multipart_etag(path, size) == remote.etag for size in sizes)
 
 
 def check_staging(
@@ -453,7 +478,7 @@ def unpublished_edition(edition: Path, crop_names_from: Path, client=None) -> st
     except Exception as err:  # noqa: BLE001 - botocore's ClientError, imported lazily
         return f"{HARMONIZED}/{rel} cannot be read ({err})"
     remote = Remote(key, head["ContentLength"], head["ETag"].strip('"'))
-    if not is_current(edition, remote):
+    if not same_bytes(edition, remote):
         return f"{edition} differs from the published {HARMONIZED}/{rel}; upload it first"
     return None
 
@@ -477,7 +502,7 @@ def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
     source = earlier.get("source")
     # Records written before they named the published URL give the path under it.
     if source and "://" not in source:
-        return {**earlier, "source": f"{HARMONIZED}/{source}"}
+        return {**earlier, "source": f"{HARMONIZED}/{source.lstrip('/')}"}
     return earlier
 
 
