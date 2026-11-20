@@ -42,6 +42,8 @@ check(not backfill.wanted("chips/33UXP/c_2024/c_2024_q1_image_s2.tif", top), "ra
 check(not backfill.wanted("chips/33UXP/README.md", top), "sub-catalog docs are not")
 check(backfill.wanted("ds_chips.parquet", top), "the chips file is read")
 check(not backfill.wanted("ds_boundary_lines.parquet", top), "boundary lines are not")
+check(backfill.wanted("ds_boundary_lines.parquet", top | {"ds_boundary_lines.parquet"}),
+      "boundary lines are, when asked for")
 check(not backfill.wanted("fields.pmtiles", top), "tiles are not")
 check(not backfill.wanted("styles/ds_chips.parquet", top), "only top-level files match by name")
 
@@ -94,6 +96,7 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog, staging = base / "catalog", base / "staging"
     collection = {"id": "ds", "assets": {
         "chips": {"href": "./ds_chips.parquet"}, "fields": {"href": "./ds_fields.parquet"},
+        "boundary_lines": {"href": "./ds_boundary_lines.parquet"},
     }}
     (catalog / "g" / "ds").mkdir(parents=True)
     (catalog / "g" / "ds" / "collection.json").write_text(json.dumps(collection))
@@ -115,7 +118,7 @@ with tempfile.TemporaryDirectory() as tmp:
     backfill._client = lambda: client
     fetched = backfill.fetch("ds", staging=staging, catalog=catalog)
     check(sorted(client.downloaded) == [pre + "chips/S/c/c.json", pre + "ds_chips.parquet"],
-          f"fetch downloads the stale files it reads, got {client.downloaded}")
+          f"fetch downloads the stale files it reads, not the boundary lines: {client.downloaded}")
     check(fetched == 2, f"fetch reports two files, got {fetched}")
     check(json.loads((staging / "ds" / "collection.json").read_text()) == collection,
           "fetch takes collection.json from catalog/<source>/<id>/")
@@ -126,6 +129,17 @@ with tempfile.TemporaryDirectory() as tmp:
           f"read_flat reads the old flat <id>/ folder, got {client.downloaded}")
     (staging / "ds" / "chips/S/c/c.json").unlink()
     backfill.fetch("ds", staging=staging, catalog=catalog)
+    client.downloaded.clear()
+    backfill.fetch("ds", staging=staging, catalog=catalog, boundary_lines=True)
+    check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
+          f"boundary_lines=True reads the boundary lines too, got {client.downloaded}")
+    client.downloaded.clear()
+    (staging / "ds" / "ds_boundary_lines.parquet").write_bytes(b"named, never uploaded")
+    backfill.fetch("ds", staging=staging, catalog=catalog)
+    check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
+          f"staged lines a naming run left go back to the published copy: {client.downloaded}")
+    check((staging / "ds" / "ds_boundary_lines.parquet").read_bytes() == b"lines",
+          "and hold the published bytes")
     del objects[pre + "ds_fields.parquet"]
     try:
         backfill.fetch("ds", staging=staging, catalog=catalog)
@@ -313,10 +327,16 @@ import ftw_dataset_tools.api as _api  # noqa: E402
 _saved_attr = getattr(_api, "crop_names", None)
 _api.crop_names = fake
 try:
-    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"}}}
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"},
+                      "boundary_lines": {"href": "./bl.parquet"},
+                      "fields_tiles": {"href": "./fields.pmtiles"}}}
     files = backfill.field_files(doc, Path("/d"))
     check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet")},
-          f"both field files are staged by asset key: {files}")
+          f"the field polygons are staged by asset key: {files}")
+    files = backfill.field_files(doc, Path("/d"), backfill.FIELD_ASSETS)
+    check(files == {"fields": Path("/d/f.parquet"), "fields_filtered": Path("/d/ff.parquet"),
+                    "boundary_lines": Path("/d/bl.parquet")},
+          f"to name them, the boundary lines too, and no tiles: {files}")
     check(backfill.field_files({"assets": {"fields": {"href": "f.parquet"}}}, Path("/d"))
           == {"fields": Path("/d/f.parquet")}, "a dataset without fields_filtered has one file")
     with tempfile.TemporaryDirectory() as tmp:
@@ -378,7 +398,7 @@ with tempfile.TemporaryDirectory() as tmp:
                      crs="EPSG:4326").to_parquet(named)
     gpd.GeoDataFrame({"id": ["a"]}, geometry=[box(0, 0, 1, 1)],
                      crs="EPSG:4326").to_parquet(unnamed)
-    record = {"source": "fr/year=2024/fr-2024.parquet", "by": "code"}
+    record = {"source": f"{backfill.HARMONIZED}/fr/year=2024/fr-2024.parquet", "by": "code"}
     doc = {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": record}]}}
     check(backfill.earlier_crop_names(doc, {"fields": named}) == record,
           "the earlier record is kept while the fields still have names")
@@ -386,6 +406,81 @@ with tempfile.TemporaryDirectory() as tmp:
           "not when a field file has lost them")
     check(backfill.earlier_crop_names({"ftw:config": {}}, {"fields": named}) is None,
           "names from the build itself have no record to keep")
+    staged = {"fields": named, "fields_filtered": named, "boundary_lines": unnamed}
+    polygons = {k: v for k, v in staged.items() if k in backfill.POLYGON_ASSETS}
+    check(backfill.earlier_crop_names(doc, polygons) == record,
+          "boundary lines named by no run yet do not drop the record")
+
+old = {"source": "se/year=2023/se-2023.parquet", "by": "id"}
+with tempfile.TemporaryDirectory() as tmp:
+    named = Path(tmp) / "named.parquet"
+    gpd.GeoDataFrame({"id": ["a"], "crop:name": ["Vete"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(named)
+    kept = backfill.earlier_crop_names(
+        {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": old}]}},
+        {"fields": named})
+    check(kept == {"source": f"{backfill.HARMONIZED}/se/year=2023/se-2023.parquet", "by": "id"},
+          f"a record from before the URL gets the published URL: {kept}")
+
+
+class _HeadClient:
+    def __init__(self, objects):
+        self.objects = objects
+
+    def head_object(self, Bucket, Key):  # noqa: N803 - boto3's names
+        if Key not in self.objects:
+            raise RuntimeError("404 Not Found")
+        body = self.objects[Key]
+        return {"ContentLength": len(body), "ETag": f'"{hashlib.md5(body).hexdigest()}"'}
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    edition = h / "pt" / "year=2021" / "pt-2021.parquet"
+    edition.parent.mkdir(parents=True)
+    edition.write_bytes(b"rebuilt edition")
+    key = f"{backfill.HARMONIZED_PREFIX}/pt/year=2021/pt-2021.parquet"
+    check(backfill.unpublished_edition(edition, h, _HeadClient({key: b"rebuilt edition"})) is None,
+          "the published edition is the local one")
+    why = backfill.unpublished_edition(edition, h, _HeadClient({key: b"older edition!!"}))
+    check(why is not None and "upload it first" in why, f"a different one is refused: {why}")
+    why = backfill.unpublished_edition(edition, h, _HeadClient({}))
+    check(why is not None and "cannot be read" in why, f"a missing one is refused: {why}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    big = Path(tmp) / "big.bin"
+    big.write_bytes(bytes(range(256)) * (70 * 4096))  # 70 MiB: two 64 MiB parts
+    etag = backfill.multipart_etag(big, 64 << 20)
+    check(etag.endswith("-2"), f"a 70 MiB file is two 64 MiB parts: {etag}")
+    size = big.stat().st_size
+    remote = backfill.Remote("k", size, etag)
+    check(backfill.differs_from(big, remote) is None, "the multipart ETag of the same bytes matches")
+    other = Path(tmp) / "other.bin"
+    other.write_bytes(b"\xff" + big.read_bytes()[1:])
+    why = backfill.differs_from(other, remote)
+    check(why is not None and "other bytes" in why, f"same size, other bytes: {why}")
+    why = backfill.differs_from(big, backfill.Remote("k", size, "0" * 32 + "-3"))
+    check(why is not None and "no known part size" in why, f"an unknown part size says so: {why}")
+    for odd in ("abc-xyz", "0" * 32 + "-²", "0" * 32 + "-", "0" * 32 + "-01", "A" * 32, "-1"):
+        why = backfill.differs_from(big, backfill.Remote("k", size, odd))
+        check(why is not None and "unexpected ETag" in why, f"ETag {odd!r} is refused as odd: {why}")
+    one = backfill.multipart_etag(big, size)
+    check(one.endswith("-1") and backfill.differs_from(big, backfill.Remote("k", size, one)) is None,
+          "a one-part multipart upload matches whatever its part size was")
+    exact = Path(tmp) / "exact.bin"
+    exact.write_bytes(big.read_bytes()[: 16 << 20])  # exactly one 16 MiB part
+    check(backfill.multipart_etag(exact, 8 << 20).endswith("-2"),
+          "a file an exact multiple of the part size has no empty last part")
+    small = Path(tmp) / "small.bin"
+    small.write_bytes(b"abc")
+    check(backfill.differs_from(small, backfill.Remote("k", 3, hashlib.md5(b"abc").hexdigest()))
+          is None, "a single-part upload compares its MD5")
+    check(backfill.differs_from(Path(tmp) / "none", backfill.Remote("k", 3, "0" * 32)) == "is missing",
+          "a missing file")
+
+check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
+      == {"source": f"{backfill.HARMONIZED}/pt/year=2023/pt-2023.parquet", "by": "id"},
+      "the record gives the edition's published URL")
 
 # --- the call into ftwd matches the installed ftwd -----------------------------------
 import inspect  # noqa: E402
@@ -443,6 +538,79 @@ with tempfile.TemporaryDirectory() as tmp:
         check("bad: crop names refused" in err.getvalue(), "the refusal is reported briefly")
     finally:
         (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
+         build._check_recipe, common.load_manifest) = saved
+
+# --- which staged field files are named, and which assets refreshed -----------------
+with tempfile.TemporaryDirectory() as tmp:
+    d = Path(tmp)
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"},
+                      "boundary_lines": {"href": "./bl.parquet"}}}
+    for name in ("f.parquet", "ff.parquet"):
+        (d / name).write_bytes(b"x")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=False)
+    check(set(named) == set(refreshed) == {"fields", "fields_filtered"},
+          f"without naming and without staged lines, the polygons: {named} {refreshed}")
+    (d / "bl.parquet").write_bytes(b"published lines")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=False)
+    check(set(named) == {"fields", "fields_filtered"} and "boundary_lines" in refreshed,
+          f"staged lines are refreshed though not named: {named} {refreshed}")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=True)
+    check(set(named) == set(refreshed) == set(backfill.FIELD_ASSETS),
+          f"naming names and refreshes all three: {named} {refreshed}")
+
+# main checks the ftwd commit before it hashes any edition
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    hashed = []
+    (h / "collection.json").write_text("{}")
+    (h / "edition.parquet").write_bytes(b"edition")
+    saved = (backfill.dataset_dir, backfill.unpublished_edition, build._check_recipe,
+             common.load_manifest, backfill.harmonized_edition)
+    backfill.harmonized_edition = lambda dataset_id, root: h / "edition.parquet"
+    backfill.dataset_dir = lambda dataset_id: h
+    backfill.unpublished_edition = lambda path, root: hashed.append(path)
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    import ftw_dataset_tools.api.source as _source
+    saved_commit = _source.installed_git_commit
+    _source.installed_git_commit = lambda: None
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            backfill.main(["pt_2021", "--crop-names-from", str(h)])
+        check(False, "an uncommitted ftwd stops the run")
+    except SystemExit as stop:
+        check(stop.code == 2 and not hashed, f"before any edition is hashed: {stop.code} {hashed}")
+    finally:
+        _source.installed_git_commit = saved_commit
+        (backfill.dataset_dir, backfill.unpublished_edition, build._check_recipe,
+         common.load_manifest, backfill.harmonized_edition) = saved
+
+# main refuses a naming run whose edition is not the published one
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    saved = (backfill.dataset_dir, backfill.harmonized_edition, backfill.unpublished_edition,
+             build._check_recipe, common.load_manifest)
+    published = h / "published"
+    published.mkdir()
+    (published / "collection.json").write_text("{}")
+    edition = h / "pt" / "year=2021" / "pt-2021.parquet"
+    edition.parent.mkdir(parents=True)
+    edition.write_bytes(b"local rebuild")
+    backfill.dataset_dir = lambda dataset_id: published
+    backfill.harmonized_edition = lambda dataset_id, root: edition
+    backfill.unpublished_edition = lambda path, root: "it differs; upload it first"
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    try:
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            backfill.main(["pt_2021", "--crop-names-from", str(h), "--allow-uncommitted-ftwd"])
+        check(False, "an unpublished edition stops the run")
+    except SystemExit as stop:
+        check(stop.code == 2 and "upload it first" in err.getvalue(),
+              f"an unpublished edition is a usage error naming why: {stop.code} {err.getvalue()!r}")
+    finally:
+        (backfill.dataset_dir, backfill.harmonized_edition, backfill.unpublished_edition,
          build._check_recipe, common.load_manifest) = saved
 
 if errors:

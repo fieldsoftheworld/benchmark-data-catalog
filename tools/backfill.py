@@ -16,12 +16,13 @@ state without rebuilding it, working in ``staging/<id>/``:
    updated files, then ``catalogize`` into ``catalog/<source>/<id>/``.
 
 ``--crop-names-from <dir>`` also joins ``crop:name`` (and ``crop:name_en``) onto the
-fields and fields_filtered files from the harmonized edition the dataset was built
-from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet`` (the
-harmonized catalog's staging, rebuilt with names). The join is by field id and refuses
-any field whose crop:code differs there (ftwd ``api.crop_names``). Give the option on
-every later run too: each run fetches the published field files again, and the backfill
-record lists the steps of the latest run.
+fields, fields_filtered and boundary_lines files from the harmonized edition the
+dataset was built from, found at ``<dir>/<harmonized_id>/year=<year>/<stem>-<year>.parquet``
+(the harmonized catalog's staging, rebuilt with names; the record gives the edition's
+published URL). The join is by field id and refuses any field whose crop:code differs
+there (ftwd ``api.crop_names``). Give the option on every later run too: each run
+fetches the published field files again, and the backfill record lists the steps of the
+latest run.
 ``--crop-names-by code`` names each field from its crop code instead, for an edition
 named from a code table whose ids no longer match the benchmark's (fr_2024: IGN
 replaced RPG 3.0 with RPG 4.0); it refuses a code with more than one name, and it takes
@@ -31,9 +32,10 @@ regional gap parcels have no crop:code, so they stay unnamed).
 
 The field assets' size, checksum and columns are always read from the staged files,
 so the collection describes the files that will be uploaded either way. A run without
-the option keeps the earlier run's crop-names record while the fetched field files
-still carry crop:name. The names are joined first, into temp files that replace the
-field files only when every join succeeded, so a dataset whose names are refused is
+the option reads neither the boundary lines (they stay as published) nor any edition,
+and keeps the earlier run's crop-names record while the fetched fields and
+fields_filtered still carry crop:name. The names are joined first, into temp files that
+replace the field files only when every join succeeded, so a dataset whose names are refused is
 left as fetched (as published): it is reported and skipped, and the run carries on
 with the others and exits 1.
 
@@ -46,13 +48,14 @@ Nothing is uploaded. Publish afterwards the usual way:
     uv run python tools/upload_data.py --only rw_rwanda_ml_2021 --confirm
     uv run python tools/publish.py --only rw_rwanda_ml_2021 --confirm
 
-Rasters, PMTiles and boundary lines are never fetched: nothing here changes them.
+Rasters and PMTiles are never fetched: nothing here changes them.
 """
 from __future__ import annotations
 
 import argparse
 import copy
 import hashlib
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -81,8 +84,15 @@ FETCH_ATTEMPTS = 4
 # ones are a single GET, which costs far less per object.
 SMALL_OBJECT_BYTES = 8 * 1024 * 1024
 
-# Top-level files the backfill reads. Everything under chips/ that is JSON is read too.
-_TOP_LEVEL_ASSETS = ("chips", "fields", "fields_filtered")
+# The field polygons: read and refreshed by every run, with the chips file. Everything
+# under chips/ that is JSON is read too.
+POLYGON_ASSETS = ("fields", "fields_filtered")
+# Every file that carries the fields' crop columns. The boundary lines are read only to
+# join crop names into them; they are as large as the fields, so not otherwise.
+FIELD_ASSETS = (*POLYGON_ASSETS, "boundary_lines")
+# Where the harmonized editions are published, for the crop-names record.
+HARMONIZED_PREFIX = "ftw/harmonized-field-data"
+HARMONIZED = f"https://data.source.coop/{HARMONIZED_PREFIX}"
 # Read when published, so a rerun keeps it instead of recomputing hours of embeddings.
 _OPTIONAL_ASSETS = ("field_embeddings",)
 # Files the backfill writes itself, so they may differ from the bucket or be new.
@@ -180,6 +190,51 @@ def _asset_names(doc: dict, keys: tuple[str, ...]) -> set[str]:
     return {str(assets[key]["href"]).removeprefix("./") for key in keys if key in assets}
 
 
+# Part sizes of the harmonized uploads: the harmonized catalog's upload_data.py (64 MiB),
+# this repo's publish.py (16 MiB), and 8 MiB, boto3's and the AWS CLI's default.
+_PART_SIZES = (64 << 20, 16 << 20, 8 << 20)
+
+
+def multipart_etag(path: Path, part_size: int) -> str:
+    """The ETag S3 gives ``path`` uploaded in ``part_size`` parts: md5 of the parts' md5s."""
+    digests = []
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(part_size), b""):
+            digests.append(hashlib.md5(block).digest())  # noqa: S324 - S3's ETag, not security
+    joined = hashlib.md5(b"".join(digests)).hexdigest()  # noqa: S324
+    return f"{joined}-{len(digests)}"
+
+
+# An S3 ETag of plain MD5s: one hex digest, and the part count of a multipart upload.
+_ETAG = re.compile(r"[0-9a-f]{32}(-[1-9][0-9]*)?")
+
+
+def differs_from(path: Path, remote: Remote) -> str | None:
+    """How ``path`` differs from the published object, or None when it holds its bytes.
+
+    A multipart ETag is recomputed from the file in each part size that gives its part
+    count; one part needs no size.
+    """
+    if not path.is_file():
+        return "is missing"
+    if path.stat().st_size != remote.size:
+        return f"is {path.stat().st_size:,} bytes, the published one {remote.size:,}"
+    if not _ETAG.fullmatch(remote.etag):
+        return f"cannot be compared: unexpected ETag {remote.etag}"
+    digest, _, count = remote.etag.partition("-")
+    if not count:
+        return None if _md5(path) == digest else "has other bytes (MD5 differs)"
+    parts = int(count)
+    sizes = [size for size in _PART_SIZES if -(-remote.size // size) == parts]
+    if parts == 1:
+        sizes = [max(remote.size, 1)]
+    if not sizes:
+        return f"cannot be compared: {parts} parts of no known part size"
+    if any(multipart_etag(path, size) == remote.etag for size in sizes):
+        return None
+    return "has other bytes (multipart ETag differs), or was uploaded in another part size"
+
+
 def check_staging(
     root: Path, listing: dict[str, Remote], *, catalog_dir: Path, top_level: set[str]
 ) -> None:
@@ -217,15 +272,27 @@ def check_staging(
 
 
 def fetch(
-    dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG, read_flat: bool = False
+    dataset_id: str,
+    *,
+    staging: Path = STAGING,
+    catalog: Path = CATALOG,
+    read_flat: bool = False,
+    boundary_lines: bool = False,
 ) -> int:
     """Make ``staging/<id>`` hold what the backfill reads, as published. Returns files fetched.
 
     Reads ``<prefix>/<source>/<id>/``, or the old flat ``<prefix>/<id>/`` with ``read_flat``.
+    ``boundary_lines`` reads the boundary lines too, to name them; staged ones are made
+    the published copy again either way.
     """
     catalog_dir = dataset_dir(dataset_id, catalog=catalog)
     doc = read_json(catalog_dir / "collection.json")
-    top_level = _asset_names(doc, _TOP_LEVEL_ASSETS)
+    root = staging / dataset_id
+    top_level = _asset_names(doc, ("chips", *POLYGON_ASSETS))
+    lines = _asset_names(doc, ("boundary_lines",))
+    # Also when staged: lines a naming run left un-uploaded go back to the published copy.
+    if boundary_lines or any((root / rel).is_file() for rel in lines):
+        top_level |= lines
     client = _client()
     remote_rel = dataset_id if read_flat else dataset_relpath(dataset_id, catalog=catalog)
     listing = _listing(client, remote_rel)
@@ -233,7 +300,6 @@ def fetch(
     if missing:
         raise SystemExit(f"{dataset_id}: not in the bucket: {', '.join(missing)}")
     top_level |= _asset_names(doc, _OPTIONAL_ASSETS) & set(listing)
-    root = staging / dataset_id
     check_staging(root, listing, catalog_dir=catalog_dir, top_level=top_level)
     todo = [
         (remote, root / rel)
@@ -374,13 +440,32 @@ def harmonized_edition(dataset_id: str, harmonized_staging: Path) -> Path:
     )
 
 
-def field_files(doc: dict, root: Path) -> dict[str, Path]:
+def field_files(
+    doc: dict, root: Path, keys: tuple[str, ...] = POLYGON_ASSETS
+) -> dict[str, Path]:
     """The dataset's staged field files, by asset key."""
     return {
         key: root / str(doc["assets"][key]["href"]).removeprefix("./")
-        for key in ("fields", "fields_filtered")
+        for key in keys
         if key in doc["assets"]
     }
+
+
+def staged_field_files(
+    doc: dict, root: Path, *, naming: bool
+) -> tuple[dict[str, Path], dict[str, Path]]:
+    """The field files to name, and the ones whose asset to refresh.
+
+    The boundary lines are named only when naming, but refreshed whenever staged: the
+    fetch has made staged lines the published copy, which a collection catalogized from
+    an un-uploaded naming run does not describe.
+    """
+    named = field_files(doc, root, FIELD_ASSETS if naming else POLYGON_ASSETS)
+    refreshed = {
+        key: path for key, path in field_files(doc, root, FIELD_ASSETS).items()
+        if key in named or path.is_file()
+    }
+    return named, refreshed
 
 
 def _named_path(path: Path) -> Path:
@@ -413,8 +498,40 @@ def add_crop_names(
             _named_path(path).unlink(missing_ok=True)
 
 
+def crop_names_record(source: Path, crop_names_from: Path, by: str) -> dict:
+    """The crop-names record: the edition's published URL, and what the join was by."""
+    return {"source": f"{HARMONIZED}/{source.relative_to(crop_names_from).as_posix()}", "by": by}
+
+
+def unpublished_edition(edition: Path, crop_names_from: Path, client=None) -> str | None:
+    """Why the local edition is not the published one, or None when it is.
+
+    The record names the published edition, so the names must come from that very file.
+    """
+    rel = edition.relative_to(crop_names_from).as_posix()
+    client = client or _client()
+    key = f"{HARMONIZED_PREFIX}/{rel}"
+    try:
+        head = client.head_object(Bucket=READ_BUCKET, Key=key)
+    except Exception as err:  # noqa: BLE001 - botocore's ClientError, imported lazily
+        return f"{HARMONIZED}/{rel} cannot be read ({err})"
+    remote = Remote(key, head["ContentLength"], head["ETag"].strip('"'))
+    why = differs_from(edition, remote)
+    if why is None:
+        return None
+    if why == "is missing":
+        return f"no harmonized edition at {edition}"
+    if why.startswith("cannot be compared"):
+        return f"{edition} {why} with the published {HARMONIZED}/{rel}"
+    return f"{edition} is not the published {HARMONIZED}/{rel}: it {why}; upload it first"
+
+
 def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
-    """The crop-names record of the last backfill, while the field files still have names."""
+    """The crop-names record of the last backfill, while the field files still have names.
+
+    ``files`` are the field polygons: datasets named before the boundary lines were have
+    names in those only.
+    """
     import pyarrow.parquet as pq
 
     from ftw_dataset_tools.api.backfill import BACKFILL_KEY
@@ -423,9 +540,13 @@ def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
     earlier = runs[-1].get("crop_names") if runs else None
     if not earlier or not files:
         return None
-    if all("crop:name" in pq.read_schema(path).names for path in files.values()):
-        return earlier
-    return None
+    if not all("crop:name" in pq.read_schema(path).names for path in files.values()):
+        return None
+    source = earlier.get("source")
+    # Records written before they named the published URL give the path under it.
+    if source and "://" not in source:
+        return {**earlier, "source": f"{HARMONIZED}/{source.lstrip('/')}"}
+    return earlier
 
 
 def backfill_dataset(
@@ -444,7 +565,8 @@ def backfill_dataset(
     from ftw_dataset_tools.api import admin_names, backfill, field_embeddings
 
     start = time.monotonic()
-    fetched = fetch(dataset_id, staging=staging, read_flat=read_flat)
+    naming = crop_names_from is not None
+    fetched = fetch(dataset_id, staging=staging, read_flat=read_flat, boundary_lines=naming)
     root = staging / dataset_id
     collection_path = root / "collection.json"
     doc = read_json(collection_path)
@@ -455,14 +577,11 @@ def backfill_dataset(
     print(f"{dataset_id}: fetched {fetched:,} file(s)", flush=True)
 
     # First, so a refusal leaves staging as fetched (as published).
-    files = field_files(doc, root)
-    if crop_names_from is not None:
+    files, refreshed = staged_field_files(doc, root, naming=naming)
+    if naming:
         source = harmonized_edition(dataset_id, crop_names_from)
         add_crop_names(dataset_id, files, source, crop_names_by)
-        crop_names = {
-            "source": source.relative_to(crop_names_from).as_posix(),
-            "by": crop_names_by,
-        }
+        crop_names = crop_names_record(source, crop_names_from, crop_names_by)
     else:
         crop_names = earlier_crop_names(doc, files)
 
@@ -481,7 +600,7 @@ def backfill_dataset(
         chips_file=chips,
         admin_names_added=True,
         field_embeddings_file=embeddings,
-        field_files=files,
+        field_files=refreshed,
         crop_names=crop_names,
     )
     # The stac stage describes its chip-only mirror; catalogize later swaps in the full
@@ -520,6 +639,11 @@ def main(argv: list[str] | None = None) -> int:
     from build import _check_recipe
     from common import load_manifest
 
+    from ftw_dataset_tools.api.source import installed_git_commit
+
+    if installed_git_commit() is None and not args.allow_uncommitted_ftwd:
+        parser.error("ftwd is not installed from a git commit, so the collections could not "
+                     "record which ftwd added the columns (--allow-uncommitted-ftwd to test)")
     manifest = load_manifest()
     for dataset_id in args.dataset_ids:
         if not (dataset_dir(dataset_id) / "collection.json").is_file():
@@ -529,11 +653,9 @@ def main(argv: list[str] | None = None) -> int:
             edition = harmonized_edition(dataset_id, args.crop_names_from)
             if not edition.is_file():
                 parser.error(f"{dataset_id}: no harmonized edition at {edition}")
-    from ftw_dataset_tools.api.source import installed_git_commit
-
-    if installed_git_commit() is None and not args.allow_uncommitted_ftwd:
-        parser.error("ftwd is not installed from a git commit, so the collections could not "
-                     "record which ftwd added the columns (--allow-uncommitted-ftwd to test)")
+            why = unpublished_edition(edition, args.crop_names_from)
+            if why:
+                parser.error(f"{dataset_id}: {why}")
     from ftw_dataset_tools.api.crop_names import CropNameError
 
     refused = []
