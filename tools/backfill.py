@@ -189,7 +189,8 @@ def _asset_names(doc: dict, keys: tuple[str, ...]) -> set[str]:
     return {str(assets[key]["href"]).removeprefix("./") for key in keys if key in assets}
 
 
-# Part sizes the catalogs' uploaders use (64 MiB), then boto3's and the AWS CLI's default.
+# Part sizes of the harmonized uploads: upload_data.py's 64 MiB, publish.py's 16 MiB, and
+# 8 MiB, boto3's and the AWS CLI's default.
 _PART_SIZES = (64 << 20, 16 << 20, 8 << 20)
 
 
@@ -203,15 +204,30 @@ def multipart_etag(path: Path, part_size: int) -> str:
     return f"{joined}-{len(digests)}"
 
 
-def same_bytes(path: Path, remote: Remote) -> bool:
-    """Whether ``path`` holds the published object's bytes, multipart uploads included."""
-    if not path.is_file() or path.stat().st_size != remote.size:
-        return False
-    if "-" not in remote.etag:
-        return _md5(path) == remote.etag
-    parts = int(remote.etag.rsplit("-", 1)[1])
+def differs_from(path: Path, remote: Remote) -> str | None:
+    """How ``path`` differs from the published object, or None when it holds its bytes.
+
+    A multipart ETag is recomputed from the file in each part size that gives its part
+    count; one part needs no size.
+    """
+    if not path.is_file():
+        return "is missing"
+    if path.stat().st_size != remote.size:
+        return f"is {path.stat().st_size:,} bytes, the published one {remote.size:,}"
+    digest, _, count = remote.etag.partition("-")
+    if not count:
+        return None if _md5(path) == digest else "has other bytes (MD5 differs)"
+    if not count.isdigit():
+        return f"cannot be compared: unexpected ETag {remote.etag}"
+    parts = int(count)
     sizes = [size for size in _PART_SIZES if -(-remote.size // size) == parts]
-    return any(multipart_etag(path, size) == remote.etag for size in sizes)
+    if parts == 1:
+        sizes = [max(remote.size, 1)]
+    if not sizes:
+        return f"cannot be compared: {parts} parts of no known part size"
+    if any(multipart_etag(path, size) == remote.etag for size in sizes):
+        return None
+    return "has other bytes (multipart ETag differs)"
 
 
 def check_staging(
@@ -478,9 +494,12 @@ def unpublished_edition(edition: Path, crop_names_from: Path, client=None) -> st
     except Exception as err:  # noqa: BLE001 - botocore's ClientError, imported lazily
         return f"{HARMONIZED}/{rel} cannot be read ({err})"
     remote = Remote(key, head["ContentLength"], head["ETag"].strip('"'))
-    if not same_bytes(edition, remote):
-        return f"{edition} differs from the published {HARMONIZED}/{rel}; upload it first"
-    return None
+    why = differs_from(edition, remote)
+    if why is None:
+        return None
+    if why.startswith("cannot be compared"):
+        return f"{edition} {why} with the published {HARMONIZED}/{rel}"
+    return f"{edition} is not the published {HARMONIZED}/{rel}: it {why}; upload it first"
 
 
 def earlier_crop_names(doc: dict, files: dict[str, Path]) -> dict | None:
@@ -596,6 +615,11 @@ def main(argv: list[str] | None = None) -> int:
     from build import _check_recipe
     from common import load_manifest
 
+    from ftw_dataset_tools.api.source import installed_git_commit
+
+    if installed_git_commit() is None and not args.allow_uncommitted_ftwd:
+        parser.error("ftwd is not installed from a git commit, so the collections could not "
+                     "record which ftwd added the columns (--allow-uncommitted-ftwd to test)")
     manifest = load_manifest()
     for dataset_id in args.dataset_ids:
         if not (dataset_dir(dataset_id) / "collection.json").is_file():
@@ -608,11 +632,6 @@ def main(argv: list[str] | None = None) -> int:
             why = unpublished_edition(edition, args.crop_names_from)
             if why:
                 parser.error(f"{dataset_id}: {why}")
-    from ftw_dataset_tools.api.source import installed_git_commit
-
-    if installed_git_commit() is None and not args.allow_uncommitted_ftwd:
-        parser.error("ftwd is not installed from a git commit, so the collections could not "
-                     "record which ftwd added the columns (--allow-uncommitted-ftwd to test)")
     from ftw_dataset_tools.api.crop_names import CropNameError
 
     refused = []

@@ -452,14 +452,30 @@ with tempfile.TemporaryDirectory() as tmp:
     big.write_bytes(bytes(range(256)) * (70 * 4096))  # 70 MiB: two 64 MiB parts
     etag = backfill.multipart_etag(big, 64 << 20)
     check(etag.endswith("-2"), f"a 70 MiB file is two 64 MiB parts: {etag}")
-    remote = backfill.Remote("k", big.stat().st_size, etag)
-    check(backfill.same_bytes(big, remote), "the multipart ETag of the same bytes matches")
+    size = big.stat().st_size
+    remote = backfill.Remote("k", size, etag)
+    check(backfill.differs_from(big, remote) is None, "the multipart ETag of the same bytes matches")
     other = Path(tmp) / "other.bin"
     other.write_bytes(b"\xff" + big.read_bytes()[1:])
-    check(not backfill.same_bytes(other, remote),
-          "a file of the same size with other bytes does not")
-    check(not backfill.same_bytes(big, backfill.Remote("k", big.stat().st_size, "0" * 32 + "-3")),
-          "nor does a part count no known part size gives")
+    why = backfill.differs_from(other, remote)
+    check(why is not None and "other bytes" in why, f"same size, other bytes: {why}")
+    why = backfill.differs_from(big, backfill.Remote("k", size, "0" * 32 + "-3"))
+    check(why is not None and "no known part size" in why, f"an unknown part size says so: {why}")
+    why = backfill.differs_from(big, backfill.Remote("k", size, "abc-xyz"))
+    check(why is not None and "unexpected ETag" in why, f"a malformed ETag is not a crash: {why}")
+    one = backfill.multipart_etag(big, size)
+    check(one.endswith("-1") and backfill.differs_from(big, backfill.Remote("k", size, one)) is None,
+          "a one-part multipart upload matches whatever its part size was")
+    exact = Path(tmp) / "exact.bin"
+    exact.write_bytes(big.read_bytes()[: 16 << 20])  # exactly one 16 MiB part
+    check(backfill.multipart_etag(exact, 8 << 20).endswith("-2"),
+          "a file an exact multiple of the part size has no empty last part")
+    small = Path(tmp) / "small.bin"
+    small.write_bytes(b"abc")
+    check(backfill.differs_from(small, backfill.Remote("k", 3, hashlib.md5(b"abc").hexdigest()))
+          is None, "a single-part upload compares its MD5")
+    check(backfill.differs_from(Path(tmp) / "none", backfill.Remote("k", 3, "x")) == "is missing",
+          "a missing file")
 
 check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
       == {"source": f"{backfill.HARMONIZED}/pt/year=2023/pt-2023.parquet", "by": "id"},
@@ -542,7 +558,7 @@ with tempfile.TemporaryDirectory() as tmp:
     try:
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
-            backfill.main(["pt_2021", "--crop-names-from", str(h)])
+            backfill.main(["pt_2021", "--crop-names-from", str(h), "--allow-uncommitted-ftwd"])
         check(False, "an unpublished edition stops the run")
     except SystemExit as stop:
         check(stop.code == 2 and "upload it first" in err.getvalue(),
