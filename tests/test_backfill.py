@@ -133,6 +133,13 @@ with tempfile.TemporaryDirectory() as tmp:
     backfill.fetch("ds", staging=staging, catalog=catalog, boundary_lines=True)
     check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
           f"boundary_lines=True reads the boundary lines too, got {client.downloaded}")
+    client.downloaded.clear()
+    (staging / "ds" / "ds_boundary_lines.parquet").write_bytes(b"named, never uploaded")
+    backfill.fetch("ds", staging=staging, catalog=catalog)
+    check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
+          f"staged lines a naming run left go back to the published copy: {client.downloaded}")
+    check((staging / "ds" / "ds_boundary_lines.parquet").read_bytes() == b"lines",
+          "and hold the published bytes")
     del objects[pre + "ds_fields.parquet"]
     try:
         backfill.fetch("ds", staging=staging, catalog=catalog)
@@ -391,7 +398,7 @@ with tempfile.TemporaryDirectory() as tmp:
                      crs="EPSG:4326").to_parquet(named)
     gpd.GeoDataFrame({"id": ["a"]}, geometry=[box(0, 0, 1, 1)],
                      crs="EPSG:4326").to_parquet(unnamed)
-    record = {"source": "fr/year=2024/fr-2024.parquet", "by": "code"}
+    record = {"source": f"{backfill.HARMONIZED}/fr/year=2024/fr-2024.parquet", "by": "code"}
     doc = {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": record}]}}
     check(backfill.earlier_crop_names(doc, {"fields": named}) == record,
           "the earlier record is kept while the fields still have names")
@@ -403,6 +410,42 @@ with tempfile.TemporaryDirectory() as tmp:
     polygons = {k: v for k, v in staged.items() if k in backfill.POLYGON_ASSETS}
     check(backfill.earlier_crop_names(doc, polygons) == record,
           "boundary lines named by no run yet do not drop the record")
+
+old = {"source": "se/year=2023/se-2023.parquet", "by": "id"}
+with tempfile.TemporaryDirectory() as tmp:
+    named = Path(tmp) / "named.parquet"
+    gpd.GeoDataFrame({"id": ["a"], "crop:name": ["Vete"]}, geometry=[box(0, 0, 1, 1)],
+                     crs="EPSG:4326").to_parquet(named)
+    kept = backfill.earlier_crop_names(
+        {"ftw:config": {"backfills": [{"steps": ["crop_names"], "crop_names": old}]}},
+        {"fields": named})
+    check(kept == {"source": f"{backfill.HARMONIZED}/se/year=2023/se-2023.parquet", "by": "id"},
+          f"a record from before the URL gets the published URL: {kept}")
+
+
+class _HeadClient:
+    def __init__(self, objects):
+        self.objects = objects
+
+    def head_object(self, Bucket, Key):  # noqa: N803 - boto3's names
+        if Key not in self.objects:
+            raise RuntimeError("404 Not Found")
+        body = self.objects[Key]
+        return {"ContentLength": len(body), "ETag": f'"{hashlib.md5(body).hexdigest()}"'}
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    edition = h / "pt" / "year=2021" / "pt-2021.parquet"
+    edition.parent.mkdir(parents=True)
+    edition.write_bytes(b"rebuilt edition")
+    key = f"{backfill.HARMONIZED_PREFIX}/pt/year=2021/pt-2021.parquet"
+    check(backfill.unpublished_edition(edition, h, _HeadClient({key: b"rebuilt edition"})) is None,
+          "the published edition is the local one")
+    why = backfill.unpublished_edition(edition, h, _HeadClient({key: b"older edition!!"}))
+    check(why is not None and "upload it first" in why, f"a different one is refused: {why}")
+    why = backfill.unpublished_edition(edition, h, _HeadClient({}))
+    check(why is not None and "cannot be read" in why, f"a missing one is refused: {why}")
 
 check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
       == {"source": f"{backfill.HARMONIZED}/pt/year=2023/pt-2023.parquet", "by": "id"},
