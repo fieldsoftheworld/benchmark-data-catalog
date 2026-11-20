@@ -461,8 +461,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check(why is not None and "other bytes" in why, f"same size, other bytes: {why}")
     why = backfill.differs_from(big, backfill.Remote("k", size, "0" * 32 + "-3"))
     check(why is not None and "no known part size" in why, f"an unknown part size says so: {why}")
-    why = backfill.differs_from(big, backfill.Remote("k", size, "abc-xyz"))
-    check(why is not None and "unexpected ETag" in why, f"a malformed ETag is not a crash: {why}")
+    for odd in ("abc-xyz", "0" * 32 + "-²", "0" * 32 + "-", "0" * 32 + "-01", "A" * 32, "-1"):
+        why = backfill.differs_from(big, backfill.Remote("k", size, odd))
+        check(why is not None and "unexpected ETag" in why, f"ETag {odd!r} is refused as odd: {why}")
     one = backfill.multipart_etag(big, size)
     check(one.endswith("-1") and backfill.differs_from(big, backfill.Remote("k", size, one)) is None,
           "a one-part multipart upload matches whatever its part size was")
@@ -474,7 +475,7 @@ with tempfile.TemporaryDirectory() as tmp:
     small.write_bytes(b"abc")
     check(backfill.differs_from(small, backfill.Remote("k", 3, hashlib.md5(b"abc").hexdigest()))
           is None, "a single-part upload compares its MD5")
-    check(backfill.differs_from(Path(tmp) / "none", backfill.Remote("k", 3, "x")) == "is missing",
+    check(backfill.differs_from(Path(tmp) / "none", backfill.Remote("k", 3, "0" * 32)) == "is missing",
           "a missing file")
 
 check(backfill.crop_names_record(Path("/h/pt/year=2023/pt-2023.parquet"), Path("/h"), "id")
@@ -538,6 +539,51 @@ with tempfile.TemporaryDirectory() as tmp:
     finally:
         (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
          build._check_recipe, common.load_manifest) = saved
+
+# --- which staged field files are named, and which assets refreshed -----------------
+with tempfile.TemporaryDirectory() as tmp:
+    d = Path(tmp)
+    doc = {"assets": {"fields": {"href": "./f.parquet"}, "fields_filtered": {"href": "./ff.parquet"},
+                      "boundary_lines": {"href": "./bl.parquet"}}}
+    for name in ("f.parquet", "ff.parquet"):
+        (d / name).write_bytes(b"x")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=False)
+    check(set(named) == set(refreshed) == {"fields", "fields_filtered"},
+          f"without naming and without staged lines, the polygons: {named} {refreshed}")
+    (d / "bl.parquet").write_bytes(b"published lines")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=False)
+    check(set(named) == {"fields", "fields_filtered"} and "boundary_lines" in refreshed,
+          f"staged lines are refreshed though not named: {named} {refreshed}")
+    named, refreshed = backfill.staged_field_files(doc, d, naming=True)
+    check(set(named) == set(refreshed) == set(backfill.FIELD_ASSETS),
+          f"naming names and refreshes all three: {named} {refreshed}")
+
+# main checks the ftwd commit before it hashes any edition
+with tempfile.TemporaryDirectory() as tmp:
+    h = Path(tmp)
+    hashed = []
+    (h / "collection.json").write_text("{}")
+    (h / "edition.parquet").write_bytes(b"edition")
+    saved = (backfill.dataset_dir, backfill.unpublished_edition, build._check_recipe,
+             common.load_manifest, backfill.harmonized_edition)
+    backfill.harmonized_edition = lambda dataset_id, root: h / "edition.parquet"
+    backfill.dataset_dir = lambda dataset_id: h
+    backfill.unpublished_edition = lambda path, root: hashed.append(path)
+    build._check_recipe = lambda dataset_id: None
+    common.load_manifest = lambda: {}
+    import ftw_dataset_tools.api.source as _source
+    saved_commit = _source.installed_git_commit
+    _source.installed_git_commit = lambda: None
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            backfill.main(["pt_2021", "--crop-names-from", str(h)])
+        check(False, "an uncommitted ftwd stops the run")
+    except SystemExit as stop:
+        check(stop.code == 2 and not hashed, f"before any edition is hashed: {stop.code} {hashed}")
+    finally:
+        _source.installed_git_commit = saved_commit
+        (backfill.dataset_dir, backfill.unpublished_edition, build._check_recipe,
+         common.load_manifest, backfill.harmonized_edition) = saved
 
 # main refuses a naming run whose edition is not the published one
 with tempfile.TemporaryDirectory() as tmp:

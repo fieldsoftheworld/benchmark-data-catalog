@@ -55,6 +55,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -189,8 +190,8 @@ def _asset_names(doc: dict, keys: tuple[str, ...]) -> set[str]:
     return {str(assets[key]["href"]).removeprefix("./") for key in keys if key in assets}
 
 
-# Part sizes of the harmonized uploads: upload_data.py's 64 MiB, publish.py's 16 MiB, and
-# 8 MiB, boto3's and the AWS CLI's default.
+# Part sizes of the harmonized uploads: the harmonized catalog's upload_data.py (64 MiB),
+# this repo's publish.py (16 MiB), and 8 MiB, boto3's and the AWS CLI's default.
 _PART_SIZES = (64 << 20, 16 << 20, 8 << 20)
 
 
@@ -204,6 +205,10 @@ def multipart_etag(path: Path, part_size: int) -> str:
     return f"{joined}-{len(digests)}"
 
 
+# An S3 ETag of plain MD5s: one hex digest, and the part count of a multipart upload.
+_ETAG = re.compile(r"[0-9a-f]{32}(-[1-9][0-9]*)?")
+
+
 def differs_from(path: Path, remote: Remote) -> str | None:
     """How ``path`` differs from the published object, or None when it holds its bytes.
 
@@ -214,11 +219,11 @@ def differs_from(path: Path, remote: Remote) -> str | None:
         return "is missing"
     if path.stat().st_size != remote.size:
         return f"is {path.stat().st_size:,} bytes, the published one {remote.size:,}"
+    if not _ETAG.fullmatch(remote.etag):
+        return f"cannot be compared: unexpected ETag {remote.etag}"
     digest, _, count = remote.etag.partition("-")
     if not count:
         return None if _md5(path) == digest else "has other bytes (MD5 differs)"
-    if not count.isdigit():
-        return f"cannot be compared: unexpected ETag {remote.etag}"
     parts = int(count)
     sizes = [size for size in _PART_SIZES if -(-remote.size // size) == parts]
     if parts == 1:
@@ -227,7 +232,7 @@ def differs_from(path: Path, remote: Remote) -> str | None:
         return f"cannot be compared: {parts} parts of no known part size"
     if any(multipart_etag(path, size) == remote.etag for size in sizes):
         return None
-    return "has other bytes (multipart ETag differs)"
+    return "has other bytes (multipart ETag differs), or was uploaded in another part size"
 
 
 def check_staging(
@@ -446,6 +451,23 @@ def field_files(
     }
 
 
+def staged_field_files(
+    doc: dict, root: Path, *, naming: bool
+) -> tuple[dict[str, Path], dict[str, Path]]:
+    """The field files to name, and the ones whose asset to refresh.
+
+    The boundary lines are named only when naming, but refreshed whenever staged: the
+    fetch has made staged lines the published copy, which a collection catalogized from
+    an un-uploaded naming run does not describe.
+    """
+    named = field_files(doc, root, FIELD_ASSETS if naming else POLYGON_ASSETS)
+    refreshed = {
+        key: path for key, path in field_files(doc, root, FIELD_ASSETS).items()
+        if key in named or path.is_file()
+    }
+    return named, refreshed
+
+
 def _named_path(path: Path) -> Path:
     return path.with_name(f".{path.name}.named")
 
@@ -497,6 +519,8 @@ def unpublished_edition(edition: Path, crop_names_from: Path, client=None) -> st
     why = differs_from(edition, remote)
     if why is None:
         return None
+    if why == "is missing":
+        return f"no harmonized edition at {edition}"
     if why.startswith("cannot be compared"):
         return f"{edition} {why} with the published {HARMONIZED}/{rel}"
     return f"{edition} is not the published {HARMONIZED}/{rel}: it {why}; upload it first"
@@ -553,7 +577,7 @@ def backfill_dataset(
     print(f"{dataset_id}: fetched {fetched:,} file(s)", flush=True)
 
     # First, so a refusal leaves staging as fetched (as published).
-    files = field_files(doc, root, FIELD_ASSETS if naming else POLYGON_ASSETS)
+    files, refreshed = staged_field_files(doc, root, naming=naming)
     if naming:
         source = harmonized_edition(dataset_id, crop_names_from)
         add_crop_names(dataset_id, files, source, crop_names_by)
@@ -576,7 +600,7 @@ def backfill_dataset(
         chips_file=chips,
         admin_names_added=True,
         field_embeddings_file=embeddings,
-        field_files=files,
+        field_files=refreshed,
         crop_names=crop_names,
     )
     # The stac stage describes its chip-only mirror; catalogize later swaps in the full
