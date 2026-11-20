@@ -326,7 +326,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-19T08:07:51Z",
+  "updated": "2026-11-20T05:13:49Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -758,12 +758,12 @@
           "crop_names"
         ],
         "crop_names": {
-          "source": "pt/year=2020/pt-2020.parquet",
+          "source": "https://data.source.coop/ftw/harmonized-field-data/pt/year=2020/pt-2020.parquet",
           "by": "id"
         },
         "ftwd_version": "0.1.0",
-        "ftwd_git_commit": "78d22d930e519554490de8c77bbad97b7c767af8",
-        "generated_at": "2026-11-19T08:06:00.008727+00:00"
+        "ftwd_git_commit": "26ef543ea657dece71294c705f8621e00aea29a2",
+        "generated_at": "2026-11-20T05:12:12.623036+00:00"
       }
     ]
   },
@@ -852,7 +852,8 @@
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/pt/year=2020/pt-2020.parquet"
         },
         {
           "name": "hcat:name_en",
@@ -908,7 +909,8 @@
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/pt/year=2020/pt-2020.parquet"
         },
         {
           "name": "hcat:name_en",
@@ -944,7 +946,7 @@
       "href": "./pt_2020_boundary_lines.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field boundary lines",
-      "file:size": 1020157039,
+      "file:size": 1083041788,
       "table:columns": [
         {
           "name": "metrics:area",
@@ -965,6 +967,11 @@
         {
           "name": "crop:code",
           "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/pt/year=2020/pt-2020.parquet"
         },
         {
           "name": "hcat:name_en",

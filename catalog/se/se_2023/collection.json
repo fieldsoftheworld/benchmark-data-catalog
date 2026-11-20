@@ -555,7 +555,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-19T10:41:44Z",
+  "updated": "2026-11-20T06:33:39Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -829,12 +829,12 @@
           "crop_names"
         ],
         "crop_names": {
-          "source": "se/year=2023/se-2023.parquet",
+          "source": "https://data.source.coop/ftw/harmonized-field-data/se/year=2023/se-2023.parquet",
           "by": "id"
         },
         "ftwd_version": "0.1.0",
-        "ftwd_git_commit": "78d22d930e519554490de8c77bbad97b7c767af8",
-        "generated_at": "2026-11-19T10:38:43.892909+00:00"
+        "ftwd_git_commit": "26ef543ea657dece71294c705f8621e00aea29a2",
+        "generated_at": "2026-11-20T06:31:03.312336+00:00"
       }
     ]
   },
@@ -903,7 +903,8 @@
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2023/se-2023.parquet"
         },
         {
           "name": "hcat:code",
@@ -955,7 +956,8 @@
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2023/se-2023.parquet"
         },
         {
           "name": "hcat:code",
@@ -999,11 +1001,16 @@
       "href": "./se_2023_boundary_lines.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field boundary lines",
-      "file:size": 359094574,
+      "file:size": 369079410,
       "table:columns": [
         {
           "name": "crop:code",
           "type": "varchar"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2023/se-2023.parquet"
         },
         {
           "name": "hcat:code",
