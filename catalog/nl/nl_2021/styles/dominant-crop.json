@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "Grassland natural. Main function agriculture.",
+            3301030000,
+            "Potatoes AM . control measure",
+            3301090100,
+            "Grassland temporary",
+            3301010101,
+            "wheat winter",
+            3301090400,
+            "Corn silage",
+            3301290700,
+            "beets sugar",
+            3301220400,
+            "Onions leg and plant first year",
+            3301010600,
+            "Corn corncob mix",
+            3303011200,
+            "pears. Planted current season.",
+            3306000000,
+            "Avenue trees/park trees",
+            3301010402,
+            "barley summer",
+            3301220300,
+            "Leek summer production",
+            "Other"
+          ],
+          "Grassland natural. Main function agriculture.",
+          "#32cc32",
+          "Potatoes AM . control measure",
+          "#a6cee3",
+          "Grassland temporary",
+          "#1f78b4",
+          "wheat winter",
+          "#cda737",
+          "Corn silage",
+          "#b2df8a",
+          "beets sugar",
+          "#cc324c",
+          "Onions leg and plant first year",
+          "#fb9a99",
+          "Corn corncob mix",
+          "#e31a1c",
+          "pears. Planted current season.",
+          "#fdbf6f",
+          "Avenue trees/park trees",
+          "#ff7f00",
+          "barley summer",
+          "#6a3d9a",
+          "Leek summer production",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

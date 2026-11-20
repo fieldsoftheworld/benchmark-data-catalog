@@ -1,0 +1,66 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3301090300,
+            "Lucerne/Medics",
+            3301010100,
+            "Wheat",
+            3301010400,
+            "Barley",
+            3301060400,
+            "Canola",
+            3301090000,
+            "Small grain grazing",
+            "Other"
+          ],
+          "Lucerne/Medics",
+          "#a6cee3",
+          "Wheat",
+          "#cca532",
+          "Barley",
+          "#1f78b4",
+          "Canola",
+          "#b2df8a",
+          "Small grain grazing",
+          "#33a02c",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

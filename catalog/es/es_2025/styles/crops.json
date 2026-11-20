@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3301010400",
+            "BARLEY",
+            "3301010100",
+            "SOFT WHEAT",
+            "3303050000",
+            "OLIVE",
+            "3303060000",
+            "GRAPEVINE ROOTSTOCKS",
+            "3301010500",
+            "OAT",
+            "3303030100",
+            "ALMOND",
+            "3302000000",
+            "PASTURES LESS THAN 5 YEARS OLD",
+            "3301010800",
+            "TRITICALE",
+            "3301060500",
+            "SUNFLOWER",
+            "3301010600",
+            "CORN-SORGHUM MIXTURE",
+            "3301090305",
+            "Hairy vetch ",
+            "3301090301",
+            "ALFALFA",
+            "Other"
+          ],
+          "BARLEY",
+          "#cc9e32",
+          "SOFT WHEAT",
+          "#a6cee3",
+          "OLIVE",
+          "#1f78b4",
+          "GRAPEVINE ROOTSTOCKS",
+          "#b2df8a",
+          "OAT",
+          "#33a02c",
+          "ALMOND",
+          "#fb9a99",
+          "PASTURES LESS THAN 5 YEARS OLD",
+          "#e31a1c",
+          "TRITICALE",
+          "#fdbf6f",
+          "SUNFLOWER",
+          "#cc32cb",
+          "CORN-SORGHUM MIXTURE",
+          "#ff7f00",
+          "Hairy vetch ",
+          "#6a3d9a",
+          "ALFALFA",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

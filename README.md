@@ -14,15 +14,23 @@ the uploaders carry the bytes to the bucket.
 - `datasets.yaml` names the official datasets and catalog-level facts.
 - `datasets/<id>.yaml` is the ftwd recipe for one dataset. Input is always a
   collection of the [harmonized field data catalog](https://source.coop/ftw/harmonized-field-data).
-- `catalog/` is published; `catalog/<id>/` holds one collection's metadata,
-  docs, styles and thumbnail: `collection.json`, `README.md`, `AGENTS.md`,
-  `llms.txt`, `thumbnail.webp`, `styles/*.json`, and per chip square
+- `catalog/` is published. Collections are grouped by the harmonized source
+  collection they are cut from (the recipe's `source_via`): `catalog/<source>/`
+  holds that group's `catalog.json`, `README.md` and `AGENTS.md`, and
+  `catalog/<source>/<id>/` holds one collection's metadata, docs, styles and
+  thumbnail: `collection.json`, `README.md`, `AGENTS.md`, `llms.txt`,
+  `thumbnail.webp`, `styles/*.json`, and per chip square
   `chips/<square>/{catalog.json,README.md,AGENTS.md}`. Item JSON, COGs,
   imagery, `*.parquet` (including `items.parquet`) and `*.pmtiles` stay in
-  `staging/<id>/` and are bucket-only.
+  `staging/<id>/` (flat, no source folder) and are bucket-only, uploaded to
+  `<source>/<id>/` beside the metadata.
 - `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
   (`publish.py`, `upload_data.py`).
-- `tests/run_all.py` runs every gate; CI runs it on every pull request.
+- `tests/run_all.py` runs every gate. The links, STAC and conformance gates read
+  every STAC object and take hours over the whole catalog, so CI runs them in one job
+  per source group (`tests/scope.py`): on a pull request or a push, the groups the
+  change touches plus a small sample; weekly, or when started by hand from the
+  Actions tab, every group.
 - `docs/build-log.md` records what each build actually did: ftwd commit,
   counts, timing.
 
@@ -54,7 +62,9 @@ written that way.
 ## Working on it
 
     uv sync                            # installs the pinned ftwd and validators
-    uv run python tests/run_all.py     # gates
+    uv run python tests/run_all.py     # gates, every group (hours)
+    BDC_SCOPE_GROUPS=at,fr uv run python tests/run_all.py   # gates, two groups
+    BDC_SCOPE_DATASETS=at_2024 uv run python tests/run_all.py  # gates, one collection
     uv run python tools/publish.py     # dry run; --confirm uploads catalog/
 
 ftwd is pinned by git commit in `pyproject.toml` while its Portolan changes are
@@ -75,7 +85,7 @@ Two uploaders, run in this order once the gates pass:
 
 `tools/upload_data.py` uploads files staged under `staging/<id>/` (item JSON,
 COGs, imagery, `*.parquet`, `*.pmtiles`), skipping any relative path that
-already exists under `catalog/<id>/` — the git-owned copy always wins.
+already exists under `catalog/<source>/<id>/` — the git-owned copy always wins.
 `tools/publish.py` walks `catalog/` only and has no flag that widens that.
 `upload_data.py --only <id>` (repeatable) uploads one dataset's staging tree
 while another is still being built.
@@ -102,7 +112,7 @@ say-so — it's a real upload to the published bucket.
 ## Thumbnails
 
 `tools/thumbnail.py` renders a built collection's manifest-chosen style into
-`catalog/<id>/thumbnail.webp` with [chiitiler](https://github.com/Kanahiro/chiitiler),
+`catalog/<source>/<id>/thumbnail.webp` with [chiitiler](https://github.com/Kanahiro/chiitiler),
 a tile server that can rasterize a MapLibre style server-side. It needs a
 running chiitiler:
 
@@ -158,6 +168,67 @@ background) before it's written and registered as the collection's
        uv run python tools/build.py <id> --only docs
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
+
+## Building region-years in batches
+
+Each region-year of a harmonized collection is its own dataset, `<id>_<year>`
+(`be_wal_2022`). `tracking.csv` is the queue: one row per region-year, with
+its `status` (`include`, `skip-no-imagery`, `blocked`, `discuss`, `exclude`), which
+imagery exists for that year (`scenes+mosaics`, `scenes`, `none`; `mosaics`
+builds only the mosaics of a `scenes+mosaics` year), its class
+filter, and the progress columns the batch runner fills in. Years before
+Sentinel-2 (pre-2015) are `skip-no-imagery` and are not published at all.
+
+    uv run python tools/new_dataset.py be_wal_2022         # recipe, filter copy, datasets.yaml entry
+    uv run python tools/run_batch.py be_wal_2022 hr_2024 --jobs 2
+    uv run python tools/run_batch.py --next 10 --jobs 4    # next 10 unbuilt 'include' rows
+    uv run python tools/run_batch.py be_wal_2022 --imagery # second pass, once metadata is published
+
+`new_dataset.py` reads the year's own parquet
+(`<hid>/year=<Y>/<hid>-<Y>.parquet`), copies title, license and providers
+from the harmonized collection, and copies the class filter byte for byte
+from ftwd's `configs/filters/` at the pinned commit; `tests/test_filters.py`
+fails if a copy drifts, so filter fixes go to ftwd first. The thumbnail
+defaults to the field `outline` style at zoom 13 on the densest cluster of
+fields; override in `datasets.yaml` only after looking at the render.
+
+Research sets labelled completely only inside their own sample tiles, chips or
+mapped regions (`LABEL_EXTENT_SOURCES` in `new_dataset.py`: GloCAB,
+AI4SmallFarms, Rwanda, Trazo) get `stages.masks.label_extent`: unlabelled
+pixels inside the extent are background, outside unknown. They build the
+semantic masks only, as presence-only sets do: ftwd's instance and DECODE masks
+cannot mark outside the extent unknown. The extent is a
+derived input, `work/extents/<id>.parquet`, built from public sources by
+`uv run python tools/label_extent.py <id>` (the repo's own environment: the
+locked DuckDB version is part of the file's bytes) and never committed; `run_batch.py` builds a
+missing one before the build. Its sha256 is committed in
+`datasets/extents.sha256`: ftwd ties the chips to the extent's sha256, so a
+rebuilt extent that differs is refused (`--accept` records a deliberate change,
+which means rebuilding that dataset from its chips).
+
+`run_batch.py` runs the "Adding a dataset" steps for each id (concurrently,
+logging to `logs/<id>.log`), then `catalogize.py --root`, thumbnails and the
+gates once for the batch, and records the outcome in `tracking.csv`. The links,
+STAC and conformance gates read only the batch's datasets
+(`BDC_SCOPE_DATASETS`, see `tests/scope.py`): the builder has staging for those
+alone, and the rest of the catalog was checked when it was built. It never
+uploads: it prints the `upload_data.py --only ...` and `publish.py` commands
+to run with the maintainer's say-so, then `--mark-published`.
+
+### On AWS
+
+Builds run on one EC2 instance in us-west-2, next to the bucket and the
+imagery. From a machine with AWS credentials:
+
+    tools/aws/builder.sh launch                # r7i.4xlarge, 1 TB gp3, bootstraps itself (~10 min)
+    tools/aws/builder.sh ssh                   # forwards port 8400 for the login below
+    source-coop login --port 8400              # on the instance, once; open the printed URL locally
+    tmux new -s build                          # builds outlive the SSH session
+    cd benchmark-data-catalog && uv run python tools/run_batch.py ...
+
+The instance stops itself after an hour with no build and nobody logged in,
+keeping its disk (`staging/`); `builder.sh start` brings it back.
+`builder.sh terminate` deletes the disk too.
 
 ## Version
 

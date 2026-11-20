@@ -25,7 +25,7 @@ built from `catalog.public_base` / `catalog.human_base` in `datasets.yaml`.
 
 Recipes live in `datasets/<id>.yaml` and are ftwd config files. `datasets.yaml`
 names the official set. Edit those and the tools, never the generated files
-under `catalog/<id>/`.
+under `catalog/<source>/<id>/`.
 
 Run the gates before every commit:
 
@@ -72,7 +72,7 @@ endpoint comes from `catalog.publish.yaml`.
 
 ## Never
 
-- Never hand-edit anything under `catalog/<id>/` — it's generated. Fix the
+- Never hand-edit anything under `catalog/<source>/<id>/` — it's generated. Fix the
   recipe or the tools and rerun `tools/catalogize.py <id>`.
 - Never widen `ACCEPTED` in `tests/test_conformance.py`. A new entry needs a
   row in `docs/conformance.md` (rule, where it fires, why, the issue tracking

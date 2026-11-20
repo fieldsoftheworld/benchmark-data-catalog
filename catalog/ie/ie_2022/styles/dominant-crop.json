@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "pasture_meadow_grassland_grass",
+            3301010101,
+            "winter_common_soft_wheat",
+            3301010402,
+            "spring_barley",
+            3301010401,
+            "winter_barley",
+            3301060401,
+            "winter_rapeseed_rape",
+            3301090100,
+            "temporary_grass",
+            3301020100,
+            "beans",
+            3301010300,
+            "rye",
+            3301010501,
+            "winter_oats",
+            3301010502,
+            "spring_oats",
+            3301030000,
+            "potatoes",
+            3301130000,
+            "strawberries",
+            "Other"
+          ],
+          "pasture_meadow_grassland_grass",
+          "#32cc32",
+          "winter_common_soft_wheat",
+          "#cda737",
+          "spring_barley",
+          "#a6cee3",
+          "winter_barley",
+          "#1f78b4",
+          "winter_rapeseed_rape",
+          "#b2df8a",
+          "temporary_grass",
+          "#fb9a99",
+          "beans",
+          "#e31a1c",
+          "rye",
+          "#fdbf6f",
+          "winter_oats",
+          "#ff7f00",
+          "spring_oats",
+          "#6a3d9a",
+          "potatoes",
+          "#ffff99",
+          "strawberries",
+          "#b15928",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

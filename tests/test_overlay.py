@@ -39,9 +39,9 @@ def write_json(path: Path, doc: dict) -> None:
 
 def build_catalog(catalog: Path, dataset_id: str = "lu", square: str = "32UNA") -> None:
     """A minimal built collection with one committed sub-catalog."""
-    write_json(catalog / dataset_id / "collection.json", {"type": "Collection", "id": dataset_id})
+    write_json(catalog / "g" / dataset_id / "collection.json", {"type": "Collection", "id": dataset_id})
     write_json(
-        catalog / dataset_id / "chips" / square / "catalog.json",
+        catalog / "g" / dataset_id / "chips" / square / "catalog.json",
         {"type": "Catalog", "id": square, "links": []},
     )
 
@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     with overlay.overlay_tree(catalog, staging) as root:
         root = Path(root)
-        dest_item_dir = root / "lu" / "chips" / "32UNA" / "ftw-1"
+        dest_item_dir = root / "g" / "lu" / "chips" / "32UNA" / "ftw-1"
         check((dest_item_dir / "ftw-1.json").is_file(), "the item's own JSON is copied into the overlay")
         check(
             not (dest_item_dir / "ftw-1_instance.tif").exists(),
@@ -90,7 +90,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     with overlay.overlay_tree(catalog, staging) as root:
         root = Path(root)
-        dest_item_dir = root / "lu" / "chips" / "32UNA" / "ftw-1"
+        dest_item_dir = root / "g" / "lu" / "chips" / "32UNA" / "ftw-1"
         check((dest_item_dir / "ftw-1.json").is_file(), "the parent item's own JSON is copied")
         child_json = dest_item_dir / "ftw-1_20250101" / "ftw-1_20250101.json"
         check(child_json.is_file(), "a nested imagery child item's JSON is copied, at the same relative depth")
@@ -165,7 +165,7 @@ with tempfile.TemporaryDirectory() as tmp:
     with overlay.resolve_target(catalog, staging) as target:
         check(target != catalog, "resolve_target yields a temp overlay, not catalog/ itself, once items exist")
         check(
-            (Path(target) / "lu" / "chips" / "32UNA" / "ftw-1" / "ftw-1.json").is_file(),
+            (Path(target) / "g" / "lu" / "chips" / "32UNA" / "ftw-1" / "ftw-1.json").is_file(),
             "resolve_target's overlay carries the staged item JSON",
         )
 

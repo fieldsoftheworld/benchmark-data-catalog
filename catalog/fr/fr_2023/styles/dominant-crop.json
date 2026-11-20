@@ -1,0 +1,94 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3302000000,
+            "Permanent pasture - predominantly grass (woody fodder resources absent or scarce)",
+            3301010101,
+            "Soft winter wheat",
+            3301010600,
+            "Maize",
+            3303060000,
+            "Vine: wine grapes",
+            3301090100,
+            "Other temporary grassland 5 years or less",
+            3301060401,
+            "Other winter oilseeds of the species Brassica rapa",
+            3301010401,
+            "Winter barley",
+            3301060500,
+            "Sunflower",
+            3301090301,
+            "Other alfalfa",
+            3301010201,
+            "Hard winter wheat",
+            3301010402,
+            "Spring barley",
+            3301061219,
+            "Lavender / Lavandin",
+            "Other"
+          ],
+          "Permanent pasture - predominantly grass (woody fodder resources absent or scarce)",
+          "#32cc32",
+          "Soft winter wheat",
+          "#cda737",
+          "Maize",
+          "#a6cee3",
+          "Vine: wine grapes",
+          "#1f78b4",
+          "Other temporary grassland 5 years or less",
+          "#b2df8a",
+          "Other winter oilseeds of the species Brassica rapa",
+          "#fb9a99",
+          "Winter barley",
+          "#e31a1c",
+          "Sunflower",
+          "#cc32cb",
+          "Other alfalfa",
+          "#fdbf6f",
+          "Hard winter wheat",
+          "#ff7f00",
+          "Spring barley",
+          "#6a3d9a",
+          "Lavender / Lavandin",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

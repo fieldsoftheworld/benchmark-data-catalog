@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Mowing and grazing on arable land",
+            "3301010101",
+            "Wheat (autumn)",
+            "3301010402",
+            "Barley (spring)",
+            "3301010500",
+            "Oats",
+            "3301060401",
+            "Rapeseed (autumn)",
+            "3301010102",
+            "Wheat (spring)",
+            "3301010301",
+            "Rye wheat (autumn)",
+            "3301020600",
+            "Pea for preserving",
+            "3301010000",
+            "Cereals for green fodder / silage",
+            "3301290700",
+            "Sugar beet",
+            "3301090000",
+            "Green fodder",
+            "3301010300",
+            "Rye",
+            "Other"
+          ],
+          "Mowing and grazing on arable land",
+          "#32cc32",
+          "Wheat (autumn)",
+          "#cda737",
+          "Barley (spring)",
+          "#a6cee3",
+          "Oats",
+          "#1f78b4",
+          "Rapeseed (autumn)",
+          "#b2df8a",
+          "Wheat (spring)",
+          "#fb9a99",
+          "Rye wheat (autumn)",
+          "#e31a1c",
+          "Pea for preserving",
+          "#fdbf6f",
+          "Cereals for green fodder / silage",
+          "#ff7f00",
+          "Sugar beet",
+          "#cc324c",
+          "Green fodder",
+          "#6a3d9a",
+          "Rye",
+          "#ffff99",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

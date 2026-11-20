@@ -1,0 +1,97 @@
+{
+  "version": 8,
+  "name": "Crops",
+  "metadata": {
+    "description": "Fields coloured by harmonized crop (EuroCrops HCAT code, `hcat:code`). The crops covering the most area are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../fields.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "fields-by-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "to-string",
+              [
+                "get",
+                "hcat:code"
+              ]
+            ],
+            "3302000000",
+            "Permanent pasture - predominantly grass (woody fodder resources absent or scarce)",
+            "3301010101",
+            "Soft winter wheat",
+            "3301010600",
+            "Maize",
+            "3301090100",
+            "Other temporary grassland 5 years or less",
+            "3301060401",
+            "Other winter oilseeds of the species Brassica rapa",
+            "3301010401",
+            "Winter barley",
+            "3301060500",
+            "Sunflower",
+            "3301010402",
+            "Spring barley",
+            "3303060000",
+            "Vine: wine grapes",
+            "3301090301",
+            "Other alfalfa",
+            "3301290700",
+            "Non-forage beet / Swiss chard",
+            "3301020000",
+            "Mixture of legumes predominantly at seed and forage grasses 5 years or less",
+            "Other"
+          ],
+          "Permanent pasture - predominantly grass (woody fodder resources absent or scarce)",
+          "#32cc32",
+          "Soft winter wheat",
+          "#cda737",
+          "Maize",
+          "#a6cee3",
+          "Other temporary grassland 5 years or less",
+          "#1f78b4",
+          "Other winter oilseeds of the species Brassica rapa",
+          "#b2df8a",
+          "Winter barley",
+          "#fb9a99",
+          "Sunflower",
+          "#cc32cb",
+          "Spring barley",
+          "#e31a1c",
+          "Vine: wine grapes",
+          "#fdbf6f",
+          "Other alfalfa",
+          "#ff7f00",
+          "Non-forage beet / Swiss chard",
+          "#cc324c",
+          "Mixture of legumes predominantly at seed and forage grasses 5 years or less",
+          "#6a3d9a",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "fields-by-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "fields",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}

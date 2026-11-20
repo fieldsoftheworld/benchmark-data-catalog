@@ -54,6 +54,7 @@ from publish import (  # noqa: E402
     unedited_sentinels,
     upload_all,
 )
+from common import dataset_relpath  # noqa: E402
 
 # The suffixes that may reach the bucket. This is an allow-list, and it names
 # what may pass rather than what may not. A staging tree grows new scratch
@@ -115,6 +116,24 @@ def is_data_publishable(rel: Path) -> bool:
     return is_publishable(rel) and rel.suffix.lower() in PUBLISHABLE_SUFFIXES
 
 
+def published_rel(rel: Path, places: dict[str, str], root: Path, config: dict[str, str]) -> Path:
+    """``staging``-relative ``<id>/...`` as its published ``<source>/<id>/...``.
+
+    ``staging/<id>/`` is flat; ``catalog/`` and the bucket group each dataset
+    under its harmonized source (``common.dataset_relpath``). ``places``
+    caches the lookup per dataset id. A file directly under ``data_dir`` is
+    not inside any dataset and keeps its path.
+    """
+    if len(rel.parts) < 2:
+        return rel
+    dataset_id = rel.parts[0]
+    if dataset_id not in places:
+        places[dataset_id] = dataset_relpath(
+            dataset_id, catalog=root / config["publish_dir"], root=root
+        )
+    return Path(places[dataset_id], *rel.parts[1:])
+
+
 def git_owned(rel: Path, root: Path, config: dict[str, str]) -> bool:
     """True when the git-owned catalog already has this relative path.
 
@@ -139,14 +158,16 @@ def collect_data_uploads(
     dataset can be published while another is still being built.
 
     The walk is rooted at ``data_dir`` and nothing else. Keys go under the
-    same ``write_prefix`` the catalog publishes to, so the data sits beside
-    the metadata that describes it. A staged file whose relative path is
+    same ``write_prefix`` the catalog publishes to, at the dataset's
+    published ``<source>/<id>/`` (``published_rel``), so the data sits beside
+    the metadata that describes it. A staged file whose published path is
     already git-owned (see ``git_owned``) is skipped rather than uploaded;
-    pass ``skipped`` to collect the relative paths that were.
+    pass ``skipped`` to collect the published relative paths that were.
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     base = data_root(config, root)
     uploads = []
+    places: dict[str, str] = {}
     for path in sorted(base.rglob("*")):
         if not path.is_file():
             continue
@@ -155,6 +176,7 @@ def collect_data_uploads(
             continue
         if not is_data_publishable(rel):
             continue
+        rel = published_rel(rel, places, root, config)
         if git_owned(rel, root, config):
             if skipped is not None:
                 skipped.append(rel)
@@ -206,7 +228,7 @@ def main() -> int:
         print(f"nothing under {base}/ to upload", file=sys.stderr)
         return 1
 
-    index = {} if args.force else remote_index(bucket, prefix, config)
+    index = {} if args.force else remote_index(bucket, prefix, config, only=only)
     changed = [u for u in uploads if args.force or not is_unchanged(u, index)]
 
     print(f"data_dir:    {base}/")

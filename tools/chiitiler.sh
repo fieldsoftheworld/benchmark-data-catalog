@@ -33,4 +33,10 @@ fi
 echo "starting chiitiler on port $PORT (cache: memory)"
 echo "stop with: pkill -f 'tile-server --port $PORT'"
 cd "$CACHE_DIR"
-exec env CHIITILER_PROCESSES=0 npx tsx src/main.ts tile-server --port "$PORT" --cache memory
+# maplibre-gl-native renders through OpenGL, which a headless Linux box only has
+# under a virtual X display (tools/aws/bootstrap.sh installs xvfb).
+XVFB=()
+if [[ -z "${DISPLAY:-}" && "$(uname)" == Linux ]]; then
+    XVFB=(xvfb-run -a)
+fi
+exec env CHIITILER_PROCESSES=0 ${XVFB[@]+"${XVFB[@]}"} npx tsx src/main.ts tile-server --port "$PORT" --cache memory

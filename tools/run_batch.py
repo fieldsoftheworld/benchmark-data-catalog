@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""Build a batch of region-year datasets from ``tracking.csv``, up to upload.
+
+    uv run python tools/run_batch.py be_wal_2022 hr_2024 --jobs 2
+    uv run python tools/run_batch.py --next 10 --jobs 4        # next 10 unbuilt 'include' rows
+    uv run python tools/run_batch.py be_wal_2022 --imagery     # second pass: imagery
+    uv run python tools/run_batch.py be_wal_2022 --mark-published
+
+The metadata pass runs, per dataset, the steps in README's "Adding a
+dataset": scaffold the recipe when missing (``tools/new_dataset.py``), build
+or check the label extent when the recipe reads one (``tools/label_extent.py``,
+in both passes), build ``--through stac``, build ``--only docs``,
+``catalogize.py <id>``. Datasets run
+concurrently (``--jobs``), each logging to ``logs/<id>.log``. Then, once for
+the whole batch: ``catalogize.py --root``, thumbnails one at a time through a
+single chiitiler (started here if none is running), and the gates.
+
+The gates that read every STAC object (links, STAC, conformance) are
+scoped to the batch's datasets that reached catalog/ (BDC_SCOPE_DATASETS, see
+tests/scope.py). A builder holds staging only for its own batch, and over the
+whole catalog those gates take hours. Run them unscoped before publishing.
+
+The imagery pass runs ``--from select_images``, ``--only docs`` and
+``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
+--root`` (after the thumbnails, so the root tables see them) and the gates.
+
+Never uploads. It prints the upload commands for the datasets that built;
+run them yourself, then ``--mark-published``.
+
+``tracking.csv`` records the outcome per row, and only once the gates pass:
+``built`` / ``imagery_done`` get the date and ``ftwd_commit`` the installed
+ftwd. ``issues`` names the failed step and its log otherwise, or says the
+batch's gates failed, so ``--next`` does not take the row as done.
+
+One run at a time: a second run exits while ``logs/run_batch.lock`` is held. Two runs would
+pick the same ``--next`` rows and stop each other's chiitiler.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import os
+import subprocess
+import sys
+import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import tracking  # noqa: E402
+from build import subprocess_env  # noqa: E402
+from common import CATALOG, ROOT, installed_ftwd  # noqa: E402
+from label_extent import reads_extent  # noqa: E402
+
+LOGS = ROOT / "logs"
+CHIITILER_HEALTH = "http://localhost:13579/health"
+
+METADATA_STEPS = (
+    ("build --through stac", ["build.py", "{id}", "--through", "stac"]),
+    ("build --only docs", ["build.py", "{id}", "--only", "docs"]),
+    ("catalogize", ["catalogize.py", "{id}"]),
+)
+IMAGERY_STEPS = (
+    ("build --from select_images", ["build.py", "{id}", "--from", "select_images"]),
+    ("build --only docs", ["build.py", "{id}", "--only", "docs"]),
+    ("catalogize", ["catalogize.py", "{id}"]),
+)
+
+
+def tool_argv(template: list[str], dataset_id: str) -> list[str]:
+    """``python tools/<script> ...`` with ``{id}`` filled in."""
+    script, *args = template
+    return [sys.executable, str(ROOT / "tools" / script)] + [
+        a.replace("{id}", dataset_id) for a in args
+    ]
+
+
+def next_ids(rows: list[dict[str, str]], n: int, *, imagery: bool) -> list[str]:
+    """The first ``n`` 'include' rows still waiting for this pass.
+
+    Rows with ``issues`` (a preflight finding from ``check_filters.py`` or an
+    earlier failed build) are skipped until fixed; name them explicitly to retry.
+    """
+    if imagery:
+        waiting = [r for r in rows if r["built"] and not r["imagery_done"]]
+    else:
+        waiting = [r for r in rows if not r["built"]]
+    return [r["dataset_id"] for r in waiting if r["status"] == "include" and not r["issues"]][:n]
+
+
+def _run(argv: list[str], log) -> int:
+    log.write(f"\n$ {' '.join(argv)}\n")
+    log.flush()
+    return subprocess.run(
+        argv, cwd=ROOT, env=subprocess_env(), stdout=log, stderr=subprocess.STDOUT, check=False
+    ).returncode
+
+
+def run_dataset(dataset_id: str, steps, *, scaffold: bool) -> str | None:
+    """Run ``steps`` for one dataset; the failed step's name, or None."""
+    LOGS.mkdir(exist_ok=True)
+    with (LOGS / f"{dataset_id}.log").open("a") as log:
+        log.write(f"\n=== {date.today().isoformat()} {dataset_id}\n")
+        if scaffold and not (ROOT / "datasets" / f"{dataset_id}.yaml").exists():
+            if _run(tool_argv(["new_dataset.py", "{id}"], dataset_id), log) != 0:
+                return "new_dataset"
+        # ftwd reads the extent when it loads the recipe, in either pass: build a missing
+        # one, and check any against its recorded sha256 (the chips are tied to it).
+        if reads_extent(dataset_id):
+            if _run(tool_argv(["label_extent.py", "{id}"], dataset_id), log) != 0:
+                return "label_extent"
+        for name, template in steps:
+            started = time.monotonic()
+            code = _run(tool_argv(template, dataset_id), log)
+            log.write(f"--- {name}: exit {code} after {time.monotonic() - started:.0f}s\n")
+            if code != 0:
+                return name
+    return None
+
+
+def _chiitiler_up() -> bool:
+    try:
+        with urllib.request.urlopen(CHIITILER_HEALTH, timeout=2) as resp:
+            return resp.status == 200
+    except OSError:
+        return False
+
+
+def start_chiitiler() -> subprocess.Popen | None:
+    """Start chiitiler unless one is already up; the process we started, if any."""
+    if _chiitiler_up():
+        return None
+    LOGS.mkdir(exist_ok=True)
+    proc = subprocess.Popen(
+        [str(ROOT / "tools" / "chiitiler.sh")],
+        cwd=ROOT,
+        stdout=(LOGS / "chiitiler.log").open("a"),
+        stderr=subprocess.STDOUT,
+    )
+    for _ in range(300):  # first run clones and npm-installs
+        if _chiitiler_up():
+            return proc
+        time.sleep(1)
+    proc.terminate()
+    raise RuntimeError("chiitiler did not come up in 5 minutes; see logs/chiitiler.log")
+
+
+def thumbnails(dataset_ids: list[str]) -> dict[str, str]:
+    """Render each thumbnail; failures as {id: message}."""
+    failed = {}
+    try:
+        proc = start_chiitiler()
+    except RuntimeError as err:
+        # The builds are done; record why the thumbnails are missing rather than
+        # losing every row's outcome to an exit.
+        return dict.fromkeys(dataset_ids, str(err))
+    try:
+        for dataset_id in dataset_ids:
+            with (LOGS / f"{dataset_id}.log").open("a") as log:
+                if _run(tool_argv(["thumbnail.py", "{id}"], dataset_id), log) != 0:
+                    failed[dataset_id] = f"thumbnail failed, see logs/{dataset_id}.log"
+    finally:
+        if proc is not None:
+            subprocess.run(["pkill", "-f", "tile-server --port 13579"], check=False)
+    return failed
+
+
+def _ftwd_commit() -> str:
+    pin = installed_ftwd()
+    return pin.value[:8] if pin is not None else ""
+
+
+def run_pass(dataset_ids: list[str], *, imagery: bool, jobs: int) -> dict[str, str]:
+    """Run one pass over ``dataset_ids``; the failures as {id: issue}."""
+    steps = IMAGERY_STEPS if imagery else METADATA_STEPS
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        results = dict(
+            zip(
+                dataset_ids,
+                pool.map(lambda d: run_dataset(d, steps, scaffold=not imagery), dataset_ids),
+                strict=True,
+            )
+        )
+    failures = {d: f"{step} failed, see logs/{d}.log" for d, step in results.items() if step}
+    ok = [d for d in dataset_ids if d not in failures]
+    if ok and not imagery:
+        failures |= thumbnails(ok)
+    return failures
+
+
+#: What tests/scope.py reads. A batch sets its own scope and drops any other.
+SCOPE_VARS = ("BDC_SCOPE_GROUPS", "BDC_SCOPE_BASE", "BDC_SCOPE_DATASETS")
+
+
+def batch_gates(dataset_ids: list[str], catalog: Path = CATALOG) -> tuple[list[str], dict]:
+    """The run_all command and environment for a batch.
+
+    The slow gates are scoped to the datasets that reached catalog/; when none
+    did, they are left out.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in SCOPE_VARS}
+    argv = [sys.executable, str(ROOT / "tests" / "run_all.py")]
+    present = [d for d in dataset_ids if any(catalog.glob(f"*/{d}/collection.json"))]
+    if not present:
+        return [*argv, "--skip-slow"], env
+    return argv, {**env, "BDC_SCOPE_DATASETS": ",".join(present)}
+
+
+def finish_batch(dataset_ids: list[str]) -> str | None:
+    """Regenerate the root catalog, then run the gates; why the batch failed, or None.
+
+    The root tables measure every collection's chips, imagery and thumbnail, so
+    they are rebuilt after both passes, once the thumbnails are rendered.
+    """
+    root = subprocess.run(tool_argv(["catalogize.py", "--root"], ""), cwd=ROOT, check=False)
+    if root.returncode != 0:
+        return "catalogize --root failed"
+    argv, env = batch_gates(dataset_ids)
+    gates = subprocess.run(argv, cwd=ROOT, env=env, check=False)
+    return None if gates.returncode == 0 else "the batch's gates failed (tests/run_all.py)"
+
+
+def record(dataset_ids: list[str], failures: dict[str, str], *, imagery: bool) -> None:
+    """Write each row's outcome to tracking.csv."""
+    today, commit = date.today().isoformat(), _ftwd_commit()
+    done_column = "imagery_done" if imagery else "built"
+    for d in dataset_ids:
+        if d in failures:
+            tracking.update(d, issues=failures[d])
+        else:
+            tracking.update(d, **{done_column: today, "ftwd_commit": commit, "issues": ""})
+
+
+#: The open lock file, kept referenced so the lock is held until the process exits.
+_lock_handle = None
+
+
+def hold_lock() -> None:
+    """Take an exclusive lock on logs/run_batch.lock, held until the process exits."""
+    global _lock_handle
+    LOGS.mkdir(exist_ok=True)
+    handle = (LOGS / "run_batch.lock").open("w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        sys.exit("another run_batch.py is running (logs/run_batch.lock); wait for it")
+    _lock_handle = handle
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("dataset_ids", nargs="*", help="region-year ids from tracking.csv")
+    parser.add_argument("--next", type=int, default=0, help="take the next N waiting rows")
+    parser.add_argument("--jobs", type=int, default=2, help="datasets built concurrently")
+    parser.add_argument("--imagery", action="store_true", help="run the imagery pass")
+    parser.add_argument(
+        "--mark-published", action="store_true", help="record the ids as uploaded; build nothing"
+    )
+    args = parser.parse_args(argv)
+
+    rows = tracking.load()
+    ids = args.dataset_ids or next_ids(rows, args.next, imagery=args.imagery)
+    if not ids:
+        sys.exit("nothing to do: name dataset ids or pass --next N")
+    for d in ids:
+        tracking.row(d, rows)
+
+    hold_lock()
+    if args.mark_published:
+        if not args.dataset_ids:
+            sys.exit("--mark-published needs the dataset ids that were uploaded, not --next")
+        for d in ids:
+            tracking.update(d, published=date.today().isoformat())
+        return 0
+
+    print(f"{'imagery' if args.imagery else 'metadata'} pass: {', '.join(ids)}")
+    failures = run_pass(ids, imagery=args.imagery, jobs=args.jobs)
+    batch_failure = finish_batch([d for d in ids if d not in failures])
+    if batch_failure:
+        failures |= {d: batch_failure for d in ids if d not in failures}
+    record(ids, failures, imagery=args.imagery)
+    ok = [d for d in ids if d not in failures]
+    failed = [d for d in ids if d in failures]
+
+    print(f"\nbuilt: {', '.join(ok) or 'none'}")
+    if failed:
+        print(f"failed: {', '.join(failed)} (see tracking.csv issues and logs/)")
+        print(
+            "        the gates did not read them, but a step may already have written their\n"
+            "        catalog/ files; revert those (git checkout -- catalog/) or rebuild them\n"
+            "        before publish.py, which uploads catalog/ whole"
+        )
+    if batch_failure:
+        print(f"{batch_failure}; fix before uploading")
+        return 1
+    if ok:
+        only = " ".join(f"--only {d}" for d in ok)
+        print("\nreview, commit, then upload with the maintainer's say-so:")
+        print(f"  uv run python tools/upload_data.py {only} --confirm")
+        print("  uv run python tools/publish.py --confirm")
+        print(f"  uv run python tools/run_batch.py {' '.join(ok)} --mark-published")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -101,6 +101,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "staging/scratch/notes.md")
     write(root / "staging/.work/tmp.parquet")
 
+    # Published under a source group: staging/<id>/ uploads to <source>/<id>/.
+    for dataset_id in ("roads", "tiles", "dem", "lu", "scratch"):
+        write(root / f"catalog/g/{dataset_id}/collection.json")
+
     # Outside the staging tree. The path gate bars it.
     write(root / "catalog/catalog.json")
     write(root / "elsewhere/stray.parquet")
@@ -116,10 +120,10 @@ with tempfile.TemporaryDirectory() as tmp:
     keys = {u.key for u in uploads}
 
     expected = {
-        "a/prefix/roads/part-0.parquet",
-        "a/prefix/roads/part-1.parquet",
-        "a/prefix/tiles/roads.pmtiles",
-        "a/prefix/dem/tile.tif",
+        "a/prefix/g/roads/part-0.parquet",
+        "a/prefix/g/roads/part-1.parquet",
+        "a/prefix/g/tiles/roads.pmtiles",
+        "a/prefix/g/dem/tile.tif",
     }
     check(keys == expected, f"upload set wrong.\n  extra:   {keys - expected}"
                             f"\n  missing: {expected - keys}")
@@ -127,25 +131,25 @@ with tempfile.TemporaryDirectory() as tmp:
     # Content types come from publish.py, not from a second table.
     types = {u.key: u.content_type for u in uploads}
     check(
-        types["a/prefix/roads/part-0.parquet"]
+        types["a/prefix/g/roads/part-0.parquet"]
         == "application/vnd.apache.parquet",
         "parquet content type comes from publish.py",
     )
     check(
-        types["a/prefix/tiles/roads.pmtiles"] == "application/vnd.pmtiles",
+        types["a/prefix/g/tiles/roads.pmtiles"] == "application/vnd.pmtiles",
         "pmtiles content type comes from publish.py",
     )
 
     # --only restricts the walk to named dataset directories.
     write(root / "staging/lu/items.parquet")
     only_keys = {u.key for u in collect_data_uploads(config, root, only={"lu"})}
-    check(only_keys == {"a/prefix/lu/items.parquet"}, f"--only lu uploads only lu: {only_keys}")
+    check(only_keys == {"a/prefix/g/lu/items.parquet"}, f"--only lu uploads only lu: {only_keys}")
     check(
         {u.key for u in collect_data_uploads(config, root, only={"roads", "lu"})}
-        == {"a/prefix/roads/part-0.parquet", "a/prefix/roads/part-1.parquet", "a/prefix/lu/items.parquet"},
+        == {"a/prefix/g/roads/part-0.parquet", "a/prefix/g/roads/part-1.parquet", "a/prefix/g/lu/items.parquet"},
         "--only accepts several datasets",
     )
-    expected = expected | {"a/prefix/lu/items.parquet"}
+    expected = expected | {"a/prefix/g/lu/items.parquet"}
 
     # The bare-prefix case: no prefix at all.
     flat = dict(config, write_prefix="s3://a-bucket")
@@ -161,6 +165,14 @@ with tempfile.TemporaryDirectory() as tmp:
         {u.key for u in collect_data_uploads(absolute, root)} == expected,
         "an absolute data_dir walks the same tree",
     )
+
+    # A staged dataset that is neither published nor has a recipe has no place to go.
+    write(root / "staging/nowhere/items.parquet")
+    check(
+        "nowhere" in exit_message(lambda: collect_data_uploads(config, root, only={"nowhere"})),
+        "a staged dataset with no catalog folder and no recipe is refused, not uploaded flat",
+    )
+    (root / "staging/nowhere/items.parquet").unlink()
 
     # --- an absent or wrong data_dir exits with a message ---------------
     message = exit_message(lambda: data_root(dict(config, data_dir=""), root))
@@ -185,9 +197,9 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # In both staging/ and catalog/: git owns it, never uploaded.
     write(root / "staging/lu/collection.json")
-    write(root / "catalog/lu/collection.json")
+    write(root / "catalog/g/lu/collection.json")
     write(root / "staging/lu/chips/32UNA/catalog.json")
-    write(root / "catalog/lu/chips/32UNA/catalog.json")
+    write(root / "catalog/g/lu/chips/32UNA/catalog.json")
 
     # Only in staging/: uploaded, with the item-JSON content type.
     write(root / "staging/lu/chips/32UNA/ftw-1/ftw-1.json")
@@ -201,12 +213,12 @@ with tempfile.TemporaryDirectory() as tmp:
     }
 
     check(
-        git_owned(Path("lu/collection.json"), root, owned_config),
+        git_owned(Path("g/lu/collection.json"), root, owned_config),
         "a path that exists under publish_dir is git-owned",
     )
     check(
         not git_owned(
-            Path("lu/chips/32UNA/ftw-1/ftw-1.json"), root, owned_config
+            Path("g/lu/chips/32UNA/ftw-1/ftw-1.json"), root, owned_config
         ),
         "a path that exists only in staging is not git-owned",
     )
@@ -216,8 +228,8 @@ with tempfile.TemporaryDirectory() as tmp:
     owned_keys = {u.key for u in owned_uploads}
 
     owned_expected = {
-        "a/prefix/lu/chips/32UNA/ftw-1/ftw-1.json",
-        "a/prefix/lu/items.parquet",
+        "a/prefix/g/lu/chips/32UNA/ftw-1/ftw-1.json",
+        "a/prefix/g/lu/items.parquet",
     }
     check(
         owned_keys == owned_expected,
@@ -226,13 +238,13 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check(
         {p.as_posix() for p in skipped}
-        == {"lu/collection.json", "lu/chips/32UNA/catalog.json"},
+        == {"g/lu/collection.json", "g/lu/chips/32UNA/catalog.json"},
         f"the skipped list names the git-owned paths, got {skipped}",
     )
 
     owned_types = {u.key: u.content_type for u in owned_uploads}
     check(
-        owned_types["a/prefix/lu/chips/32UNA/ftw-1/ftw-1.json"]
+        owned_types["a/prefix/g/lu/chips/32UNA/ftw-1/ftw-1.json"]
         == "application/geo+json",
         "an uploaded item JSON gets geo+json via rel",
     )

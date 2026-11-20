@@ -2,7 +2,7 @@
 """The manifest, the recipes, and the published tree agree.
 
 datasets.yaml names what this catalog publishes. datasets/<id>.yaml is the ftwd
-recipe for each. catalog/<id>/ is what was published. A dataset in one place
+recipe for each. catalog/<source>/<id>/ is what was published. A dataset in one place
 but not the others is a mistake: a recipe nobody builds, a collection nobody
 maintains, or a child link to nothing.
 
@@ -27,7 +27,23 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from common import CATALOG, PORTOLAN_SCHEMA_RE, PUBLIC_BASE, STAGING, load_manifest  # noqa: E402
+from common import (  # noqa: E402
+    CATALOG,
+    PORTOLAN_SCHEMA_RE,
+    PUBLIC_BASE,
+    STAGING,
+    load_manifest,
+    published_collections,
+    source_group,
+)
+from new_dataset import (  # noqa: E402
+    DERIVED,
+    HARMONIZED,
+    LABEL_EXTENT_MASK_TYPES,
+    LABEL_EXTENT_SOURCES,
+    PRESENCE_ONLY_MASK_TYPES,
+    label_extent_ref,
+)
 
 MANIFEST = load_manifest()
 RECIPES = ROOT / "datasets"
@@ -49,6 +65,69 @@ def err(msg: str) -> None:
     errors.append(msg)
 
 
+def label_extent_problems(dataset_id: str, recipe: dict) -> list[str]:
+    """What is wrong with a recipe's label extent settings (none for an ordinary recipe).
+
+    A collection labelled only inside its sample areas reads the extent
+    tools/label_extent.py builds, keeps border chips (outside the extent is unknown
+    anyway) and builds exactly ``LABEL_EXTENT_MASK_TYPES``; ftwd refuses
+    label_extent together with presence_only.
+    """
+    stages = recipe.get("stages") or {}
+    masks = stages.get("masks") or {}
+    source = str(recipe.get("source_via") or "")
+    harmonized_id = source.removeprefix(f"{HARMONIZED}/").split("/")[0] if source.startswith(HARMONIZED) else ""
+    extent = masks.get("label_extent")
+    where = f"datasets/{dataset_id}.yaml"
+    problems = []
+    if harmonized_id in LABEL_EXTENT_SOURCES and extent != label_extent_ref(dataset_id):
+        problems.append(f"{where}: {harmonized_id} is labelled only inside its sample areas, so "
+                        f"stages.masks.label_extent must be {label_extent_ref(dataset_id)!r}, got {extent!r}")
+    if not extent:
+        return problems
+    if harmonized_id not in LABEL_EXTENT_SOURCES:
+        problems.append(f"{where}: label_extent set, but tools/label_extent.py has no builder "
+                        f"for {harmonized_id or source!r}")
+    if masks.get("presence_only"):
+        problems.append(f"{where}: label_extent and presence_only are alternatives")
+    if (stages.get("chips") or {}).get("drop_border_chips") is not False:
+        problems.append(f"{where}: a label-extent dataset keeps border chips (drop_border_chips: false)")
+    if sorted(masks.get("mask_types") or []) != sorted(LABEL_EXTENT_MASK_TYPES):
+        problems.append(f"{where}: a label-extent dataset builds {LABEL_EXTENT_MASK_TYPES}, "
+                        f"got {masks.get('mask_types')}")
+    return problems
+
+
+# Self-test on fixtures, so the label extent rules are exercised even before any
+# label-extent recipe is committed.
+_good = {
+    "source_via": f"{HARMONIZED}/glocab/collection.json",
+    "stages": {"chips": {"drop_border_chips": False},
+               "masks": {"label_extent": label_extent_ref("glocab_2020"), "presence_only": False,
+                         "mask_types": list(LABEL_EXTENT_MASK_TYPES)}},
+}
+_cases = {
+    "a correct recipe": (_good, []),
+    "a missing extent": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "label_extent": None}}}, ["must be"]),
+    "border chips dropped": ({**_good, "stages": {**_good["stages"], "chips": {
+        "drop_border_chips": True}}}, ["keeps border chips"]),
+    "the wrong mask types": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "mask_types": ["semantic_3_class"]
+        if list(LABEL_EXTENT_MASK_TYPES) != ["semantic_3_class"] else ["instance"]}}}, ["builds"]),
+    "presence_only too": ({**_good, "stages": {**_good["stages"], "masks": {
+        **_good["stages"]["masks"], "presence_only": True}}}, ["alternatives"]),
+    "an extent on another collection": ({**_good, "source_via": f"{HARMONIZED}/nl/collection.json"},
+                                        ["no builder"]),
+    "an ordinary recipe": ({"source_via": f"{HARMONIZED}/nl/collection.json",
+                            "stages": {"masks": {"presence_only": False}}}, []),
+}
+for _name, (_recipe, _expect) in _cases.items():
+    _found = label_extent_problems("glocab_2020", _recipe)
+    if len(_found) != len(_expect) or not all(e in f for e, f in zip(_expect, _found)):
+        err(f"label_extent_problems self-test, {_name}: expected {_expect}, got {_found}")
+
+
 def check_built_collection(dataset_id: str) -> None:
     """A built collection's version, extensions and style assets agree with the manifest.
 
@@ -59,18 +138,20 @@ def check_built_collection(dataset_id: str) -> None:
     failing on something tools/thumbnail.py (a later plan step) hasn't
     written.
     """
-    collection = json.loads((CATALOG / dataset_id / "collection.json").read_text())
+    collection_path = PUBLISHED[dataset_id]
+    collection = json.loads(collection_path.read_text())
+    where = collection_path.relative_to(CATALOG.parent)
 
     catalog_version = (MANIFEST.get("catalog") or {}).get("version")
     if collection.get("version") != catalog_version:
         err(
-            f"catalog/{dataset_id}/collection.json: version {collection.get('version')!r} != "
+            f"{where}: version {collection.get('version')!r} != "
             f"datasets.yaml catalog.version {catalog_version!r}"
         )
 
     extensions = collection.get("stac_extensions") or []
     if not any(isinstance(e, str) and PORTOLAN_SCHEMA_RE.fullmatch(e) for e in extensions):
-        err(f"catalog/{dataset_id}/collection.json: stac_extensions is missing a Portolan schema URI")
+        err(f"{where}: stac_extensions is missing a Portolan schema URI")
 
     assets = collection.get("assets") or {}
     styles = {key: asset for key, asset in assets.items() if key.startswith("style-")}
@@ -81,7 +162,7 @@ def check_built_collection(dataset_id: str) -> None:
     defaults = [key for key, asset in styles.items() if "default" in (asset.get("roles") or [])]
     if len(defaults) != 1:
         err(
-            f"catalog/{dataset_id}/collection.json: expected exactly one style-* asset with role "
+            f"{where}: expected exactly one style-* asset with role "
             f"'default', found {len(defaults)} among {sorted(styles)}"
         )
 
@@ -89,14 +170,15 @@ def check_built_collection(dataset_id: str) -> None:
     thumb_style = (spec.get("thumbnail") or {}).get("style")
     if thumb_style and f"style-{thumb_style}" not in assets:
         err(
-            f"catalog/{dataset_id}/collection.json: datasets.yaml thumbnail.style {thumb_style!r} "
+            f"{where}: datasets.yaml thumbnail.style {thumb_style!r} "
             f"has no matching style-{thumb_style} asset"
         )
 
 
 declared = set(MANIFEST.get("datasets") or {})
 recipes = {p.stem for p in RECIPES.glob("*.yaml")}
-built = {p.parent.name for p in CATALOG.glob("*/collection.json")}
+PUBLISHED = published_collections(CATALOG)
+built = set(PUBLISHED)
 
 for missing in sorted(declared - recipes):
     err(f"{missing} is in datasets.yaml but datasets/{missing}.yaml does not exist")
@@ -105,12 +187,28 @@ for extra in sorted(recipes - declared):
 for missing in sorted(declared - built):
     print(f"note: {missing} is declared but not built yet (next plan: tools/build.py {missing})")
 for extra in sorted(built - declared):
-    err(f"catalog/{extra}/ is published but not in datasets.yaml")
+    err(f"{PUBLISHED[extra].parent.relative_to(CATALOG.parent)}/ is published but not in datasets.yaml")
 
+# The root links one catalog per source group; each group links the collections under it.
 root = json.loads((CATALOG / "catalog.json").read_text())
-children = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
-if children != built:
-    err(f"catalog.json children {sorted(children)} != built collections {sorted(built)}")
+groups = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
+published_groups = {path.parent.parent.name for path in PUBLISHED.values()}
+if groups != published_groups:
+    err(f"catalog.json children {sorted(groups)} != source groups {sorted(published_groups)}")
+linked = set()
+for group in sorted(groups & published_groups):
+    group_doc = json.loads((CATALOG / group / "catalog.json").read_text())
+    linked |= {Path(l["href"]).parent.name for l in group_doc["links"] if l["rel"] == "child"}
+if linked != built:
+    err(f"the group catalogs link {sorted(linked)} != built collections {sorted(built)}")
+for dataset_id, path in sorted(PUBLISHED.items()):
+    recipe_path = RECIPES / f"{dataset_id}.yaml"
+    if not recipe_path.is_file():
+        continue
+    group = source_group((yaml.safe_load(recipe_path.read_text()) or {}).get("source_via"))
+    if group and group != path.parent.parent.name:
+        err(f"{path.relative_to(CATALOG.parent)} is under {path.parent.parent.name}/ but "
+            f"datasets/{dataset_id}.yaml's source_via names {group}")
 
 for dataset_id in sorted(built):
     check_built_collection(dataset_id)
@@ -120,7 +218,16 @@ for dataset_id in sorted(declared & recipes):
     if recipe.get("name") != dataset_id:
         err(f"datasets/{dataset_id}.yaml: name must be '{dataset_id}', got {recipe.get('name')!r}")
     fields_file = str(recipe.get("fields_file") or "")
-    if not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
+    if dataset_id in DERIVED:
+        # Built by a script in tools/ from harmonized sources (see tools/new_dataset.py).
+        derived = DERIVED[dataset_id]
+        if fields_file != f"work/{dataset_id}.parquet" or not (ROOT / derived["script"]).exists():
+            err(f"datasets/{dataset_id}.yaml: a derived input must be work/{dataset_id}.parquet "
+                f"built by {derived['script']}")
+        class_filter = ((recipe.get("stages") or {}).get("masks") or {}).get("class_filter")
+        if class_filter != f"filters/{derived['filter']}":
+            err(f"datasets/{dataset_id}.yaml: class_filter must be filters/{derived['filter']}")
+    elif not fields_file.startswith("https://data.source.coop/ftw/harmonized-field-data/"):
         err(f"datasets/{dataset_id}.yaml: fields_file must be a harmonized-field-data URL")
     expected_out = f"{STAGING.relative_to(ROOT)}/{dataset_id}"
     out = str(recipe.get("output_dir") or "")
@@ -143,8 +250,21 @@ for dataset_id in sorted(declared & recipes):
     # Every official collection publishes the same label set, so a model
     # trained on one country finds the same assets on the next. The DECODE
     # pair is part of it: their rasters become item assets like the rest.
-    mask_types = ((recipe.get("stages") or {}).get("masks") or {}).get("mask_types") or []
-    for required in REQUIRED_MASK_TYPES:
+    # Presence-only collections are the exception: only the semantic masks can
+    # mark a pixel unknown, so they publish those and nothing else.
+    masks = (recipe.get("stages") or {}).get("masks") or {}
+    for problem in label_extent_problems(dataset_id, recipe):
+        err(problem)
+    mask_types = masks.get("mask_types") or []
+    required_types = REQUIRED_MASK_TYPES
+    if masks.get("label_extent"):
+        required_types = tuple(LABEL_EXTENT_MASK_TYPES)
+    if masks.get("presence_only"):
+        required_types = tuple(PRESENCE_ONLY_MASK_TYPES)
+        extra = sorted(set(mask_types) - set(required_types))
+        if extra:
+            err(f"datasets/{dataset_id}.yaml: presence-only, so no {extra} masks (they have no unknown value)")
+    for required in required_types:
         if required not in mask_types:
             err(
                 f"datasets/{dataset_id}.yaml: stages.masks.mask_types is missing {required!r} "

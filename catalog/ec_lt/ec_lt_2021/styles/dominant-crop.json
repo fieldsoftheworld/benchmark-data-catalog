@@ -1,0 +1,82 @@
+{
+  "version": 8,
+  "name": "Dominant crop per chip",
+  "metadata": {
+    "description": "Chips coloured by hcat_dominant_code, the harmonized crop covering most of the chip's field area. The most common crops are named, everything else is grey. Colours follow the fiboa.org crop map palette."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "chips-by-dominant-crop",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "match",
+            [
+              "get",
+              "hcat_dominant_code"
+            ],
+            3301011501,
+            "Winter cereals",
+            3301011503,
+            "Summer cereals",
+            3301010500,
+            "Oats",
+            3301150200,
+            "Buckwheat",
+            3301020000,
+            "Leguminous crops",
+            3301010600,
+            "Corn",
+            3301070000,
+            "Vegetables",
+            3303020000,
+            "Berries",
+            3301290700,
+            "Sugar beet",
+            "Other"
+          ],
+          "Winter cereals",
+          "#cd9b37",
+          "Summer cereals",
+          "#a6cee3",
+          "Oats",
+          "#1f78b4",
+          "Buckwheat",
+          "#b2df8a",
+          "Leguminous crops",
+          "#33a02c",
+          "Corn",
+          "#fb9a99",
+          "Vegetables",
+          "#e31a1c",
+          "Berries",
+          "#cc3259",
+          "Sugar beet",
+          "#fdbf6f",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.75
+      }
+    },
+    {
+      "id": "chips-by-dominant-crop-outline",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "paint": {
+        "line-color": "rgba(60,60,60,0.5)",
+        "line-width": 0.5
+      }
+    }
+  ]
+}
