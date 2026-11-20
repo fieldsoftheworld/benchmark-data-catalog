@@ -555,7 +555,7 @@
       "colormap_name": "viridis"
     }
   },
-  "updated": "2026-11-19T09:56:32Z",
+  "updated": "2026-11-20T06:10:21Z",
   "version": "2.0.0-alpha.1",
   "ftw:split_type": "block3x3",
   "ftw:split_seed": 42,
@@ -829,12 +829,12 @@
           "crop_names"
         ],
         "crop_names": {
-          "source": "se/year=2019/se-2019.parquet",
+          "source": "https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet",
           "by": "id"
         },
         "ftwd_version": "0.1.0",
-        "ftwd_git_commit": "78d22d930e519554490de8c77bbad97b7c767af8",
-        "generated_at": "2026-11-19T09:53:31.762076+00:00"
+        "ftwd_git_commit": "26ef543ea657dece71294c705f8621e00aea29a2",
+        "generated_at": "2026-11-20T06:07:37.174469+00:00"
       }
     ]
   },
@@ -905,7 +905,7 @@
         {
           "name": "crop:name",
           "type": "varchar",
-          "description": "Crop name in the original language. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet"
         },
         {
           "name": "metrics:area",
@@ -968,7 +968,7 @@
         {
           "name": "crop:name",
           "type": "varchar",
-          "description": "Crop name in the original language. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet"
         },
         {
           "name": "metrics:area",
@@ -1021,12 +1021,17 @@
       "href": "./se_2019_boundary_lines.parquet",
       "type": "application/vnd.apache.parquet",
       "title": "Field boundary lines",
-      "file:size": 343108042,
+      "file:size": 352738512,
       "table:columns": [
         {
           "name": "crop:code",
           "type": "varchar",
           "description": "The crop code, from the code list of the source. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
+        },
+        {
+          "name": "crop:name",
+          "type": "varchar",
+          "description": "the source's own name for crop:code, in its language, from the harmonized edition https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet"
         },
         {
           "name": "metrics:area",
