@@ -30,6 +30,7 @@ rewritten in place, but no item directory and no raster is ever copied into
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import posixpath
@@ -48,9 +49,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build import _check_recipe as _check_dataset_recipe  # noqa: E402
 from common import (  # noqa: E402
     CATALOG,
+    PORTOLAN_SCHEMA_URI,
     PUBLIC_BASE,
     ROOT,
     STAGING,
+    canonicalize_portolan_schema,
     dataset_relpath,
     public_url,
     published_collections,
@@ -59,7 +62,10 @@ from common import (  # noqa: E402
     write_json,
 )
 
-from ftw_dataset_tools.api.stac import PORTOLAN_SCHEMA_URI  # noqa: E402
+# ftw_dataset_tools.api.stac.PORTOLAN_SCHEMA_URI tracks whatever version is
+# bundled with the pinned ftwd commit (v0.1.2), not this catalog's migration
+# target; common.PORTOLAN_SCHEMA_URI (v0.3.0, imported above) is the one this
+# module writes. See the comment on that constant for why.
 
 # The STAC version extension, required (PTL-CNF-003) whenever a document uses
 # a top-level `version` property.
@@ -838,6 +844,396 @@ def sanitize_config(
     return changed
 
 
+# --- Portolan v0.3 metadata: table:columns and asset descriptions ----------
+#
+# PORTO-FMT-077/078/079 (SHOULD): every table:columns entry should carry a
+# description, a mirror with no source descriptions should say so in its
+# README, and a placeholder description should never be written.
+# PORTO-CORE-088 (SHOULD): every asset should carry a title and a
+# description.
+#
+# None of this needs staging/<id>/ — every input is already in catalog/ or
+# committed to the repository (the fiboa field descriptions fetched from each
+# group's harmonized source, below), so these fixups run directly against the
+# published tree via ``reapply_metadata`` and also run inside
+# ``enrich_collection`` for a real build.
+
+# tools/fiboa_field_descriptions.json: {group id: {column name: description}},
+# fetched from each group's harmonized source collection
+# (https://data.source.coop/ftw/harmonized-field-data/<group>/collection.json,
+# the "fields"-equivalent asset's table:columns) on 2026-11-20. Those
+# descriptions are the fiboa/vecorel/hcat/crop extension spec text the
+# harmonized-field-data-catalog publishes (or, where a source documents no
+# meaning for a column, that fact, attested "per the fiboa data survey"); this
+# catalog's "fields", "fields_filtered" and "boundary_lines" assets are cut
+# from that exact source with the same column semantics, so the descriptions
+# apply unchanged. Re-fetch and regenerate this file if a harmonized
+# collection's own field documentation improves.
+_FIBOA_FIELD_DESCRIPTIONS_PATH = Path(__file__).resolve().parent / "fiboa_field_descriptions.json"
+_fiboa_field_descriptions_cache: dict[str, dict[str, str]] | None = None
+
+
+def _fiboa_field_descriptions(group: str) -> dict[str, str]:
+    """``{column name: description}`` for ``group``'s harmonized source fields table."""
+    global _fiboa_field_descriptions_cache
+    if _fiboa_field_descriptions_cache is None:
+        _fiboa_field_descriptions_cache = json.loads(_FIBOA_FIELD_DESCRIPTIONS_PATH.read_text())
+    return _fiboa_field_descriptions_cache.get(group, {})
+
+
+# Columns this catalog adds to the harmonized fields table itself, the same
+# everywhere it appears (not sourced from the harmonized collection, which
+# does not carry them).
+_GENERIC_FIELD_COLUMNS = {
+    "collection": (
+        "Id of the harmonized source collection (datasets.yaml's source group, e.g. "
+        "`at`) this row's field was drawn from. Differs from the group id only when a "
+        "collection merges more than one harmonized source, as es_2025 and es_po_2025 do."
+    ),
+}
+
+# es_2025 and es_po_2025 merge the national SIGPAC declarations with regional
+# (Pais Vasco) parcels; these columns exist only on those two collections'
+# "fields"/"fields_filtered"/"boundary_lines" tables and are not part of any
+# harmonized source. Descriptions condensed from tools/merge_es_2025.py's own
+# docstring, the first-party source for what this merge does.
+_ES_MERGE_FIELD_COLUMNS = {
+    "source_id": (
+        "The id in the source file: the national SIGPAC id, or the regional file's row "
+        "id for a regional (Pais Vasco) parcel (tools/merge_es_2025.py)."
+    ),
+    "ftw:source": (
+        "Which SIGPAC edition this parcel came from: `es` (national declarations) or a "
+        "regional collection id such as `es_pv` for Pais Vasco (tools/merge_es_2025.py)."
+    ),
+    "landuse:code": (
+        "SIGPAC land use code. On a regional parcel, its own; on a national parcel that "
+        "overlaps a Pais Vasco parcel, the land use of the regional parcel it overlaps "
+        "most; null elsewhere (tools/merge_es_2025.py)."
+    ),
+    "landuse:name_en": (
+        "SIGPAC land use name, for landuse:code, under the same rule "
+        "(tools/merge_es_2025.py)."
+    ),
+    "ftw:class": (
+        "The value the class filter reads (es_merged_filter.yaml in ftw-dataset-tools): "
+        "`es:<crop code>` for national parcels (`es:<code>:atlantic` for permanent/young "
+        "pasture in the Atlantic provinces), `<region>:<land use>` for regional parcels "
+        "(tools/merge_es_2025.py)."
+    ),
+}
+
+# The STAC-GeoParquet item mirror's own structural columns (every item carries
+# all of these; the ftw:* columns next to them are this collection's own item
+# properties, documented per collection in AGENTS.md's "FTW properties on
+# each STAC item" section instead, since their meaning is dataset-specific).
+# Same set on every collection in the catalog (verified across all 180).
+_ITEM_MIRROR_STRUCTURAL_COLUMNS = {
+    "type": "STAC object type; always \"Feature\" for an item.",
+    "stac_version": "The STAC specification version this item conforms to.",
+    "stac_extensions": "Schema URIs of the STAC extensions and the Portolan profile this item declares.",
+    "id": "The STAC item identifier.",
+    "links": "This item's STAC links (root, parent, collection and related items).",
+    "assets": "This item's STAC assets (imagery and label masks), keyed by asset name.",
+    "collection": "Id of the STAC collection this item belongs to.",
+    "datetime": "The item's nominal date/time (STAC common metadata).",
+    "start_datetime": "Start of the item's temporal extent, for an item spanning a range rather than an instant.",
+    "end_datetime": "End of the item's temporal extent, for an item spanning a range rather than an instant.",
+    "renders": "Named, ready-to-render visualizations of this item's assets (STAC render extension).",
+    "bbox": "Bounding box of the item's geometry.",
+    "geometry": "The item's footprint geometry (the chip square), in EPSG:4326.",
+    # Present on 22 of 180 collections (all from ftwd); not documented upstream
+    # or anywhere in this repository. Stated per the brief's rule for
+    # genuinely unknowable semantics: say what IS known, not what it might mean.
+    "portolan:render_order": (
+        "Property set by the build pipeline (ftw-dataset-tools); its meaning is not "
+        "documented upstream or in this repository. Present on some items, likely a "
+        "draw-order hint for overlapping imagery."
+    ),
+}
+
+# field_embeddings: one row per field, aef_*/olmoearth_* from AlphaEarth
+# Foundations and OlmoEarth v1.3 (see each collection's own README "Field
+# embeddings" section, which this reuses). Same columns on every collection.
+_FIELD_EMBEDDING_COLUMNS = {
+    "id": "Field id; joins onto the `fields` (or `fields_filtered`) table.",
+    "pixels": "Number of 10 m pixels used for this field's embedding statistics.",
+    "pixel_rule": (
+        "How pixels were selected for this field: `centroid` (pixels whose centre falls "
+        "inside it) or `touched` (every pixel the field touches, for a field too small to "
+        "contain a pixel centre)."
+    ),
+    "aef_mean": (
+        "Mean of each AlphaEarth Foundations Satellite Embedding dimension (64 values) "
+        "over the field's pixels. AlphaEarth Foundations Satellite Embedding dataset by "
+        "Google and Google DeepMind, CC-BY-4.0."
+    ),
+    "aef_std": (
+        "Population standard deviation of each AlphaEarth Foundations Satellite Embedding "
+        "dimension (64 values) over the field's pixels."
+    ),
+    "aef_pixels": (
+        "Number of pixels the AlphaEarth Foundations product covered for this field (can "
+        "differ from `pixels` where its coverage is partial)."
+    ),
+    "olmoearth_mean": (
+        "Mean of each OlmoEarth v1.3 embedding dimension (the first 64 of 128 dimensions) "
+        "over the field's pixels. OlmoEarth v1.3 embeddings by Ai2 (Allen Institute for "
+        "AI); OlmoEarth Artifact License, including its Section 2 use restrictions."
+    ),
+    "olmoearth_std": (
+        "Population standard deviation of each OlmoEarth v1.3 embedding dimension (first "
+        "64 of 128) over the field's pixels."
+    ),
+    "olmoearth_pixels": (
+        "Number of pixels the OlmoEarth v1.3 product covered for this field (can differ "
+        "from `pixels` where its coverage is partial)."
+    ),
+}
+
+# Every asset key this catalog's collections carry, each with the same
+# meaning everywhere (verified identical title across all 180 collections).
+# field_embeddings already carries its own description (enrich_collection
+# writes it); it is not repeated here.
+_ASSET_DESCRIPTIONS = {
+    "fields": (
+        "Field boundary polygons harmonized to the fiboa schema, cut for this collection "
+        "from the source harmonized field boundary collection."
+    ),
+    "fields_filtered": (
+        "The `fields` polygons that remain after the class filter that selects which "
+        "classes count as a field for this collection's masks."
+    ),
+    "boundary_lines": "The edges of the `fields` (or `fields_filtered`) polygons, as linestrings.",
+    "chips": (
+        "One row per chip: its grid location, how much of it is mapped field, its "
+        "dominant crop, administrative unit and the benchmark split it is assigned to."
+    ),
+    "items": (
+        "Every chip's STAC item, mirrored into one GeoParquet file (STAC-GeoParquet) so "
+        "the collection can be queried without walking the catalog tree."
+    ),
+    "chips_tiles": "The chip grid as PMTiles vector tiles, for fast map rendering of the chip boundaries.",
+    "fields_tiles": "The field boundary polygons as PMTiles vector tiles, for fast map rendering of the fields.",
+    "style-split": "MapLibre style: chips coloured by their train / validation / test split assignment.",
+    "style-field-coverage": "MapLibre style: chips shaded by the share of their area covered by mapped fields.",
+    "style-outline": "MapLibre style: every field in one colour, for reading the boundaries themselves.",
+    "style-dominant-crop": "MapLibre style: chips coloured by the crop covering most of their field area.",
+    "style-crops": "MapLibre style: fields coloured by their harmonized crop (EuroCrops HCAT).",
+    "thumbnail": "Preview image of the collection rendered with its default map style.",
+}
+
+# AGENTS.md's "## Schema & field notes" bullet list: "- `name`: description".
+# Parses the two sub-lists it documents (chips table columns, and the item's
+# own ftw:* properties) without needing anything else from the file.
+_AGENTS_BULLET_RE = re.compile(r"^- `([^`]+)`:\s*(.+)$")
+_AGENTS_CHIPS_HEADING = "Columns in the chips table:"
+_AGENTS_FTW_HEADING = "FTW properties on each STAC item:"
+
+
+def _agents_bullet_section(text: str, heading: str) -> dict[str, str]:
+    """``{column name: description}`` from the bullet list right after ``heading``."""
+    idx = text.find(heading)
+    if idx == -1:
+        return {}
+    columns: dict[str, str] = {}
+    for line in text[idx + len(heading):].splitlines():
+        line = line.strip()
+        if not line:
+            if columns:
+                break
+            continue
+        match = _AGENTS_BULLET_RE.match(line)
+        if not match:
+            break
+        columns[match.group(1)] = match.group(2)
+    return columns
+
+
+def _agents_column_notes(dataset_dir: Path) -> dict[str, str]:
+    """``{column name: description}`` from this dataset's own AGENTS.md, both sections.
+
+    Covers the ``chips`` asset's columns and the ``items`` mirror's ``ftw:*``
+    item-property columns — dataset-specific, so sourced from the collection's
+    own agent guide rather than a shared static dict.
+    """
+    agents_path = dataset_dir / "AGENTS.md"
+    if not agents_path.is_file():
+        return {}
+    text = agents_path.read_text()
+    return {
+        **_agents_bullet_section(text, _AGENTS_CHIPS_HEADING),
+        **_agents_bullet_section(text, _AGENTS_FTW_HEADING),
+    }
+
+
+#: Which column-description sources apply to which asset, in lookup order.
+#: Scoped per asset key rather than one flat merged dict: "id" means a
+#: different thing in "chips" (the chip id) than in "fields" (the field id),
+#: and a flat lookup would let one clobber the other.
+_FIELD_TABLE_ASSET_KEYS = ("fields", "fields_filtered", "boundary_lines")
+
+
+def _column_sources_for_asset(asset_key: str, *, agents_notes: dict, fiboa_notes: dict) -> tuple[dict, ...]:
+    if asset_key in _FIELD_TABLE_ASSET_KEYS:
+        return (_ES_MERGE_FIELD_COLUMNS, _GENERIC_FIELD_COLUMNS, fiboa_notes)
+    if asset_key == "chips":
+        return (agents_notes,)
+    if asset_key == "items":
+        # ftw:* item properties from AGENTS.md; plain STAC fields from the
+        # static dict. Order does not matter: the two never share a key
+        # (every structural key is a bare STAC field name, every AGENTS.md
+        # key here starts with "ftw:" or is "portolan:render_order").
+        return (agents_notes, _ITEM_MIRROR_STRUCTURAL_COLUMNS)
+    if asset_key == "field_embeddings":
+        return (_FIELD_EMBEDDING_COLUMNS,)
+    return ()
+
+
+def fill_table_column_descriptions(doc: dict, *, group: str, dataset_dir: Path) -> int:
+    """Fill every missing ``table:columns`` ``description`` across ``doc``'s assets.
+
+    Looks up each column against the sources that apply to its own asset key
+    (``_column_sources_for_asset``), never across asset boundaries, so e.g.
+    the ``chips`` table's ``id`` (a chip id) cannot be filled from the
+    ``fields`` table's ``id`` (a field id) or vice versa. Returns how many
+    descriptions were filled; a column found in none of those sources is
+    left exactly as it was (never a placeholder) and printed as a warning,
+    so a genuinely new column surfaces instead of silently staying
+    undocumented.
+    """
+    agents_notes = _agents_column_notes(dataset_dir)
+    fiboa_notes = _fiboa_field_descriptions(group)
+    filled = 0
+    for asset_key, asset in (doc.get("assets") or {}).items():
+        sources = _column_sources_for_asset(asset_key, agents_notes=agents_notes, fiboa_notes=fiboa_notes)
+        for column in asset.get("table:columns") or []:
+            if column.get("description"):
+                continue
+            name = column.get("name")
+            description = next((s[name] for s in sources if name in s), None)
+            if description is None:
+                print(f"warning  {dataset_dir.name}: no description source for column "
+                      f"{asset_key}.{name!r}; left undocumented")
+                continue
+            column["description"] = description
+            filled += 1
+    return filled
+
+
+def fill_asset_descriptions(doc: dict) -> int:
+    """Fill every missing asset-level ``description`` from ``_ASSET_DESCRIPTIONS``.
+
+    Returns how many were filled. An asset key this dict does not cover is
+    left alone and printed as a warning (never a placeholder), the same
+    policy as ``fill_table_column_descriptions``.
+    """
+    filled = 0
+    for key, asset in (doc.get("assets") or {}).items():
+        if asset.get("description"):
+            continue
+        description = _ASSET_DESCRIPTIONS.get(key)
+        if description is None:
+            print(f"warning  no description source for asset {key!r}; left undocumented")
+            continue
+        asset["description"] = description
+        filled += 1
+    return filled
+
+
+def _sha256_multihash(path: Path) -> str:
+    """``file:checksum``: a multihash (sha2-256) of ``path``, as lowercase hex.
+
+    ``1220`` + the 32-byte digest: multihash function code 0x12 (sha2-256),
+    length byte 0x20 (32), per the STAC file extension's checksum format.
+    """
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    return f"1220{digest}"
+
+
+def fill_local_checksums(doc: dict, dataset_dir: Path) -> int:
+    """Set ``file:size``/``file:checksum`` for an asset whose bytes are on disk.
+
+    Only ``thumbnail.webp`` and ``styles/*.json`` are ever committed to git
+    (``COMMITTED`` plus the glob patterns ``copy_committed`` copies); every
+    other asset (every ``*.parquet`` and ``*.pmtiles``) is data, uploaded by
+    ``tools/upload_data.py`` and never present in a checkout of this
+    repository. PORTO-CORE-028 (SHOULD) asks every asset for both fields;
+    computing a checksum for the data assets needs their actual bytes, which
+    means downloading each one — real data work, out of scope here (see the
+    PR's "Requires data work" section). Returns how many assets changed.
+    """
+    changed = 0
+    for asset in (doc.get("assets") or {}).values():
+        href = asset.get("href", "")
+        if not href.startswith("./"):
+            continue
+        local = dataset_dir / href[2:]
+        if not local.is_file():
+            continue
+        size = local.stat().st_size
+        checksum = _sha256_multihash(local)
+        if asset.get("file:size") != size:
+            asset["file:size"] = size
+            changed += 1
+        if asset.get("file:checksum") != checksum:
+            asset["file:checksum"] = checksum
+            changed += 1
+    return changed
+
+
+def reapply_metadata(dataset_id: str, *, catalog: Path = CATALOG) -> list[Path]:
+    """Re-apply the Portolan v0.3 metadata fixups directly to a published collection.
+
+    Unlike ``catalogize()``, this needs no ``staging/<id>/``: every input is
+    already in ``catalog/`` or committed to the repository. Canonicalizes the
+    declared Portolan schema URI, fills every missing ``table:columns``
+    description and asset description, and sets ``file:size``/``file:checksum``
+    for the two asset kinds whose bytes are actually committed (thumbnail,
+    styles). Never touches ``updated`` — this is a metadata re-apply, not a
+    sync (PORTO-CORE-057 only binds a sync tool). Idempotent: a second run on
+    an already-fixed collection writes nothing.
+    """
+    dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
+    collection_path = dataset_dir / "collection.json"
+    doc = read_json(collection_path)
+    before = json.dumps(doc, sort_keys=True)
+
+    group = dataset_relpath(dataset_id, catalog=catalog).split("/")[0]
+    canonicalize_portolan_schema(doc)
+    fill_table_column_descriptions(doc, group=group, dataset_dir=dataset_dir)
+    fill_asset_descriptions(doc)
+    fill_local_checksums(doc, dataset_dir)
+
+    if json.dumps(doc, sort_keys=True) == before:
+        written = []
+    else:
+        write_json(collection_path, doc)
+        written = [collection_path]
+
+    return written + reapply_chip_subcatalog_schema(dataset_dir)
+
+
+def reapply_chip_subcatalog_schema(dataset_dir: Path) -> list[Path]:
+    """Canonicalize the Portolan schema URI in every ``chips/<square>/catalog.json``.
+
+    Whether a chip sub-catalog declares the Portolan extension at all varies
+    by the ftwd version that built it (verified: every one of fi's chip
+    sub-catalogs declares none, while e.g. wri_trazo_ml's all do, each with
+    whatever version was current then). ``canonicalize_portolan_schema`` only
+    replaces an existing declaration, so a sub-catalog that has never carried
+    one stays exactly as it is — see the function's own docstring for why
+    that is not treated as a defect.
+    """
+    written = []
+    for path in sorted(dataset_dir.glob("chips/*/catalog.json")):
+        doc = read_json(path)
+        if canonicalize_portolan_schema(doc):
+            write_json(path, doc)
+            written.append(path)
+    return written
+
+
 def enrich_collection(
     dataset_id: str,
     *,
@@ -857,7 +1253,10 @@ def enrich_collection(
     ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), makes the
     absolute builder paths in ``ftw:config`` repository-relative, and, when
     the manifest carries an ``ftw1`` block for this dataset, appends the FTW
-    1.0 comparison to README.md.
+    1.0 comparison to README.md. Also applies the Portolan v0.3 metadata
+    fixups (``reapply_metadata``'s own three calls): the schema URI, every
+    missing ``table:columns``/asset description, and ``file:size``/
+    ``file:checksum`` for the committed (non-data) assets.
     """
     dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
     collection_path = dataset_dir / "collection.json"
@@ -878,9 +1277,14 @@ def enrich_collection(
     _ensure_license_link(doc, recipe)
     _ensure_pmtiles_links(doc)
     _refresh_asset_sizes(doc, staging / dataset_id)
+    canonicalize_portolan_schema(doc)
+    fill_table_column_descriptions(doc, group=dataset_relpath(dataset_id, catalog=catalog).split("/")[0],
+                                    dataset_dir=dataset_dir)
+    fill_asset_descriptions(doc)
+    fill_local_checksums(doc, dataset_dir)
     doc["updated"] = _now_iso(now)
     write_json(collection_path, doc)
-    written = [collection_path]
+    written = [collection_path, *reapply_chip_subcatalog_schema(dataset_dir)]
 
     spec = (manifest.get("datasets") or {}).get(dataset_id) or {}
     section = ftw1_section(dataset_id, spec, staging=staging, recipe=recipe)
@@ -1391,7 +1795,7 @@ def _group_title(group: str, source_via: str | None, *, catalog: Path, fetch_tit
 
 def _group_catalog(
     group: str, title: str, source_page: str | None, members: list[tuple[str, dict]], *,
-    manifest: dict,
+    manifest: dict, now: datetime | None = None,
 ) -> dict:
     links = [
         {"rel": "root", "href": "../catalog.json", "type": "application/json"},
@@ -1416,6 +1820,11 @@ def _group_catalog(
             f"collection {title} ({group}), one per year, each with train, validation and test splits."
         ),
         "version": manifest["catalog"]["version"],
+        # PTL-PRO-003 / PORTO-CORE-057: a sync tool (this one) MUST stamp
+        # `updated` on every mirror catalog it checks, including a group
+        # whose members did not change. write_group runs on every
+        # `catalogize.py --root`, so every group is "checked" each time.
+        "updated": _now_iso(now),
         "links": links,
     }
 
@@ -1482,7 +1891,8 @@ def _group_agents(
 
 
 def write_group(
-    group: str, *, catalog: Path = CATALOG, manifest: dict, fetch_title=fetch_collection_title
+    group: str, *, catalog: Path = CATALOG, manifest: dict, fetch_title=fetch_collection_title,
+    now: datetime | None = None,
 ) -> list[Path]:
     """Write ``catalog/<group>/catalog.json``, ``README.md`` and ``AGENTS.md``.
 
@@ -1507,7 +1917,7 @@ def write_group(
     title = _group_title(group, source_via, catalog=catalog, fetch_title=fetch_title)
     args = (group, title, source_page, members)
     group_dir = catalog / group
-    write_json(group_dir / "catalog.json", _group_catalog(*args, manifest=manifest))
+    write_json(group_dir / "catalog.json", _group_catalog(*args, manifest=manifest, now=now))
     (group_dir / "README.md").write_text(_group_readme(*args, manifest=manifest))
     (group_dir / "AGENTS.md").write_text(_group_agents(*args, manifest=manifest))
     return [group_dir / "catalog.json", group_dir / "README.md", group_dir / "AGENTS.md"]
@@ -1875,16 +2285,20 @@ def regenerate_root(
     Rewrites every ``catalog/<source>/`` group (``write_group``). Keeps every
     fixed link in ``catalog/catalog.json`` exactly as it is; rebuilds the
     ``child`` links, one per source group sorted by group id, and drops any
-    ``rel: self`` link — Portolan forbids self links, and a hand-edit or an
-    older ftwd is the only way one would appear here. Sets
-    ``stac_extensions`` to the Portolan schema URI plus the version extension
-    (PTL-CNF-003: required wherever a document carries a top-level
-    ``version``), ``version`` from the manifest, and stamps ``updated``
-    (PTL-PRO-003). Fills the marker-delimited ``## Collections`` block in
-    ``catalog/README.md`` and ``catalog/AGENTS.md`` — headline totals, the
-    collections table, and the coverage table that says what each collection
-    actually carries (``_collections_block``) — and the collection list in
-    ``catalog/llms.txt``.
+    ``rel: self`` link, so the tracked tree stays relative and validates at
+    any path (git-backed-catalogs best practice). PORTO-CORE-081 (a catalog
+    served from one fixed URL SHOULD carry an absolute ``self`` link) is
+    satisfied at publish time instead: ``tools/publish.py`` writes it onto
+    the uploaded copy from ``public_base``, never onto the tracked file — see
+    ``add_root_self_link`` there. Sets ``stac_extensions`` to the Portolan
+    schema URI plus the version extension (PTL-CNF-003: required wherever a
+    document carries a top-level ``version``), ``version`` from the
+    manifest, and stamps ``updated`` (PTL-PRO-003, and on every group too,
+    via ``write_group``). Fills the marker-delimited ``## Collections``
+    block in ``catalog/README.md`` and ``catalog/AGENTS.md`` — headline
+    totals, the collections table, and the coverage table that says what
+    each collection actually carries (``_collections_block``) — and the
+    collection list in ``catalog/llms.txt``.
     """
     root_path = catalog / "catalog.json"
     doc = read_json(root_path)
@@ -1895,9 +2309,9 @@ def regenerate_root(
     # A group folder whose last collection was removed: write_group deletes its files.
     emptied = {p.parent.name for p in catalog.glob("*/catalog.json")} - set(live)
     for group in sorted(emptied):
-        write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title)
+        write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title, now=now)
     for group in live:
-        written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title)
+        written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title, now=now)
         groups.append((f"./{group}/catalog.json", read_json(catalog / group / "catalog.json")["title"]))
 
     doc["links"] = [
@@ -2003,6 +2417,13 @@ def main(argv: list[str] | None = None) -> int:
              "repository-relative (all built collections when no id is given); a dry run "
              "unless --confirm",
     )
+    parser.add_argument(
+        "--reapply-metadata", nargs="*", metavar="ID", default=None,
+        help="re-apply the Portolan v0.3 metadata fixups (schema URI, table:columns and "
+             "asset descriptions, thumbnail/style checksums) directly to catalog/<source>/<id>/"
+             "collection.json, no staging/ needed (all built collections when no id is given); "
+             "see reapply_metadata",
+    )
     parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
     if args.sanitize_config is not None:
@@ -2012,6 +2433,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")
         print(f"{len(changed)} of {len(ids)} collection(s) carry local paths in ftw:config"
               + ("" if args.confirm else " (dry run; --confirm to write)"))
+        return 0
+    if args.reapply_metadata is not None:
+        ids = args.reapply_metadata or sorted(published_collections(CATALOG))
+        changed = []
+        for dataset_id in ids:
+            changed += reapply_metadata(dataset_id)
+        for path in changed:
+            print(path.relative_to(ROOT))
+        print(f"{len(changed)} of {len(ids)} collection(s) changed")
         return 0
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")

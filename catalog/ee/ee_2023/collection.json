@@ -165,7 +165,7 @@
     "https://stac-extensions.github.io/table/v1.2.0/schema.json",
     "https://stac-extensions.github.io/render/v2.0.0/schema.json",
     "https://stac-extensions.github.io/version/v1.2.0/schema.json",
-    "https://schemas.portolan-sdi.org/portolan/v0.1.2/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.3.0/schema.json",
     "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
   ],
   "item_assets": {
@@ -872,53 +872,65 @@
       "table:columns": [
         {
           "name": "land_use",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Carried over from the source column `taotletud_maakasutus`; the publisher documents no meaning for it."
         },
         {
           "name": "hcat:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The machine-readable HCAT name of the crop (Hierarchical Crop and Agriculture Taxonomy, EuroCrops). ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "metrics:area",
-          "type": "float"
+          "type": "float",
+          "description": "Area of the field, in square meters (m\u00b2). Must be > 0 and <= 1,000,000,000. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "crop:code",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The crop code, from the code list of the source. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "hcat:code",
-          "type": "uinteger"
+          "type": "uinteger",
+          "description": "The 10-digit HCAT code indicating the hierarchy of the crop. The first 4, 6, 8 digits select increasingly specific crop groups. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Crop name in the original language. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "parcel_id",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "Field identifier (source column `pollu_id`, per the fiboa data survey)"
         },
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "An identifier for the field. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "hcat:name_en",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The original crop name translated into English. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "geometry",
-          "type": "geometry"
+          "type": "geometry",
+          "description": "A geometry that reflects the footprint of the field, usually a Polygon. Stored in the source CRS (see `proj:code`), not reprojected. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "bbox",
-          "type": "struct"
+          "type": "struct",
+          "description": "The bounding box of the field. Per-feature covering column (GeoParquet 1.1), in the source CRS. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         }
       ],
       "table:row_count": 169921,
       "roles": [
         "data"
-      ]
+      ],
+      "description": "Field boundary polygons harmonized to the fiboa schema, cut for this collection from the source harmonized field boundary collection."
     },
     "fields_filtered": {
       "href": "./ee_2023_fields_filtered.parquet",
@@ -928,53 +940,65 @@
       "table:columns": [
         {
           "name": "land_use",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Carried over from the source column `taotletud_maakasutus`; the publisher documents no meaning for it."
         },
         {
           "name": "hcat:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The machine-readable HCAT name of the crop (Hierarchical Crop and Agriculture Taxonomy, EuroCrops). ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "metrics:area",
-          "type": "float"
+          "type": "float",
+          "description": "Area of the field, in square meters (m\u00b2). Must be > 0 and <= 1,000,000,000. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "crop:code",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The crop code, from the code list of the source. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "hcat:code",
-          "type": "uinteger"
+          "type": "uinteger",
+          "description": "The 10-digit HCAT code indicating the hierarchy of the crop. The first 4, 6, 8 digits select increasingly specific crop groups. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Crop name in the original language. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "parcel_id",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "Field identifier (source column `pollu_id`, per the fiboa data survey)"
         },
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "An identifier for the field. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "hcat:name_en",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The original crop name translated into English. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "geometry",
-          "type": "geometry"
+          "type": "geometry",
+          "description": "A geometry that reflects the footprint of the field, usually a Polygon. Stored in the source CRS (see `proj:code`), not reprojected. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "bbox",
-          "type": "struct"
+          "type": "struct",
+          "description": "The bounding box of the field. Per-feature covering column (GeoParquet 1.1), in the source CRS. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         }
       ],
       "table:row_count": 166680,
       "roles": [
         "data"
-      ]
+      ],
+      "description": "The `fields` polygons that remain after the class filter that selects which classes count as a field for this collection's masks."
     },
     "boundary_lines": {
       "href": "./ee_2023_boundary_lines.parquet",
@@ -984,53 +1008,65 @@
       "table:columns": [
         {
           "name": "land_use",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Carried over from the source column `taotletud_maakasutus`; the publisher documents no meaning for it."
         },
         {
           "name": "hcat:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The machine-readable HCAT name of the crop (Hierarchical Crop and Agriculture Taxonomy, EuroCrops). ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "metrics:area",
-          "type": "float"
+          "type": "float",
+          "description": "Area of the field, in square meters (m\u00b2). Must be > 0 and <= 1,000,000,000. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "crop:code",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The crop code, from the code list of the source. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "hcat:code",
-          "type": "uinteger"
+          "type": "uinteger",
+          "description": "The 10-digit HCAT code indicating the hierarchy of the crop. The first 4, 6, 8 digits select increasingly specific crop groups. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "crop:name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Crop name in the original language. ([spec](https://github.com/fiboa/crop-extension/blob/main/README.md))"
         },
         {
           "name": "parcel_id",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "Field identifier (source column `pollu_id`, per the fiboa data survey)"
         },
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "An identifier for the field. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "hcat:name_en",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The original crop name translated into English. ([spec](https://github.com/fiboa/hcat-extension/blob/main/README.md))"
         },
         {
           "name": "geometry",
-          "type": "geometry"
+          "type": "geometry",
+          "description": "A geometry that reflects the footprint of the field, usually a Polygon. Stored in the source CRS (see `proj:code`), not reprojected. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         },
         {
           "name": "bbox",
-          "type": "struct"
+          "type": "struct",
+          "description": "The bounding box of the field. Per-feature covering column (GeoParquet 1.1), in the source CRS. ([spec](https://github.com/fiboa/specification/blob/main/core/README.md))"
         }
       ],
       "table:row_count": 166680,
       "roles": [
         "data"
-      ]
+      ],
+      "description": "The edges of the `fields` (or `fields_filtered`) polygons, as linestrings."
     },
     "chips": {
       "href": "./ee_2023_chips.parquet",
@@ -1040,69 +1076,85 @@
       "table:columns": [
         {
           "name": "gzd",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "MGRS grid zone designator of the chip's grid cell"
         },
         {
           "name": "mgrs_10km",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "MGRS 100 km square plus 10 km cell identifier the chip belongs to"
         },
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "chip identifier; matches the STAC item id (with the year suffix stripped)"
         },
         {
           "name": "field_coverage_pct",
-          "type": "double"
+          "type": "double",
+          "description": "percent of the chip's area covered by mapped field polygons"
         },
         {
           "name": "hcat_dominant_code",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "EuroCrops HCAT code of the crop covering most of the chip's fields"
         },
         {
           "name": "hcat_dominant_name_en",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "English name for hcat_dominant_code"
         },
         {
           "name": "hcat_dominant_pct",
-          "type": "double"
+          "type": "double",
+          "description": "share of the chip's field area under the dominant crop"
         },
         {
           "name": "hcat_top",
-          "type": "struct"
+          "type": "struct",
+          "description": "the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)"
         },
         {
           "name": "split",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "which benchmark split the chip belongs to (train / val / test)"
         },
         {
           "name": "admin0_iso3",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "ISO 3166-1 alpha-3 code of the country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024); GAUL gives disputed areas its own x-prefixed codes such as xJK"
         },
         {
           "name": "admin0_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "admin1_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "first-level administrative unit (state, province, region): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "admin2_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "second-level administrative unit (district, county, department): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "geometry",
-          "type": "geometry"
+          "type": "geometry",
+          "description": "the chip footprint, a square polygon in EPSG:4326"
         },
         {
           "name": "bbox",
-          "type": "struct"
+          "type": "struct",
+          "description": "bounding box of the chip footprint"
         }
       ],
       "table:row_count": 7606,
       "roles": [
         "data"
-      ]
+      ],
+      "description": "One row per chip: its grid location, how much of it is mapped field, its dominant crop, administrative unit and the benchmark split it is assigned to."
     },
     "items": {
       "href": "./items.parquet",
@@ -1112,133 +1164,165 @@
       "table:columns": [
         {
           "name": "type",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "STAC object type; always \"Feature\" for an item."
         },
         {
           "name": "stac_version",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "The STAC specification version this item conforms to."
         },
         {
           "name": "stac_extensions",
-          "type": "varchar[]"
+          "type": "varchar[]",
+          "description": "Schema URIs of the STAC extensions and the Portolan profile this item declares."
         },
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "chip identifier; matches the STAC item id (with the year suffix stripped)"
         },
         {
           "name": "ftw:admin2_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "second-level administrative unit (district, county, department): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "ftw:admin1_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "first-level administrative unit (state, province, region): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "links",
-          "type": "struct"
+          "type": "struct",
+          "description": "This item's STAC links (root, parent, collection and related items)."
         },
         {
           "name": "assets",
-          "type": "struct"
+          "type": "struct",
+          "description": "This item's STAC assets (imagery and label masks), keyed by asset name."
         },
         {
           "name": "collection",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Id of the STAC collection this item belongs to."
         },
         {
           "name": "datetime",
-          "type": "timestamp with time zone"
+          "type": "timestamp with time zone",
+          "description": "The item's nominal date/time (STAC common metadata)."
         },
         {
           "name": "start_datetime",
-          "type": "timestamp with time zone"
+          "type": "timestamp with time zone",
+          "description": "Start of the item's temporal extent, for an item spanning a range rather than an instant."
         },
         {
           "name": "end_datetime",
-          "type": "timestamp with time zone"
+          "type": "timestamp with time zone",
+          "description": "End of the item's temporal extent, for an item spanning a range rather than an instant."
         },
         {
           "name": "ftw:calendar_year",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "calendar year of the crop cycle the chip documents"
         },
         {
           "name": "ftw:split",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "which benchmark split the chip belongs to (train / val / test)"
         },
         {
           "name": "ftw:field_coverage_pct",
-          "type": "double"
+          "type": "double",
+          "description": "percent of the chip's area covered by mapped field polygons"
         },
         {
           "name": "ftw:hcat_dominant_code",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "EuroCrops HCAT code of the crop covering most of the chip's fields"
         },
         {
           "name": "ftw:hcat_dominant_name_en",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "English name for hcat_dominant_code"
         },
         {
           "name": "ftw:hcat_dominant_pct",
-          "type": "double"
+          "type": "double",
+          "description": "share of the chip's field area under the dominant crop"
         },
         {
           "name": "ftw:hcat_top",
-          "type": "struct"
+          "type": "struct",
+          "description": "the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)"
         },
         {
           "name": "renders",
-          "type": "struct"
+          "type": "struct",
+          "description": "Named, ready-to-render visualizations of this item's assets (STAC render extension)."
         },
         {
           "name": "ftw:summer_planting_day",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "WorldCereal crop calendar: summer crops' start of season, day of year"
         },
         {
           "name": "ftw:summer_harvest_day",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "WorldCereal crop calendar: summer crops' end of season, day of year"
         },
         {
           "name": "ftw:winter_planting_day",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "WorldCereal crop calendar: winter crops' start of season, day of year (usually in the autumn before harvest)"
         },
         {
           "name": "ftw:winter_harvest_day",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "WorldCereal crop calendar: winter crops' end of season, day of year"
         },
         {
           "name": "ftw:mosaic_requested_year",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "mosaic year the selection asked for"
         },
         {
           "name": "ftw:mosaic_year",
-          "type": "bigint"
+          "type": "bigint",
+          "description": "mosaic year used"
         },
         {
           "name": "ftw:imagery_modes",
-          "type": "varchar[]"
+          "type": "varchar[]",
+          "description": "imagery the chip holds: scenes (planting/harvest), mosaics (quarterly, Q1-Q4), or both"
         },
         {
           "name": "ftw:admin0_iso3",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "ISO 3166-1 alpha-3 code of the country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024); GAUL gives disputed areas its own x-prefixed codes such as xJK"
         },
         {
           "name": "ftw:admin0_name",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)"
         },
         {
           "name": "bbox",
-          "type": "struct"
+          "type": "struct",
+          "description": "bounding box of the chip footprint"
         },
         {
           "name": "geometry",
-          "type": "geometry"
+          "type": "geometry",
+          "description": "the chip footprint, a square polygon in EPSG:4326"
         }
       ],
       "table:row_count": 7606,
       "roles": [
         "collection-mirror"
-      ]
+      ],
+      "description": "Every chip's STAC item, mirrored into one GeoParquet file (STAC-GeoParquet) so the collection can be queried without walking the catalog tree."
     },
     "chips_tiles": {
       "href": "./chips.pmtiles",
@@ -1247,7 +1331,8 @@
       "roles": [
         "visual"
       ],
-      "file:size": 3170095
+      "file:size": 3170095,
+      "description": "The chip grid as PMTiles vector tiles, for fast map rendering of the chip boundaries."
     },
     "fields_tiles": {
       "href": "./fields.pmtiles",
@@ -1256,7 +1341,8 @@
       "roles": [
         "visual"
       ],
-      "file:size": 68411578
+      "file:size": 68411578,
+      "description": "The field boundary polygons as PMTiles vector tiles, for fast map rendering of the fields."
     },
     "style-split": {
       "href": "./styles/split.json",
@@ -1266,7 +1352,9 @@
         "style",
         "default"
       ],
-      "file:size": 911
+      "file:size": 911,
+      "description": "MapLibre style: chips coloured by their train / validation / test split assignment.",
+      "file:checksum": "12207d2f55eeb4f3b905a163d927eb2d777dfa062846a643f161d67c4d34fae56416"
     },
     "style-field-coverage": {
       "href": "./styles/field-coverage.json",
@@ -1275,7 +1363,9 @@
       "roles": [
         "style"
       ],
-      "file:size": 1076
+      "file:size": 1076,
+      "description": "MapLibre style: chips shaded by the share of their area covered by mapped fields.",
+      "file:checksum": "1220d78dd93516289061c46753fb4b6de1e2436c588a58e350a4e77dde5a370a9b36"
     },
     "style-dominant-crop": {
       "href": "./styles/dominant-crop.json",
@@ -1284,7 +1374,9 @@
       "roles": [
         "style"
       ],
-      "file:size": 2486
+      "file:size": 2486,
+      "description": "MapLibre style: chips coloured by the crop covering most of their field area.",
+      "file:checksum": "12200ef67e36efe36efd352d4511df76bb3ab8b640e7bb3c3c074f8abd85283c9293"
     },
     "style-crops": {
       "href": "./styles/crops.json",
@@ -1293,7 +1385,9 @@
       "roles": [
         "style"
       ],
-      "file:size": 2402
+      "file:size": 2402,
+      "description": "MapLibre style: fields coloured by their harmonized crop (EuroCrops HCAT).",
+      "file:checksum": "122090441c84eebb749c0c3361e550f2ddc13353e1c016c8ba1d83d29e39f8b39127"
     },
     "style-outline": {
       "href": "./styles/outline.json",
@@ -1302,7 +1396,9 @@
       "roles": [
         "style"
       ],
-      "file:size": 710
+      "file:size": 710,
+      "description": "MapLibre style: every field in one colour, for reading the boundaries themselves.",
+      "file:checksum": "1220059db5e5d3a7a720a1a33d2dbe33c9fc336b3edd278b48388318c29300bed80f"
     },
     "field_embeddings": {
       "href": "./ee_2023_field_embeddings.parquet",
@@ -1313,39 +1409,48 @@
       "table:columns": [
         {
           "name": "id",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "Field id; joins onto the `fields` (or `fields_filtered`) table."
         },
         {
           "name": "pixels",
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of 10 m pixels used for this field's embedding statistics."
         },
         {
           "name": "pixel_rule",
-          "type": "varchar"
+          "type": "varchar",
+          "description": "How pixels were selected for this field: `centroid` (pixels whose centre falls inside it) or `touched` (every pixel the field touches, for a field too small to contain a pixel centre)."
         },
         {
           "name": "aef_pixels",
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of pixels the AlphaEarth Foundations product covered for this field (can differ from `pixels` where its coverage is partial)."
         },
         {
           "name": "aef_mean",
-          "type": "float[]"
+          "type": "float[]",
+          "description": "Mean of each AlphaEarth Foundations Satellite Embedding dimension (64 values) over the field's pixels. AlphaEarth Foundations Satellite Embedding dataset by Google and Google DeepMind, CC-BY-4.0."
         },
         {
           "name": "aef_std",
-          "type": "float[]"
+          "type": "float[]",
+          "description": "Population standard deviation of each AlphaEarth Foundations Satellite Embedding dimension (64 values) over the field's pixels."
         },
         {
           "name": "olmoearth_pixels",
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of pixels the OlmoEarth v1.3 product covered for this field (can differ from `pixels` where its coverage is partial)."
         },
         {
           "name": "olmoearth_mean",
-          "type": "float[]"
+          "type": "float[]",
+          "description": "Mean of each OlmoEarth v1.3 embedding dimension (the first 64 of 128 dimensions) over the field's pixels. OlmoEarth v1.3 embeddings by Ai2 (Allen Institute for AI); OlmoEarth Artifact License, including its Section 2 use restrictions."
         },
         {
           "name": "olmoearth_std",
-          "type": "float[]"
+          "type": "float[]",
+          "description": "Population standard deviation of each OlmoEarth v1.3 embedding dimension (first 64 of 128) over the field's pixels."
         }
       ],
       "table:row_count": 169921,
@@ -1363,7 +1468,10 @@
       "roles": [
         "thumbnail"
       ],
-      "title": "Estonia \u2014 2023 \u2014 Field outlines"
+      "title": "Estonia \u2014 2023 \u2014 Field outlines",
+      "description": "Preview image of the collection rendered with its default map style.",
+      "file:size": 126684,
+      "file:checksum": "1220056f13038532f3b79d018170865b15a5107926a76e1b74fe8f4897ae7eb84c93"
     }
   }
 }

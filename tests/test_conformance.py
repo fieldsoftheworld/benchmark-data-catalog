@@ -198,14 +198,15 @@ if _self_test_errors:
     raise SystemExit(1)
 print("self-test ok  is_ci_light_metadata_only: both waived shapes, both near-misses, ci_light/catalog_only gating")
 
-# The floor comes from portolan-cli/pyproject.toml:54. Rules PTL-LNK-007,
-# PTL-LNK-008, PTL-LNK-009 and PTL-AST-006 do not exist below rashid 0.1.5.
-# This gate asserts all four. A rashid below the floor reports a pass for a
-# catalog that it never checked against those four rules. The upper bound stops
-# an unreviewed 0.2 rule set from changing what this gate means.
-MIN_VERSION = (0, 1, 5)
-MAX_VERSION = (0, 2, 0)
-SPEC = "rashid>=0.1.5,<0.2.0"
+# Portolan v0.3.0 migration: the floor is rashid 0.4.0, the first release that
+# bundles the v0.3.0 profile (confirmed via `rashid --version`, which reports
+# "Portolan profiles: ... v0.3.0"). A rashid below the floor reports a pass
+# for a catalog it never checked against the v0.3 rules (PTL-AST-010 asset
+# descriptions, PTL-PRO-003 mirror `updated`, and the rest). The upper bound
+# stops an unreviewed later rule set from changing what this gate means.
+MIN_VERSION = (0, 4, 0)
+MAX_VERSION = (0, 5, 0)
+SPEC = "rashid>=0.4.0,<0.5.0"
 INSTALL = f"python -m pip install '{SPEC}'"
 
 

@@ -33,6 +33,40 @@ against `staging/` when present, and under `CI_LIGHT=1` skips (counts, does
 not fail on) one still missing after that, since CI never checks out the data
 those hrefs point at.
 
+## Portolan v0.3.0 migration (2026-11-20)
+
+Migrated the declared schema URI from v0.1.2 to v0.3.0 everywhere it is
+declared (root catalog, every `catalog/<source>/catalog.json`, every
+`collection.json`, and every chip sub-catalog that already declared one —
+`common.canonicalize_portolan_schema`), filled every missing
+`table:columns` and asset `description` (PORTO-FMT-077/078/079,
+PORTO-CORE-088), and stamped `updated` on every group catalog
+(PORTO-CORE-057, PTL-PRO-003 — these had never carried one). None of this
+needed a spec/rashid disagreement entry in the table above; two gaps are
+worth recording instead, since neither is a rashid finding to accept or
+waive:
+
+- **PORTO-CORE-006** ("every catalog and collection MUST declare the
+  versioned Portolan schema URI") reads as covering every STAC `Catalog`
+  object, including `catalog/<source>/<id>/chips/<square>/catalog.json`.
+  Whether one of these declares the extension at all varies by the ftwd
+  version that built the collection (verified: every one of `fi`'s chip
+  sub-catalogs declares none; every one of `wri_trazo_ml`'s does). rashid
+  0.4.0 reports no finding either way — it does not check the Portolan
+  extension is declared at that level of the tree. This repository does not
+  add a declaration to a sub-catalog that never had one; it only
+  canonicalizes an existing one to v0.3.0 (`canonicalize_portolan_schema`).
+  Filed as a question for rashid/the spec to clarify; not tracked as an
+  issue yet, since it changes nothing a reader of this catalog can observe
+  today.
+- **PORTO-CORE-028** (assets SHOULD carry `file:size`/`file:checksum`) is met
+  for `thumbnail.webp` and `styles/*.json` (committed bytes; see
+  `fill_local_checksums`) but not for any `*.parquet` or `*.pmtiles` data
+  asset, across every collection — computing a checksum needs the actual
+  bytes, which are bucket-only and were never fetched to build this
+  migration (a bulk download, out of scope for a metadata-only pass). See
+  the "Requires data work" section of the v0.3 migration PR.
+
 ## stac-check exemption
 
 `tests/test_stac_valid.py` exempts one known stac-check failure: stac-validator
