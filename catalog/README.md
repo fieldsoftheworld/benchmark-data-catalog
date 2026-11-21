@@ -435,7 +435,8 @@ ships; the Browse column above opens a single collection in it.
 ## Splits across collections
 
 Each collection assigns its own train / validation / test split, so a location in
-several collections (one per year) can be test in one and train in another.
+several collections (other years of a country, or overlapping regions) can be test in
+one and train in another.
 [`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips.parquet) lists
 every chip of every collection with one column per split scheme:
 
@@ -449,7 +450,7 @@ Read one collection's rows with
 `SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
 [`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
 feature per location with its `split_hash_v1` and whether the collections' own splits
-disagree there (`legacy_conflict`).
+disagree there (`legacy_conflict`); below zoom 6 it shows a sample of locations.
 
 ## What a chip carries
 

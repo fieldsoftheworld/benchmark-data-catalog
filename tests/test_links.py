@@ -86,7 +86,9 @@ def resolve_href_status(
         parts = path.parent.relative_to(base).parts
         if len(parts) >= 2 and (staging / Path(*parts[1:]) / href).resolve().exists():
             return "ok"
-        if not parts and is_data and (staging / href).resolve().exists():
+        name = href.removeprefix("./")
+        if not parts and is_data and "/" not in name and name not in ("", ".", "..") \
+                and (staging / name).exists():
             return "ok"
     return "missing"
 
@@ -159,6 +161,15 @@ def _self_test() -> None:
             ) == "missing",
             "a dataset's asset does not resolve against staging/'s root files",
         )
+        (staging / "lu" / "lu_chips.parquet").write_text("x")
+        for nested in ("./lu/lu_chips.parquet", "../chips.parquet"):
+            _self_check(
+                resolve_href_status(
+                    root_doc, nested, is_item=False, is_data=True,
+                    base=base, staging=staging, ci_light=False,
+                ) == "missing",
+                f"a root href that upload_data can't publish at the root ({nested}) is not ok",
+            )
 
         # Outcome 3: missing everywhere. CI_LIGHT skips item/data hrefs and
         # still errors on everything else; without CI_LIGHT, anything missing

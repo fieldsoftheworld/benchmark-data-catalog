@@ -7,14 +7,17 @@
 Writes ``work/chips.pmtiles`` (``--out`` to change); upload it like the table
 (README, "Root chips table"). Needs tippecanoe on PATH.
 
-A location is in up to one dataset per year, so the table repeats it. The tiles keep one
-feature per chip id, with:
+A location is in every collection that covers it (other years, and a few overlapping
+regions), so the table repeats it. The tiles keep one feature per chip id, with:
 
 - ``id``, ``block`` and ``split_hash_v1`` (the same in every dataset, by construction);
 - ``datasets``: how many datasets have the chip;
-- ``legacy_conflict``: true when those datasets' ``split_legacy`` values disagree, i.e.
-  the location was test in one dataset and train or val in another before the hash split;
+- ``legacy_conflict``: true when those datasets' ``split_legacy`` values disagree (any
+  two of train, val and test);
 - ``admin0_name``.
+
+Zooms 2-5 drop the densest features so each tile stays under tippecanoe's size limit;
+from zoom 6 every location is kept.
 """
 from __future__ import annotations
 

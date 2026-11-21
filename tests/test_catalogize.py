@@ -973,7 +973,8 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check(root_doc["version"] == "2.0.0-test", "root catalog version set from the manifest")
     check(root_doc.get("updated") == "2026-01-03T00:00:00Z", "root catalog updated stamped from `now`")
-    fixed_rels = {l["rel"] for l in root_doc["links"] if l["rel"] not in ("child", "related")}
+    fixed_rels = {l["rel"] for l in root_doc["links"]
+                  if l["rel"] != "child" and l["href"] not in ("./chips.parquet", "./chips.pmtiles")}
     check(fixed_rels == {"root", "describedby", "agents", "llms", "vcs"}, "fixed root links are kept as they were")
     check(not any(l["rel"] == "self" for l in root_doc["links"]), "regenerate_root strips a stray self link")
     data = [l for l in root_doc["links"] if l["href"] in ("./chips.parquet", "./chips.pmtiles")]

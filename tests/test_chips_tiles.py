@@ -64,14 +64,25 @@ with tempfile.TemporaryDirectory() as tmp:
     check(rows["c2"] == (2, False, "train"), f"c2's legacy splits agree: {rows['c2']}")
     check(rows["c3"] == (1, False, "test"), f"c3 is in one dataset: {rows['c3']}")
     check(("geo",) in meta, "the locations file is GeoParquet")
+    con = duckdb.connect()
+    columns = {r[0] for r in con.execute(
+        f"DESCRIBE SELECT * FROM read_parquet('{locations}')").fetchall()}
+    con.close()
+    check(set(chips_tiles.ATTRIBUTES) <= columns,
+          f"every tiled attribute is a column (the export drops missing ones): "
+          f"{set(chips_tiles.ATTRIBUTES) - columns}")
 
-    bad = tmp / "bad.parquet"
-    write_table(bad, [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "test", 0)])
-    try:
-        chips_tiles.write_locations(str(bad), tmp / "x.parquet")
-        errors.append("not refused: one chip id with two hash splits")
-    except chips_tiles.ChipsTilesError as err:
-        check("c1" in str(err), f"the refusal names the chip: {err}")
+    for label, rows in (
+        ("two hash splits", [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "test", 0)]),
+        ("two footprints", [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "val", 5)]),
+    ):
+        bad = tmp / "bad.parquet"
+        write_table(bad, rows)
+        try:
+            chips_tiles.write_locations(str(bad), tmp / "x.parquet")
+            errors.append(f"not refused: one chip id with {label}")
+        except chips_tiles.ChipsTilesError as err:
+            check("c1" in str(err), f"the refusal names the chip ({label}): {err}")
 
     from ftw_dataset_tools.api.tiles import tippecanoe_available
 

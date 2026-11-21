@@ -527,6 +527,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check(missing_data([up_coll], listing, cfg, root) == {},
           "a collection this publish leaves unchanged is not checked")
 
+    # the root catalog's links to root data files (the chips table and tiles)
+    root_cat = write(root / "catalog/catalog.json", json.dumps({"type": "Catalog", "links": [
+        {"rel": "related", "href": "./chips.parquet"}, {"rel": "related", "href": "./chips.pmtiles"},
+        {"rel": "related", "href": "https://example.org/x.parquet"},
+        {"rel": "child", "href": "./aa/catalog.json"}]}))
+    up_root = Upload(root_cat, "pre/catalog.json", "application/json")
+    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root)
+          == {"(root)": ["chips.pmtiles"]},
+          "a root data link that is neither staged nor in the bucket blocks the root's publish")
+    write(root / "staging/chips.pmtiles", "staged")
+    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root) == {},
+          "a staged root data file is enough")
+
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
     from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _retry_config, _transfer_config
