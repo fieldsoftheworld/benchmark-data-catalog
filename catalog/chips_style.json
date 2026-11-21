@@ -1,0 +1,123 @@
+{
+  "version": 8,
+  "name": "Chips of every collection",
+  "metadata": {
+    "description": "Below zoom 7, clusters of chip locations sized by count and coloured by the share of locations whose collections' own splits disagree (legacy_conflict): green for none, yellow for half, red for all; a location in only one collection counts as not disagreeing. From zoom 7, each chip filled by split_hash_v1, outlined in red where its collections' own splits disagree."
+  },
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://https://data.source.coop/ftw/benchmark-data/chips.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f4f4f2"
+      }
+    },
+    {
+      "id": "overview-clusters",
+      "type": "circle",
+      "source": "data",
+      "source-layer": "overview",
+      "maxzoom": 7,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "sqrt",
+            [
+              "get",
+              "chips"
+            ]
+          ],
+          1,
+          2,
+          30,
+          7,
+          100,
+          14
+        ],
+        "circle-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "/",
+            [
+              "get",
+              "conflicts"
+            ],
+            [
+              "max",
+              [
+                "get",
+                "chips"
+              ],
+              1
+            ]
+          ],
+          0,
+          "#1b9e77",
+          0.5,
+          "#e6ab02",
+          1,
+          "#d7301f"
+        ],
+        "circle-opacity": 0.75,
+        "circle-stroke-color": "rgba(51,51,51,0.5)",
+        "circle-stroke-width": 0.5
+      }
+    },
+    {
+      "id": "chips-by-hash-split",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "chips",
+      "minzoom": 7,
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "split_hash_v1"
+          ],
+          "train",
+          "#1b9e77",
+          "val",
+          "#d95f02",
+          "test",
+          "#7570b3",
+          "#c8c8c8"
+        ],
+        "fill-opacity": 0.65
+      }
+    },
+    {
+      "id": "chips-legacy-conflict",
+      "type": "line",
+      "source": "data",
+      "source-layer": "chips",
+      "minzoom": 7,
+      "filter": [
+        "==",
+        [
+          "get",
+          "legacy_conflict"
+        ],
+        true
+      ],
+      "paint": {
+        "line-color": "#d7301f",
+        "line-width": 1
+      }
+    }
+  ]
+}

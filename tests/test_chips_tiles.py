@@ -147,6 +147,54 @@ with tempfile.TemporaryDirectory() as tmp:
         check("blank" in str(err), f"a blank thumbnail is refused: {err}")
     server.shutdown()
 
+    # the style reads only layers and properties the tiles have, and is usable on its own
+    style = _json.loads(chips_tiles.STYLE.read_text())
+    used: set[str] = set()
+
+    def walk(expr) -> None:
+        if isinstance(expr, list):
+            if len(expr) == 2 and expr[0] == "get" and isinstance(expr[1], str):
+                used.add(expr[1])
+            for part in expr:
+                walk(part)
+
+    by_layer = {}
+    for layer in style["layers"]:
+        if "source-layer" in layer:
+            by_layer.setdefault(layer["source-layer"], []).append(layer)
+            walk(layer.get("paint"))
+            walk(layer.get("filter"))
+    check(set(by_layer) == {"chips", "overview"}, f"the style draws the two layers: {set(by_layer)}")
+    check(used <= set(chips_tiles.ATTRIBUTES) | set(chips_tiles.OVERVIEW_SUMS),
+          f"the style reads only tiled properties: {used - set(chips_tiles.ATTRIBUTES) - set(chips_tiles.OVERVIEW_SUMS)}")
+    check(all(l.get("maxzoom") == chips_tiles.CHIPS_ZOOMS[0] for l in by_layer["overview"])
+          and all(l.get("minzoom") == chips_tiles.CHIPS_ZOOMS[0] for l in by_layer["chips"]),
+          "the overview hands over to the chips at the chips' first zoom, with no gap")
+    check(style["sources"]["data"]["url"].startswith("pmtiles://https://"),
+          "the published style points at the tiles by absolute URL")
+
+    # the drop check reads tippecanoe's per-zoom strategies
+    from pmtiles.tile import Compression, TileType, zxy_to_tileid
+    from pmtiles.writer import Writer
+
+    def archive(path: Path, strategies: list) -> Path:
+        with path.open("wb") as f:
+            w = Writer(f)
+            w.write_tile(zxy_to_tileid(0, 0, 0), b"x")
+            w.finalize({"tile_type": TileType.MVT, "tile_compression": Compression.NONE,
+                        "min_zoom": 0, "max_zoom": 0, "min_lon_e7": 0, "min_lat_e7": 0,
+                        "max_lon_e7": 0, "max_lat_e7": 0, "center_zoom": 0,
+                        "center_lon_e7": 0, "center_lat_e7": 0},
+                       {"strategies": _json.dumps(strategies)})
+        return path
+
+    chips_tiles.check_no_drops(archive(tmp / "ok.pmtiles", [{}, {"tiny_polygons": 3}]), "chips")
+    try:
+        chips_tiles.check_no_drops(archive(tmp / "drop.pmtiles", [{}, {"dropped_as_needed": 5}]), "chips")
+        errors.append("not refused: an archive with dropped features")
+    except chips_tiles.ChipsTilesError as err:
+        check("zoom 1" in str(err), f"the refusal names the zoom: {err}")
+
     from ftw_dataset_tools.api.tiles import tippecanoe_available
 
     if tippecanoe_available():

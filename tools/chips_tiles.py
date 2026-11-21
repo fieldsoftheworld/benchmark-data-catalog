@@ -11,14 +11,14 @@ Writes ``work/chips.pmtiles`` (``--out`` to change); upload it like the table
 A location is in every collection that covers it (other years, and a few overlapping
 regions), so the table repeats it. Two layers, neither dropping a location:
 
-``chips`` (zoom 6-12): one polygon per chip id, with
+``chips`` (zoom 7-12): one polygon per chip id, with
 - ``id``, ``block`` and ``split_hash_v1`` (the same in every dataset, by construction);
 - ``datasets``: how many datasets have the chip;
 - ``legacy_conflict``: true when those datasets' ``split_legacy`` values disagree (any
   two of train, val and test);
 - ``admin0_name``.
 
-``overview`` (zoom 2-5): chip centres, clustered where they crowd, so the whole catalog
+``overview`` (zoom 0-6): chip centres, clustered where they crowd, so the whole catalog
 shows at once. Each point (or cluster) sums ``chips`` (locations), ``train``, ``val``,
 ``test`` (by ``split_hash_v1``), ``conflicts`` (locations with ``legacy_conflict``) and
 ``datasets`` (chip-collection pairs).
@@ -26,6 +26,7 @@ shows at once. Each point (or cluster) sums ``chips`` (locations), ``train``, ``
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import tempfile
@@ -37,17 +38,16 @@ from chips_table import TABLE_NAME, _sql  # noqa: E402
 from common import PUBLIC_BASE, ROOT  # noqa: E402
 
 TILES_NAME = "chips.pmtiles"
-STYLE = ROOT / "catalog" / "styles" / "chips.json"
+STYLE = ROOT / "catalog" / "chips_style.json"
 THUMBNAIL = ROOT / "catalog" / "thumbnail.webp"
-# The whole catalog in one frame. chiitiler picks the zoom from size and bbox, and the
-# tiles start at zoom 2, so render large and shrink.
+# The whole catalog in one frame, rendered large and shrunk so the clusters stay crisp.
 THUMBNAIL_BBOX = (-130, -45, 150, 72)
 THUMBNAIL_RENDER_SIZE = 2400
 THUMBNAIL_SIZE = 1200
 ATTRIBUTES = ("id", "block", "split_hash_v1", "datasets", "legacy_conflict", "admin0_name")
 OVERVIEW_SUMS = ("chips", "train", "val", "test", "conflicts", "datasets")
-CHIPS_ZOOMS = (6, 12)
-OVERVIEW_ZOOMS = (2, 5)
+CHIPS_ZOOMS = (7, 12)
+OVERVIEW_ZOOMS = (0, 6)
 
 
 class ChipsTilesError(Exception):
@@ -125,6 +125,21 @@ def overview_command(seq: Path, out: Path) -> list[str]:
     return [*cmd, str(seq)]
 
 
+def check_no_drops(archive: Path, layer: str) -> None:
+    """Refuse an archive whose tippecanoe run dropped features at any zoom."""
+    from pmtiles.reader import MmapSource, Reader
+
+    with archive.open("rb") as f:
+        strategies = Reader(MmapSource(f)).metadata().get("strategies", [])
+    if isinstance(strategies, str):
+        strategies = json.loads(strategies)
+    for zoom, strategy in enumerate(strategies):
+        dropped = {k: v for k, v in (strategy or {}).items() if k.startswith("dropped")}
+        if dropped:
+            raise ChipsTilesError(f"tippecanoe dropped {layer} features at zoom {zoom}: {dropped}; "
+                                  f"every location must be kept")
+
+
 def build_tiles(table: str, out: Path) -> int:
     """Tile ``table``'s chip locations into ``out``; the number of locations."""
     from ftw_dataset_tools.api.tiles import TileSpec, build_pmtiles
@@ -136,16 +151,20 @@ def build_tiles(table: str, out: Path) -> int:
         locations = tmp / "locations.parquet"
         count = write_locations(table, locations)
         chips, overview = tmp / "chips.pmtiles", tmp / "overview.pmtiles"
-        # from zoom 6 a tile fits every chip; the flag is a guard, and drops nothing there
+        # from zoom 7 the densest tile is a quarter of the size limit; a drop is refused
         spec = TileSpec("chips", ATTRIBUTES, *CHIPS_ZOOMS, False, True)
         try:
             build_pmtiles(locations, chips, spec)
         except RuntimeError as err:
             raise ChipsTilesError(str(err)) from err
+        check_no_drops(chips, "chips")
         seq = tmp / "overview.geojsonseq"
         write_overview(locations, seq)
         _run(overview_command(seq, overview))
+        check_no_drops(overview, "overview")
         _run(["tile-join", "-o", str(out), "--force", "--quiet", "--no-tile-size-limit",
+              "-n", "Chips of every collection",
+              "-N", "Fields of the World benchmark chip locations with their splits",
               str(chips), str(overview)])
     return count
 
@@ -158,7 +177,6 @@ def render_thumbnail(out: Path = THUMBNAIL, *, style: Path = STYLE,
     Needs a running chiitiler (``tools/chiitiler.sh``). Refuses an image with no data in it.
     """
     import io
-    import json
     import urllib.request
 
     from PIL import Image
@@ -177,7 +195,7 @@ def render_thumbnail(out: Path = THUMBNAIL, *, style: Path = STYLE,
             image = Image.open(io.BytesIO(response.read())).convert("RGB")
     except OSError as err:
         raise ChipsTilesError(f"chiitiler at {server} failed: {err}") from err
-    if len(image.getcolors(maxcolors=1 << 16) or ()) < 2:
+    if all(low == high for low, high in image.getextrema()):
         raise ChipsTilesError("the thumbnail is blank: no tiles rendered")
     image.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE))
     image.save(out, "WEBP", quality=85)

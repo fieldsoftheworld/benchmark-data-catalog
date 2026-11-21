@@ -452,13 +452,15 @@ every chip of every collection with one column per split scheme:
 Read one collection's rows with
 `SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
 [`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
-polygon per location from zoom 6, with its `split_hash_v1` and whether the collections'
-own splits disagree there (`legacy_conflict`). Below zoom 6 its `overview` layer clusters
+polygon per location from zoom 7, with its `split_hash_v1` and whether the collections'
+own splits disagree there (`legacy_conflict`). Below zoom 7 its `overview` layer clusters
 the chip centres, each cluster counting its locations, their hash splits and conflicts.
 [Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
-or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/styles/chips.json)
-the image above is rendered from (green where the collections agree, red where they
-disagree; from zoom 6, chips filled by `split_hash_v1`).
+or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips_style.json)
+the image above is rendered from. A cluster's colour is the share of its locations whose
+collections' own splits disagree: green for none (including every location in only one
+collection), yellow for half, red for all. From zoom 7, chips are filled by
+`split_hash_v1`.
 
 ## What a chip carries
 
