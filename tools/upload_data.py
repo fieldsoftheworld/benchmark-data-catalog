@@ -174,6 +174,10 @@ def collect_data_uploads(
         rel = path.relative_to(base)
         if only is not None and (not rel.parts or rel.parts[0] not in only):
             continue
+        # A root file (the chips table) is shared by every dataset: upload it only when
+        # --only names it, never as a side effect of a dataset's upload.
+        if len(rel.parts) == 1 and (only is None or rel.name not in only):
+            continue
         if not is_data_publishable(rel):
             continue
         rel = published_rel(rel, places, root, config)

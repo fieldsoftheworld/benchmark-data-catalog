@@ -21,19 +21,24 @@ Columns:
     ``--bootstrap`` reads it from the published chips files, every later build carries it
     over from the published table, and chips added later get null.
   - ``split_predefined``: the source's own split, for datasets whose recipe sets
-    ``split_type: predefined``; null elsewhere. Read from the chips file each build.
-  - ``split_hash_v1``: ftwd's ``block3x3-hash`` at 80/10/10. A block's split comes from a
-    stable hash of its id, so a location has the same split in every dataset and year,
-    and new chips never move existing ones.
+    ``split_type: predefined``; null elsewhere. Read from the chips file of a
+    ``--staged`` dataset; carried over from the previous table for the others.
+  - ``split_hash_v1``: ftwd's ``block3x3-hash`` at 80/10/10 with the salt pinned here
+    (``HASH_SALT``). A block's split comes from a stable hash of its id, so a location has
+    the same split in every dataset and year, and new chips never move existing ones; a
+    build refuses to change a carried chip's block or hash split.
 
 Datasets are the collections the root catalog links (``catalog_stats.published_datasets``)
 plus any ``--staged`` id that is not published yet.
 
 The frozen columns exist nowhere else once the per-dataset files stop carrying ``split``,
 so the build refuses anything that would lose them: ``--bootstrap`` when a table is
-already published or a published chips file has no ``split``, a later build that leaves
-out a dataset of the previous table (unless ``--drop`` names it), and a staged
-predefined dataset whose chips file has no ``split``.
+already published or a published chips file has no (or an incomplete) ``split``, a later
+build that leaves out a dataset of the previous table or chips of one (unless ``--drop``
+names the dataset), and a staged predefined dataset whose chips file has no ``split``.
+
+The table is written to ``work/`` by default, so a dataset's upload never publishes it;
+copy it to ``staging/`` and upload it on its own (README, "Root chips table").
 """
 from __future__ import annotations
 
@@ -55,6 +60,7 @@ from common import CATALOG, PUBLIC_BASE, ROOT, STAGING, recipe_group  # noqa: E4
 TABLE_NAME = "chips.parquet"
 SPLITS = ("train", "val", "test")
 HASH_PERCENTS = (80, 10, 10)
+HASH_SALT = "ftw-split-v1"  # ftwd's SPLIT_HASH_VERSION when v1 was defined; never change it
 ADMIN_COLUMNS = ("admin0_iso3", "admin0_name", "admin1_name", "admin2_name")
 SPLIT_COLUMNS = ("split_legacy", "split_predefined", "split_hash_v1")
 
@@ -151,6 +157,11 @@ def _legacy_source(con, item: DatasetInput, cols: set[str]) -> tuple[str, str]:
     if "split" not in published_cols:
         raise ChipsTableError(f"{item.dataset}: --bootstrap, but the published chips file has no "
                               f"split column, so there is no legacy split to freeze")
+    gaps = con.execute(f"SELECT count(*) - count(split) FROM read_parquet("
+                       f"{_sql(item.published_chips)})").fetchone()[0]
+    if gaps:
+        raise ChipsTableError(f"{item.dataset}: --bootstrap, but {gaps:,} published chips have "
+                              f"no split to freeze")
     if item.published_chips == item.chips:
         return "c.split", ""
     return "p.split", (f" LEFT JOIN (SELECT id, split FROM read_parquet("
@@ -188,10 +199,9 @@ def hash_splits(ids, km_size: float):
     import numpy as np
     import pandas as pd
     from ftw_dataset_tools.api.blocks import block_scores, chip_block_ids
-    from ftw_dataset_tools.api.splits import SPLIT_HASH_VERSION
 
     blocks = chip_block_ids(pd.Series(ids), km_size)
-    scores = block_scores(blocks, SPLIT_HASH_VERSION).to_numpy()
+    scores = block_scores(blocks, HASH_SALT).to_numpy()
     train, val = HASH_PERCENTS[0] / 100, (HASH_PERCENTS[0] + HASH_PERCENTS[1]) / 100
     return blocks.to_numpy(), np.where(scores < train, "train",
                                        np.where(scores < val, "val", "test"))
@@ -240,12 +250,17 @@ def _carry_frozen(con, previous: str, inputs: list[DatasetInput], staged: set[st
         raise ChipsTableError(
             f"the previous table has {', '.join(sorted(missing - drop))}, which this build "
             f"leaves out; their frozen splits would be lost (--drop them if that is intended)")
-    for dataset, gone in con.execute("""
-            SELECT dataset, count(*) FROM prev ANTI JOIN rows USING (dataset, id)
+    for dataset, gone, frozen in con.execute("""
+            SELECT dataset, count(*), count(split_legacy) + count(split_predefined)
+            FROM prev ANTI JOIN rows USING (dataset, id)
             WHERE dataset IN (SELECT unnest(?)) GROUP BY ALL ORDER BY ALL""",
             [sorted(names)]).fetchall():
-        print(f"note: {dataset}: {gone:,} chips of the previous table are gone, with their "
-              f"frozen splits")
+        if frozen and dataset not in drop:
+            raise ChipsTableError(
+                f"{dataset}: {gone:,} chips of the previous table are gone, with their frozen "
+                f"splits (changed chip ids, or an empty or wrong chips file?); --drop {dataset} "
+                f"if that is intended")
+        print(f"note: {dataset}: {gone:,} chips of the previous table are gone")
     con.execute("""UPDATE rows SET split_legacy = prev.split_legacy FROM prev
                    WHERE rows.dataset = prev.dataset AND rows.id = prev.id""")
     predefined = sorted(i.dataset for i in inputs
@@ -253,6 +268,20 @@ def _carry_frozen(con, previous: str, inputs: list[DatasetInput], staged: set[st
     con.execute("""UPDATE rows SET split_predefined = prev.split_predefined FROM prev
                    WHERE rows.dataset = prev.dataset AND rows.id = prev.id
                      AND rows.dataset IN (SELECT unnest(?))""", [predefined])
+
+
+def check_hash_unchanged(con) -> None:
+    """Refuse when a chip carried from the previous table gets another block or hash split."""
+    moved = con.execute("""
+        SELECT r.dataset, r.id FROM rows r JOIN sizes s USING (dataset)
+        JOIN hashed h ON h.id = r.id AND h.km_size = s.km_size
+        JOIN prev_hash p ON p.dataset = r.dataset AND p.id = r.id
+        WHERE p.block IS DISTINCT FROM h.block OR p.split_hash_v1 IS DISTINCT FROM h.split_hash_v1
+        LIMIT 1""").fetchone()
+    if moved:
+        raise ChipsTableError(f"{moved[0]}: chip {moved[1]} would change its block or "
+                              f"split_hash_v1; a hash version never moves a chip (did ftwd's "
+                              f"chip_block_ids change? then define split_hash_v2)")
 
 
 def check_rows(con, inputs: list[DatasetInput]) -> None:
@@ -300,6 +329,7 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
 
     if not bootstrap and previous is None:
         raise ChipsTableError("a build without --bootstrap needs the previous table")
+    out = out.resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=out.parent) as tmp:
         parts = [Path(tmp) / f"{item.dataset}.parquet" for item in inputs]
@@ -313,6 +343,10 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
                 _carry_frozen(con, previous, inputs, set(staged), set(drop))
             _hash_table(con, inputs)
             check_rows(con, inputs)
+            if not bootstrap:
+                con.execute(f"CREATE TABLE prev_hash AS SELECT dataset, id, block, split_hash_v1 "
+                            f"FROM read_parquet({_sql(previous)})")
+                check_hash_unchanged(con)
             admin = ", ".join(f"r.{c}" for c in ADMIN_COLUMNS)
             joined = Path(tmp) / "joined.parquet"
             con.execute(f"""
@@ -344,15 +378,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--previous", default=f"{PUBLIC_BASE}/{TABLE_NAME}",
                         help="the table to carry frozen splits from (default: the published one)")
     parser.add_argument("--drop", nargs="*", default=[],
-                        help="datasets of the previous table to leave out, losing their frozen splits")
-    parser.add_argument("--out", type=Path, default=STAGING / TABLE_NAME)
+                        help="datasets whose frozen splits may be lost: left out entirely, or "
+                             "chips a rebuild no longer has")
+    parser.add_argument("--out", type=Path, default=ROOT / "work" / TABLE_NAME)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
     staged = set(args.staged)
     try:
-        if args.bootstrap and table_exists(args.previous):
-            raise ChipsTableError(f"--bootstrap, but {args.previous} exists; a later build "
-                                  f"carries its frozen splits instead")
+        published = f"{PUBLIC_BASE}/{TABLE_NAME}"
+        for table in dict.fromkeys([args.previous, published]) if args.bootstrap else ():
+            if table_exists(table):
+                raise ChipsTableError(f"--bootstrap, but {table} exists; a later build "
+                                      f"carries its frozen splits instead")
         inputs = resolve_inputs(staged)
         rows = build(inputs, args.out, bootstrap=args.bootstrap,
                      previous=None if args.bootstrap else args.previous,

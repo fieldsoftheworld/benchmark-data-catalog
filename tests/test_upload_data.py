@@ -151,6 +151,14 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     expected = expected | {"a/prefix/g/lu/items.parquet"}
 
+    # A root file (the chips table) uploads only when --only names it.
+    write(root / "staging/chips.parquet")
+    check("a/prefix/chips.parquet" not in {u.key for u in collect_data_uploads(config, root)},
+          "a plain upload never carries a root file along")
+    check({u.key for u in collect_data_uploads(config, root, only={"chips.parquet"})}
+          == {"a/prefix/chips.parquet"}, "--only chips.parquet uploads the root file alone")
+    (root / "staging/chips.parquet").unlink()
+
     # The bare-prefix case: no prefix at all.
     flat = dict(config, write_prefix="s3://a-bucket")
     check(

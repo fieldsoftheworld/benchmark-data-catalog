@@ -50,6 +50,7 @@ the full walkthrough; this is the command sequence):
     uv run python tools/upload_data.py --confirm
     uv run python tools/upload_data.py --only lu --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
+    uv run python tools/chips_table.py --staged <id>   # then upload it (README, "Root chips table")
 
 Imagery is a second pass, once selection is ready:
 
