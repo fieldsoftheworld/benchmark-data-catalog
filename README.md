@@ -120,13 +120,17 @@ has the reasoning.
 | `split_legacy` | What each dataset published before this table (seeded `block3x3` or `predefined`). Frozen, so chips added later get null |
 | `split_predefined` | The source's own split, for datasets whose recipe sets `split_type: predefined` |
 | `split_hash_v1` | ftwd's `block3x3-hash` at 80/10/10. A location has the same split in every dataset and year, and new chips never move existing ones |
-| `split_admin2_v1` | Whole admin2 units (`unit_admin2_v1`), balanced to 80/10/10 of locations within each country, so every country with three units or more has all three splits. A unit with a presence-only chip is train. Frozen once published; new units fill the split furthest below its share |
+| `split_admin2_v1` | Whole admin2 units (`unit_admin2_v1`), balanced to 80/10/10 of locations within each country, so a country with three units or more gets all three splits when first assigned. A unit with a presence-only chip is train. Frozen once published; new units fill the split furthest below its share |
 
 Under `split_admin2_v1`, the countries whose chips are all presence-only (India and most of
-Africa, from lacuna and in_10k_ml) are train only. Rows without a country or admin1, and
-countries with fewer than three admin2 units to balance, use their block as the unit.
+Africa, from lacuna and in_10k_ml) are train only. A row with no admin2 name joins its
+admin1's unit. Rows without a country or admin1, and countries with fewer than three
+admin2 units to balance, use their block as the unit; a country keeps its kind of unit
+once published. The first build that adds the column needs `--start-admin2-split`; any
+later build refuses a previous table without it.
 
-`license` and `license_url` come from each collection, and `license_category` sorts them
+`license` and `license_url` (the dataset's own license link, not the embeddings'; the SPDX
+page for a standard id) come from each collection, and `license_category` sorts them
 for filtering: `public-domain`, `attribution` and `share-alike` are open (any use,
 including commercial); then `non-commercial`, `restricted`, and `unknown` for a license
 nobody has judged yet. A judgment goes in `LICENSES` in `tools/chips_table.py`.

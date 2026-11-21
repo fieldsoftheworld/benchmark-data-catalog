@@ -28,15 +28,19 @@ Columns:
     the same split in every dataset and year, and new chips never move existing ones; a
     build refuses to change a carried chip's block or hash split.
   - ``split_admin2_v1``, with its unit in ``unit_admin2_v1``: whole admin2 units, balanced
-    to 80/10/10 of locations within each country, so every country with enough units has
-    all three splits. A unit with any presence-only chip is train (presence-only labels
-    can't be scored). Rows without a country or admin1 use their block as the unit, and so
-    does a country with fewer than three admin2 units to balance. Frozen once published: a
-    later build carries every chip's unit and split, gives a new chip of a known unit that
-    unit's split, and fills new units into the split furthest below its share in their
-    country. It refuses a frozen val or test unit that gains a presence-only chip.
+    to 80/10/10 of locations within each country (largest units first), so a country with
+    three units or more gets all three splits when its units are first assigned. A unit
+    with any presence-only chip is train (presence-only labels can't be scored) and isn't
+    counted in the balance. A row with no admin2 name is in its admin1's unit; a row
+    without a country or admin1 uses its block as the unit, and so does a country with
+    fewer than three admin2 units to balance. Frozen once published: a later build carries
+    every chip's unit and split and each country's kind of unit, gives a new chip of a
+    known unit that unit's split, and fills new units into the split furthest below its
+    share in their country. It refuses a frozen val or test unit that gains a presence-only
+    chip, and a previous table without the column unless ``--start-admin2-split``.
 
-- ``license`` and ``license_url`` (the collection's license and its first license link),
+- ``license`` and ``license_url`` (the collection's license and its own license link, or
+  the SPDX page for a standard id),
   ``license_category`` (``LICENSE_CATEGORIES``: ``public-domain``, ``attribution`` and
   ``share-alike`` are open; then ``non-commercial``, ``restricted``, and ``unknown`` for a
   license nobody has judged yet) and ``presence_only`` (the collection's
@@ -130,8 +134,14 @@ def license_category(license: str | None, license_url: str | None) -> str:
 
 
 def _license_fields(collection: dict) -> dict:
-    links = [link["href"] for link in collection.get("links", []) if link.get("rel") == "license"]
-    return {"license": collection.get("license"), "license_url": links[0] if links else None,
+    """The dataset's license: its id, its own license link (not the embeddings' license;
+    the SPDX page for a standard id without one), and presence_only."""
+    license = collection.get("license")
+    links = [link["href"] for link in collection.get("links", [])
+             if link.get("rel") == "license" and "olmoearth" not in link["href"].lower()]
+    url = links[0] if links else (
+        f"https://spdx.org/licenses/{license}.html" if license and license != "other" else None)
+    return {"license": license, "license_url": url,
             "presence_only": bool(collection.get("ftw:presence_only", False))}
 
 
@@ -159,7 +169,7 @@ def _staged_input(dataset_id: str, group: str, published: str | None, staging: P
         raise ChipsTableError(f"{dataset_id}: --staged, but {chips} does not exist")
     collection_path = folder / "collection.json"
     collection = json.loads(collection_path.read_text()) if collection_path.is_file() else {}
-    if not collection:
+    if not collection_path.is_file():
         raise ChipsTableError(f"{dataset_id}: --staged, but {collection_path} does not exist "
                               f"(the table needs its license and presence_only)")
     return DatasetInput(dataset_id, group, str(chips), published,
@@ -278,8 +288,12 @@ def _score(key: str) -> float:
     return int.from_bytes(digest, "big") / 2**64
 
 
-def _units(locations):
-    """Each location's admin2 unit, or its block where the country has too few units."""
+def _units(locations, frozen_blocks: dict[str, bool]):
+    """Each location's admin2 unit, or its block where the country has too few units.
+
+    ``frozen_blocks`` (country -> uses blocks) keeps a carried country's kind of unit, so
+    a country never switches between admin2 units and blocks once published.
+    """
     import numpy as np
 
     loc = locations
@@ -287,20 +301,22 @@ def _units(locations):
     admin2 = loc["country"].fillna("") + "|" + loc["admin1"].fillna("") + "|" + loc["admin2"].fillna("")
     eligible = admin2[known & ~loc["unit_po"]].groupby(loc["country"]).nunique()
     few = loc["country"].map(eligible).fillna(0) < MIN_ADMIN2_UNITS
+    frozen = loc["country"].map(frozen_blocks)
+    few = frozen.where(frozen.notna(), few).astype(bool)
     block = loc["country"].fillna("") + "|block:" + loc["block"]
     return np.where(known & ~few, admin2, block)
 
 
 def _fill(units, counts: dict[str, int]) -> dict[str, str]:
-    """Splits for new ``units`` (unit -> locations) of one country: in hash order, each to the
-    split furthest below its share, counting ``counts`` (split -> locations) already there.
+    """Splits for new ``units`` (unit -> locations) of one country: largest first (then in
+    hash order), each to the split furthest below its share, counting ``counts`` (split -> locations) already there.
     A split left with no locations then takes the smallest new unit of a split that has
     more than one, so a country with three units or more gets all three splits."""
     shares = dict(zip(SPLITS, (p / 100 for p in HASH_PERCENTS)))
     total = sum(counts.values()) + sum(units.values())
     have = {s: counts.get(s, 0) for s in SPLITS}
     out = {}
-    for unit in sorted(units, key=lambda u: (_score(u), u)):
+    for unit in sorted(units, key=lambda u: (-units[u], _score(u), u)):
         split = max(SPLITS, key=lambda s: shares[s] * total - have[s])
         out[unit] = split
         have[split] += units[unit]
@@ -330,8 +346,11 @@ def admin2_splits(locations, previous=None):
     # a unit is presence-only when any location in it is; first by admin2, to decide the units
     admin2 = loc["country"].fillna("") + "|" + loc["admin1"].fillna("") + "|" + loc["admin2"].fillna("")
     loc["unit_po"] = loc.groupby(admin2)["presence_only"].transform("any")
-    loc["unit"] = _units(loc)
     is_carried = loc["id"].isin(carried.index)
+    frozen = loc[is_carried & loc["country"].notna() & loc["admin1"].notna()]
+    frozen_blocks = (frozen["id"].map(carried["unit"]).astype(str).str.contains("|block:", regex=False)
+                     .groupby(frozen["country"]).all().to_dict())
+    loc["unit"] = _units(loc, frozen_blocks)
     loc.loc[is_carried, "unit"] = loc.loc[is_carried, "id"].map(carried["unit"])
     loc["unit_po"] = loc.groupby("unit")["presence_only"].transform("any")
     known = dict(zip(prev["unit"], prev["split"]))
@@ -352,16 +371,21 @@ def admin2_splits(locations, previous=None):
     return loc[["id", "unit", "split"]]
 
 
-def _admin2_table(con, previous: str | None) -> None:
+def _admin2_table(con, previous: str | None, start_admin2: bool = False) -> None:
     """Table ``admin2(id, unit_admin2_v1, split_admin2_v1)`` over the chips in ``rows``."""
+    # one row's whole admin tuple (the smallest), so a location's unit is stable across runs
     locations = con.execute("""
-        SELECT r.id, any_value(r.admin0_iso3) AS country, any_value(r.admin1_name) AS admin1,
-               any_value(r.admin2_name) AS admin2, min(h.block) AS block,
-               bool_or(r.presence_only) AS presence_only
-        FROM rows r JOIN sizes s USING (dataset)
-        JOIN hashed h ON h.id = r.id AND h.km_size = s.km_size GROUP BY r.id""").df()
+        SELECT id, a[1] AS country, a[2] AS admin1, a[3] AS admin2, block, presence_only
+        FROM (SELECT r.id, min([r.admin0_iso3, r.admin1_name, r.admin2_name]) AS a,
+                     min(h.block) AS block, bool_or(r.presence_only) AS presence_only
+              FROM rows r JOIN sizes s USING (dataset)
+              JOIN hashed h ON h.id = r.id AND h.km_size = s.km_size GROUP BY r.id)""").df()
     prev = None
-    if previous is not None and "split_admin2_v1" in _columns(con, previous):
+    if previous is not None and "split_admin2_v1" not in _columns(con, previous) and not start_admin2:
+        raise ChipsTableError(
+            f"the previous table {previous} has no split_admin2_v1, so the split would start "
+            f"from scratch; pass --start-admin2-split only for the first build that adds it")
+    if previous is not None and not start_admin2:
         prev = con.execute(f"""
             SELECT id, any_value(unit_admin2_v1) AS unit, any_value(split_admin2_v1) AS split
             FROM read_parquet({_sql(previous)}) GROUP BY id""").df()
@@ -486,7 +510,8 @@ def table_exists(location: str) -> bool:
 
 def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
           previous: str | None = None, staged: frozenset[str] = frozenset(),
-          drop: frozenset[str] = frozenset(), workers: int = 8) -> int:
+          drop: frozenset[str] = frozenset(), workers: int = 8,
+          start_admin2: bool = False) -> int:
     """Write the table to ``out``; the number of rows."""
     import geoparquet_io as gpio
     from ftw_dataset_tools.api import admin_names
@@ -511,7 +536,7 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
                 con.execute(f"CREATE TABLE prev_hash AS SELECT dataset, id, block, split_hash_v1 "
                             f"FROM read_parquet({_sql(previous)})")
                 check_hash_unchanged(con)
-            _admin2_table(con, None if bootstrap else previous)
+            _admin2_table(con, None if bootstrap else previous, start_admin2)
             admin = ", ".join(f"r.{c}" for c in ADMIN_COLUMNS)
             joined = Path(tmp) / "joined.parquet"
             con.execute(f"""
@@ -548,6 +573,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--drop", nargs="*", default=[],
                         help="datasets whose frozen splits may be lost: left out entirely, or "
                              "chips a rebuild no longer has")
+    parser.add_argument("--start-admin2-split", action="store_true",
+                        help="assign split_admin2_v1 from scratch (only the first build that "
+                             "adds it; later builds carry it)")
     parser.add_argument("--out", type=Path, default=ROOT / "work" / TABLE_NAME)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
@@ -562,7 +590,7 @@ def main(argv: list[str] | None = None) -> int:
         rows = build(inputs, args.out, bootstrap=args.bootstrap,
                      previous=None if args.bootstrap else args.previous,
                      staged=frozenset(staged), drop=frozenset(args.drop),
-                     workers=args.workers)
+                     workers=args.workers, start_admin2=args.start_admin2_split)
     except ChipsTableError as err:
         sys.exit(f"chips table: {err}")
     print(f"wrote {args.out}: {rows:,} chips from {len(inputs)} datasets")

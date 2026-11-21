@@ -80,8 +80,9 @@ def write_catalog(root: Path, datasets: dict[str, tuple[str, str]]) -> None:
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "collection.json").write_text(json.dumps({
             "ftw:chip_size_km": 2.0, "license": "other",
-            "links": [{"rel": "license", "href": "https://go.planet.com/nicfi-pla-2024"},
-                      {"rel": "license", "href": "https://example.com/embeddings"}],
+            "links": [{"rel": "license", "href": "https://data.source.coop/olmoearth/"
+                                                 "olmoearth-v1-3-embeddings/LICENSE.txt"},
+                      {"rel": "license", "href": "https://go.planet.com/nicfi-pla-2024"}],
             "ftw:presence_only": dataset_id in PRESENCE_ONLY,
             "assets": {"chips": {"href": f"./{dataset_id}_chips.parquet"}}}))
         (root / "datasets").mkdir(exist_ok=True)
@@ -147,7 +148,8 @@ with tempfile.TemporaryDirectory() as tmp:
     con.close()
     check(extra[f"bb_2022 {SHARED}"][:4] == ("other", "https://go.planet.com/nicfi-pla-2024",
                                              "non-commercial", True),
-          f"license, its first link, its category and presence_only come from the collection: "
+          f"license, its own link (not the embeddings'), its category and presence_only come "
+          f"from the collection: "
           f"{extra[f'bb_2022 {SHARED}']}")
     check(extra[f"aa_2021 {SHARED}"][4:] == extra[f"bb_2022 {SHARED}"][4:]
           and extra[f"aa_2021 {SHARED}"][5] == "train",
@@ -181,6 +183,27 @@ with tempfile.TemporaryDirectory() as tmp:
     check(t[("bb_2022", "ftw-33TUN2020")][1] == "val",
           "split_predefined of an unstaged dataset is carried over")
     check(len(t) == 6, f"the later build has the new chip: {len(t)}")
+
+    # the first build that adds split_admin2_v1 reads a previous table without it
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial")
+    con.execute(f"""COPY (SELECT * EXCLUDE (unit_admin2_v1, split_admin2_v1, license, license_url,
+                                            license_category, presence_only)
+                          FROM read_parquet('{boot}')) TO '{root / "old.parquet"}' (FORMAT parquet)""")
+    con.close()
+    try:
+        chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
+                          bootstrap=False, previous=str(root / "old.parquet"),
+                          staged=frozenset({"aa_2021"}), workers=2)
+        errors.append("not refused: a previous table without split_admin2_v1")
+    except chips_table.ChipsTableError as err:
+        check("--start-admin2-split" in str(err), f"the refusal names the flag: {err}")
+    started = root / "started.parquet"
+    chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), started, bootstrap=False,
+                      previous=str(root / "old.parquet"), staged=frozenset({"aa_2021"}),
+                      workers=2, start_admin2=True)
+    t2 = table(started)
+    check(all(t2[k][:3] == t[k][:3] for k in t), "starting the admin2 split keeps the other splits")
 
     # refusals
     def refused(label: str, fn, match: str) -> None:
@@ -405,6 +428,45 @@ out = chips_table.admin2_splits(locs(lopsided))
 per = out.assign(u=out["unit"]).groupby("u")["split"].first().to_dict()
 check(per["KKK|r|u0"] == "train" and {per["KKK|r|u1"], per["KKK|r|u2"]} == {"val", "test"},
       f"three units give all three splits, the biggest in train: {per}")
+
+# a country keeps its kind of unit once published
+xx = [(f"x{u}{k:03d}", "XXX", "r", f"u{u}", False) for u in range(3) for k in range(10)]
+first_xx = chips_table.admin2_splits(locs(xx))
+per = dict(zip(first_xx["unit"], first_xx["split"]))
+train_unit = next(u for u, s in per.items() if s == "train").split("|")[2]
+val_unit = next(u for u, s in per.items() if s == "val").split("|")[2]
+later_xx = xx + [("pzzz1", "XXX", "r", train_unit, True), ("nnnn1", "XXX", "r", val_unit, False)]
+out = chips_table.admin2_splits(locs(later_xx), first_xx).set_index("id")
+check(out.loc["nnnn1", "split"] == "val" and "|block:" not in out.loc["nnnn1", "unit"],
+      f"a country stays on admin2 units when presence-only chips leave it under three: "
+      f"{out.loc['nnnn1'].to_dict()}")
+yy = [("y1aa1", "YYY", "r", "a", False), ("y2bb1", "YYY", "r", "b", False),
+      ("y3cc1", "YYY", "r", "b", False)]
+first_yy = chips_table.admin2_splits(locs(yy))
+later_yy = yy + [("y3cc2", "YYY", "r", "c", False), ("y4dd1", "YYY", "r", "d", False)]
+out = chips_table.admin2_splits(locs(later_yy), first_yy).set_index("id")
+check(out.loc["y3cc2", "unit"] == "YYY|block:y3cc"
+      and out.loc["y3cc2", "split"] == dict(zip(first_yy["id"], first_yy["split"]))["y3cc1"],
+      f"a country stays on blocks when it gains a third admin2 unit: {out.to_dict()}")
+mixed = few + [("zzzz2", None, None, None, True)]
+out = splits(chips_table.admin2_splits(locs(mixed)))
+check(out["zzzz1"] == out["zzzz2"] == "train", "a block unit with a presence-only chip is train")
+
+# a carried country with only train gets val and test from its new units
+only_train = pd.DataFrame({"id": [r[0] for r in big], "unit": [f"AAA|r|{r[3]}" for r in big],
+                           "split": "train"})
+grown = big + [(f"m{u}{k:03d}", "AAA", "r", f"more{u}", False) for u in range(4) for k in range(3)]
+out = chips_table.admin2_splits(locs(grown), only_train)
+new_splits = set(out[out["id"].str.startswith("m")]["split"])
+check({"val", "test"} <= new_splits, f"new units fill the missing splits: {new_splits}")
+
+# license links: the dataset's own, not the embeddings'; the SPDX page for a standard id
+fields = chips_table._license_fields({"license": "CC-BY-4.0", "links": [
+    {"rel": "license", "href": "https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt"}]})
+check(fields["license_url"] == "https://spdx.org/licenses/CC-BY-4.0.html",
+      f"a standard id without its own link points at SPDX: {fields}")
+check(chips_table._license_fields({"license": "other", "links": []})["license_url"] is None,
+      "an other license without a link has no url")
 
 # carried: a known unit keeps its split, new units fill in, nothing moves
 first = chips_table.admin2_splits(locs(big))
