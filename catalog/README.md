@@ -456,7 +456,7 @@ polygon per location from zoom 7, with its `split_hash_v1` and whether the colle
 own splits disagree there (`legacy_conflict`). Below zoom 7 its `overview` layer clusters
 the chip centres, each cluster counting its locations, their hash splits and conflicts.
 [Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
-or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips_style.json)
+or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips.style.json)
 the image above is rendered from. A cluster's colour is the share of its locations whose
 collections' own splits disagree: green for none (including every location in only one
 collection), yellow for half, red for all. From zoom 7, chips are filled by

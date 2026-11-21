@@ -38,7 +38,7 @@ from chips_table import TABLE_NAME, _sql  # noqa: E402
 from common import PUBLIC_BASE, ROOT  # noqa: E402
 
 TILES_NAME = "chips.pmtiles"
-STYLE = ROOT / "catalog" / "chips_style.json"
+STYLE = ROOT / "catalog" / "chips.style.json"
 THUMBNAIL = ROOT / "catalog" / "thumbnail.webp"
 # The whole catalog in one frame, rendered large and shrunk so the clusters stay crisp.
 THUMBNAIL_BBOX = (-130, -45, 150, 72)
@@ -47,6 +47,9 @@ THUMBNAIL_SIZE = 1200
 ATTRIBUTES = ("id", "block", "split_hash_v1", "datasets", "legacy_conflict", "admin0_name")
 OVERVIEW_SUMS = ("chips", "train", "val", "test", "conflicts", "datasets")
 CHIPS_ZOOMS = (7, 12)
+# tippecanoe turns sub-pixel polygons into dust, which can lose them. At zoom 7 a chip of
+# this area is about 10 tile units across, far above that; real chips are 4 km2 or more.
+MIN_CHIP_KM2 = 0.5
 OVERVIEW_ZOOMS = (0, 6)
 
 
@@ -58,7 +61,7 @@ def write_locations(table: str, out: Path) -> int:
     """One row per chip id from ``table`` as GeoParquet at ``out``; the number of rows.
 
     Refuses a table where one chip id has more than one hash split or geometry, which the
-    one-feature-per-location tiles would hide.
+    one-feature-per-location tiles would hide, or a footprint below MIN_CHIP_KM2.
     """
     import geoparquet_io as gpio
     from ftw_dataset_tools.api import admin_names
@@ -71,6 +74,15 @@ def write_locations(table: str, out: Path) -> int:
             LIMIT 1""").fetchone()
         if bad:
             raise ChipsTilesError(f"chip {bad[0]} has more than one hash split or footprint")
+        tiny = con.execute(f"""
+            SELECT id, ST_Area_Spheroid(ST_FlipCoordinates(geometry)) / 1e6 AS km2
+            FROM read_parquet({_sql(table)})
+            WHERE ST_Area_Spheroid(ST_FlipCoordinates(geometry)) / 1e6 < {MIN_CHIP_KM2}
+            LIMIT 1""").fetchone()
+        if tiny:
+            raise ChipsTilesError(f"chip {tiny[0]} covers {tiny[1]:.3f} km2, below "
+                                  f"{MIN_CHIP_KM2} km2: the tiles could lose it at zoom "
+                                  f"{CHIPS_ZOOMS[0]}")
         tmp = out.with_suffix(".tmp.parquet")
         con.execute(f"""
             COPY (SELECT id, any_value(block) AS block,
