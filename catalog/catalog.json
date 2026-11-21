@@ -55,6 +55,18 @@
       "title": "Issue tracker"
     },
     {
+      "rel": "related",
+      "href": "./chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chips of every collection, with one column per split scheme"
+    },
+    {
+      "rel": "related",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chip locations as vector tiles, with their splits"
+    },
+    {
       "rel": "child",
       "href": "./ai4sf_ml/catalog.json",
       "type": "application/json",

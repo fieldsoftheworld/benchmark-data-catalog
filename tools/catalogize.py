@@ -2272,6 +2272,25 @@ def _replace_between_markers(path: Path, content: str) -> None:
     path.write_text(f"{before}{_MARK_START}{middle}{_MARK_END}{after}")
 
 
+# The root's links to the chips table and its tiles, built by tools/chips_table.py and
+# tools/chips_tiles.py and uploaded to the bucket root. Links, not assets: a Portolan
+# catalog carries no assets (PTL-AST-005).
+ROOT_DATA_LINKS = [
+    {
+        "rel": "related",
+        "href": "./chips.parquet",
+        "type": "application/vnd.apache.parquet",
+        "title": "Chips of every collection, with one column per split scheme",
+    },
+    {
+        "rel": "related",
+        "href": "./chips.pmtiles",
+        "type": "application/vnd.pmtiles",
+        "title": "Chip locations as vector tiles, with their splits",
+    },
+]
+
+
 def regenerate_root(
     manifest: dict,
     *,
@@ -2284,7 +2303,8 @@ def regenerate_root(
 
     Rewrites every ``catalog/<source>/`` group (``write_group``). Keeps every
     fixed link in ``catalog/catalog.json`` exactly as it is; rebuilds the
-    ``child`` links, one per source group sorted by group id, and drops any
+    ``child`` links, one per source group sorted by group id (after the links to
+    the chips table and tiles, ``ROOT_DATA_LINKS``), and drops any
     ``rel: self`` link, so the tracked tree stays relative and validates at
     any path (git-backed-catalogs best practice). PORTO-CORE-081 (a catalog
     served from one fixed URL SHOULD carry an absolute ``self`` link) is
@@ -2314,9 +2334,11 @@ def regenerate_root(
         written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title, now=now)
         groups.append((f"./{group}/catalog.json", read_json(catalog / group / "catalog.json")["title"]))
 
+    data_hrefs = {link["href"] for link in ROOT_DATA_LINKS}
     doc["links"] = [
-        link for link in doc["links"] if link.get("rel") not in ("child", "self")
-    ] + _child_links(groups)
+        link for link in doc["links"]
+        if link.get("rel") not in ("child", "self") and link.get("href") not in data_hrefs
+    ] + ROOT_DATA_LINKS + _child_links(groups)
     doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI]
     doc["version"] = manifest["catalog"]["version"]
     doc["updated"] = _now_iso(now)

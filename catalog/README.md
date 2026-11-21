@@ -432,6 +432,25 @@ browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchm
 It renders the collections, their chip footprints and the map styles each one
 ships; the Browse column above opens a single collection in it.
 
+## Splits across collections
+
+Each collection assigns its own train / validation / test split, so a location in
+several collections (one per year) can be test in one and train in another.
+[`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips.parquet) lists
+every chip of every collection with one column per split scheme:
+
+- `split_legacy`: the collection's own split, as in each collection's chips file.
+- `split_predefined`: the source's split, for collections whose source defines one.
+- `split_hash_v1`: one split per location in every collection, from a stable hash of
+  the chip's 3x3 block of grid cells (80 / 10 / 10 overall). Use it to train and test
+  across collections without a location on both sides.
+
+Read one collection's rows with
+`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
+[`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
+feature per location with its `split_hash_v1` and whether the collections' own splits
+disagree there (`legacy_conflict`).
+
 ## What a chip carries
 
 Every chip is a STAC item on the FTW grid, so a cell id is the same square of

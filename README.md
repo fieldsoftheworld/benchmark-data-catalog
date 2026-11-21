@@ -129,6 +129,14 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
     uv run python tools/chips_table.py --staged pt_2021   # after publishing a dataset
     cp work/chips.parquet staging/chips.parquet
     uv run python tools/upload_data.py --only chips.parquet --force --confirm
+    uv run python tools/chips_tiles.py                    # needs tippecanoe; reads the published table
+    cp work/chips.pmtiles staging/chips.pmtiles
+    uv run python tools/upload_data.py --only chips.pmtiles --force --confirm
+
+`chips.pmtiles` holds one feature per chip location (a location repeats once per year):
+`id`, `block`, `split_hash_v1`, `datasets` (how many collections have it),
+`legacy_conflict` (their `split_legacy` values disagree) and `admin0_name`. The root
+`catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
 
 Rebuild it after each dataset publish, with `--staged` naming the datasets just rebuilt:
 they are read from `staging/`, and every other dataset's `split_legacy` and
