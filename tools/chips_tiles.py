@@ -52,6 +52,8 @@ ATTRIBUTES = ("id", "block", "split_hash_v1", "split_admin2_v1", "datasets", "pr
 SPLITS = ("train", "val", "test")
 OVERVIEW_LAYERS = tuple(f"overview_{split}" for split in SPLITS)
 OVERVIEW_SUMS = ("chips", "conflicts", "datasets")
+REQUIRED_COLUMNS = ("id", "block", "split_legacy", "split_hash_v1", "split_admin2_v1",
+                    "presence_only", "admin0_name", "geometry")
 CHIPS_ZOOMS = (7, 12)
 # tippecanoe turns sub-pixel polygons into dust, which can lose them. At zoom 7 a chip of
 # this area is about 10 tile units across, far above that; real chips are 4 km2 or more.
@@ -74,6 +76,12 @@ def write_locations(table: str, out: Path) -> int:
 
     con = admin_names.connect()
     try:
+        columns = {r[0] for r in con.execute(
+            f"DESCRIBE SELECT * FROM read_parquet({_sql(table)})").fetchall()}
+        missing = [c for c in REQUIRED_COLUMNS if c not in columns]
+        if missing:
+            raise ChipsTilesError(f"{table} has no {', '.join(missing)}; build the chips table "
+                                  f"with tools/chips_table.py first")
         bad = con.execute(f"""
             SELECT id FROM read_parquet({_sql(table)}) GROUP BY id
             HAVING count(DISTINCT split_hash_v1) > 1 OR count(DISTINCT split_admin2_v1) > 1
@@ -84,7 +92,8 @@ def write_locations(table: str, out: Path) -> int:
                                   f"footprint")
         unsplit = con.execute(f"""
             SELECT id FROM read_parquet({_sql(table)})
-            WHERE split_admin2_v1 IS NULL OR split_admin2_v1 NOT IN {SPLITS} LIMIT 1""").fetchone()
+            WHERE split_admin2_v1 IS NULL
+               OR split_admin2_v1 NOT IN ({", ".join(_sql(s) for s in SPLITS)}) LIMIT 1""").fetchone()
         if unsplit:
             raise ChipsTilesError(f"chip {unsplit[0]} has no admin2 split; the overview would "
                                   f"leave it out")

@@ -57,23 +57,29 @@ def write_table(path: Path, rows: list[tuple], size: float = 0.01) -> None:
 with tempfile.TemporaryDirectory() as tmp:
     tmp = Path(tmp)
     table = tmp / "chips.parquet"
+    # each admin2 split differs from the hash split, so the tiles must read the right one;
+    # c2 is also in a presence-only dataset ("po")
     write_table(table, [
-        ("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "test", "val", 0),
-        ("aa_2021", "c2", "train", "train", 1), ("aa_2022", "c2", "train", "train", 1),
-        ("bb_2020", "c3", "val", "test", 2),
+        ("aa_2021", "c1", "train", "val", 0, "test"), ("aa_2022", "c1", "test", "val", 0, "test"),
+        ("aa_2021", "c2", "train", "train", 1, "val"), ("aa_2022", "c2", "train", "train", 1, "val"),
+        ("po", "c2", "train", "train", 1, "val"),
+        ("bb_2020", "c3", "val", "test", 2, "train"),
     ])
     locations = tmp / "locations.parquet"
     n = chips_tiles.write_locations(str(table), locations)
     con = duckdb.connect()
     rows = {r[0]: r[1:] for r in con.execute(
-        f"SELECT id, datasets, legacy_conflict, split_hash_v1 FROM read_parquet('{locations}')"
+        f"SELECT id, datasets, legacy_conflict, split_hash_v1, split_admin2_v1, presence_only "
+        f"FROM read_parquet('{locations}')"
     ).fetchall()}
     meta = con.execute(f"SELECT decode(key) FROM parquet_kv_metadata('{locations}')").fetchall()
     con.close()
     check(n == 3 and set(rows) == {"c1", "c2", "c3"}, f"one row per chip id: {rows}")
-    check(rows["c1"] == (2, True, "val"), f"c1 is in 2 datasets whose legacy splits differ: {rows['c1']}")
-    check(rows["c2"] == (2, False, "train"), f"c2's legacy splits agree: {rows['c2']}")
-    check(rows["c3"] == (1, False, "test"), f"c3 is in one dataset: {rows['c3']}")
+    check(rows["c1"] == (2, True, "val", "test", False),
+          f"c1 is in 2 datasets whose legacy splits differ: {rows['c1']}")
+    check(rows["c2"] == (3, False, "train", "val", True),
+          f"c2's legacy splits agree, and one of its datasets is presence-only: {rows['c2']}")
+    check(rows["c3"] == (1, False, "test", "train", False), f"c3 is in one dataset: {rows['c3']}")
     check(("geo",) in meta, "the locations file is GeoParquet")
     con = duckdb.connect()
     columns = {r[0] for r in con.execute(
@@ -84,9 +90,9 @@ with tempfile.TemporaryDirectory() as tmp:
           f"{set(chips_tiles.ATTRIBUTES) - columns}")
 
     import json
-    expected = {"train": {"chips": 1, "conflicts": 0, "datasets": 2},   # c2
-                "val": {"chips": 1, "conflicts": 1, "datasets": 2},     # c1
-                "test": {"chips": 1, "conflicts": 0, "datasets": 1}}    # c3
+    expected = {"train": {"chips": 1, "conflicts": 0, "datasets": 1},   # c3
+                "val": {"chips": 1, "conflicts": 0, "datasets": 3},     # c2
+                "test": {"chips": 1, "conflicts": 1, "datasets": 2}}    # c1
     for split in chips_tiles.SPLITS:
         seq = tmp / f"overview_{split}.geojsonseq"
         n = chips_tiles.write_overview(locations, seq, split)
@@ -218,7 +224,7 @@ with tempfile.TemporaryDirectory() as tmp:
         return path
 
     chips_tiles.check_no_drops(archive(tmp / "ok.pmtiles", [{}, {"tiny_polygons": 3}]), "chips")
-    # the strategies of the published archive (tile-join of both layers), as tippecanoe writes them
+    # the strategies of a published archive (the chips and one overview layer), as tippecanoe writes them
     live = [{"coalesced_as_needed": 620167}, {"coalesced_as_needed": 754580},
             {"coalesced_as_needed": 690679}, {"coalesced_as_needed": 684300},
             {"coalesced_as_needed": 639525}, {"coalesced_as_needed": 572239},
@@ -238,6 +244,19 @@ with tempfile.TemporaryDirectory() as tmp:
     except chips_tiles.ChipsTilesError as err:
         check("zoom 1" in str(err), f"the refusal names the zoom: {err}")
 
+    # an old table without the admin2 columns is refused by name, not with a traceback
+    old = tmp / "old.parquet"
+    con = duckdb.connect()
+    con.execute(f"COPY (SELECT * EXCLUDE (split_admin2_v1, presence_only) FROM read_parquet('{table}')) "
+                f"TO '{old}' (FORMAT parquet)")
+    con.close()
+    try:
+        chips_tiles.write_locations(str(old), tmp / "x.parquet")
+        errors.append("not refused: a table without split_admin2_v1")
+    except chips_tiles.ChipsTilesError as err:
+        check("split_admin2_v1" in str(err) and "presence_only" in str(err),
+              f"the refusal names the missing columns: {err}")
+
     # the docs give the zooms the code tiles at
     root = chips_tiles.ROOT
     readme = " ".join((root / "README.md").read_text().split())
@@ -253,7 +272,17 @@ with tempfile.TemporaryDirectory() as tmp:
     if tippecanoe_available():
         out = tmp / "chips.pmtiles"
         chips_tiles.build_tiles(str(table), out)
-        check(out.is_file() and out.stat().st_size > 0, "build_tiles writes the archive")
+        from pmtiles.reader import MmapSource, Reader
+
+        with out.open("rb") as f:
+            reader = Reader(MmapSource(f))
+            header, meta = reader.header(), reader.metadata()
+        layers = {layer["id"] for layer in meta.get("vector_layers", [])}
+        check(layers == {"chips", *chips_tiles.OVERVIEW_LAYERS}
+              and (header["min_zoom"], header["max_zoom"]) == (chips_tiles.OVERVIEW_ZOOMS[0],
+                                                               chips_tiles.CHIPS_ZOOMS[1]),
+              f"the archive has every layer at every zoom: {layers}, "
+              f"{header['min_zoom']}-{header['max_zoom']}")
     else:
         print("skip   tippecanoe is not installed: the archive itself is not built")
 

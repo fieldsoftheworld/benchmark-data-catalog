@@ -449,8 +449,8 @@ every chip of every collection with one column per split scheme:
   the chip's 3x3 block of grid cells (80 / 10 / 10 overall). Use it to train and test
   across collections without a location on both sides.
 - `split_admin2_v1`: whole admin2 areas (`unit_admin2_v1`), balanced to 80 / 10 / 10
-  within each country, so every country with three areas or more has all three splits
-  and no area is on both sides. An area with any chip from a presence-only collection
+  within each country, so every country with three areas or more without presence-only
+  chips has all three splits, and no area is on both sides. An area with any chip from a presence-only collection
   is train, since presence-only labels can't be scored; countries whose chips are all
   presence-only (India and most of Africa) are train only.
 
