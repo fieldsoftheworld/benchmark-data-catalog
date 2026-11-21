@@ -3,6 +3,7 @@
 
     uv run python tools/chips_tiles.py                        # from the published table
     uv run python tools/chips_tiles.py --table work/chips.parquet
+    uv run python tools/chips_tiles.py --thumbnail            # render catalog/thumbnail.webp
 
 Writes ``work/chips.pmtiles`` (``--out`` to change); upload it like the table
 (README, "Root chips table"). Needs tippecanoe on PATH.
@@ -36,6 +37,13 @@ from chips_table import TABLE_NAME, _sql  # noqa: E402
 from common import PUBLIC_BASE, ROOT  # noqa: E402
 
 TILES_NAME = "chips.pmtiles"
+STYLE = ROOT / "catalog" / "styles" / "chips.json"
+THUMBNAIL = ROOT / "catalog" / "thumbnail.webp"
+# The whole catalog in one frame. chiitiler picks the zoom from size and bbox, and the
+# tiles start at zoom 2, so render large and shrink.
+THUMBNAIL_BBOX = (-130, -45, 150, 72)
+THUMBNAIL_RENDER_SIZE = 2400
+THUMBNAIL_SIZE = 1200
 ATTRIBUTES = ("id", "block", "split_hash_v1", "datasets", "legacy_conflict", "admin0_name")
 OVERVIEW_SUMS = ("chips", "train", "val", "test", "conflicts", "datasets")
 CHIPS_ZOOMS = (6, 12)
@@ -142,12 +150,54 @@ def build_tiles(table: str, out: Path) -> int:
     return count
 
 
+def render_thumbnail(out: Path = THUMBNAIL, *, style: Path = STYLE,
+                     tiles_url: str = f"{PUBLIC_BASE}/{TILES_NAME}",
+                     server: str = "http://localhost:13579") -> Path:
+    """Render the root style over the published tiles with chiitiler into ``out`` (WebP).
+
+    Needs a running chiitiler (``tools/chiitiler.sh``). Refuses an image with no data in it.
+    """
+    import io
+    import json
+    import urllib.request
+
+    from PIL import Image
+
+    doc = json.loads(style.read_text())
+    doc["sources"]["data"] = {"type": "vector", "minzoom": OVERVIEW_ZOOMS[0],
+                              "maxzoom": CHIPS_ZOOMS[1],
+                              "tiles": [f"pmtiles://{tiles_url}/{{z}}/{{x}}/{{y}}"]}
+    bbox = ",".join(str(v) for v in THUMBNAIL_BBOX)
+    request = urllib.request.Request(
+        f"{server}/clip.png?bbox={bbox}&size={THUMBNAIL_RENDER_SIZE}",
+        data=json.dumps({"style": doc}).encode(), method="POST",
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response:
+            image = Image.open(io.BytesIO(response.read())).convert("RGB")
+    except OSError as err:
+        raise ChipsTilesError(f"chiitiler at {server} failed: {err}") from err
+    if len(image.getcolors(maxcolors=1 << 16) or ()) < 2:
+        raise ChipsTilesError("the thumbnail is blank: no tiles rendered")
+    image.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE))
+    image.save(out, "WEBP", quality=85)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--table", default=f"{PUBLIC_BASE}/{TABLE_NAME}",
                         help="the chips table to tile (default: the published one)")
     parser.add_argument("--out", type=Path, default=ROOT / "work" / TILES_NAME)
+    parser.add_argument("--thumbnail", action="store_true",
+                        help="render catalog/thumbnail.webp from the published tiles instead")
     args = parser.parse_args(argv)
+    if args.thumbnail:
+        try:
+            print(f"wrote {render_thumbnail()}")
+        except ChipsTilesError as err:
+            sys.exit(f"chips tiles: {err}")
+        return 0
     try:
         count = build_tiles(args.table, args.out)
     except ChipsTilesError as err:

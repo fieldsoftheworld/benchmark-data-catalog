@@ -137,7 +137,9 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
 6-12, one polygon per location with `id`, `block`, `split_hash_v1`, `datasets`,
 `legacy_conflict` and `admin0_name`) and `overview` (zoom 2-5, chip centres clustered
 where they crowd, each summing `chips`, `train`, `val`, `test`, `conflicts` and
-`datasets`). Upload it before publishing the root catalog:
+`datasets`). `catalog/styles/chips.json` styles it, and
+`chips_tiles.py --thumbnail` renders `catalog/thumbnail.webp` from it over the published
+tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root catalog:
 `publish.py` refuses a root that links a missing root file. The root
 `catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
 

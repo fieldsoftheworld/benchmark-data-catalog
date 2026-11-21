@@ -18,6 +18,7 @@ repository](https://github.com/fieldsoftheworld/benchmark-data-catalog/tree/main
 so any collection can be rebuilt from the harmonized edition it names.
 
 [Browse the whole catalog](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json)
+· [map of every chip](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles)
 · [agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md)
 · [the paper](https://arxiv.org/abs/2409.16252)
 · [version 1.0](https://source.coop/kerner-lab/fields-of-the-world)
@@ -434,6 +435,8 @@ ships; the Browse column above opens a single collection in it.
 
 ## Splits across collections
 
+![Chip locations of every collection, coloured by the share whose collections' own splits disagree](https://data.source.coop/ftw/benchmark-data/thumbnail.webp)
+
 Each collection assigns its own train / validation / test split, so a location in
 several collections (other years of a country, or overlapping regions) can be test in
 one and train in another.
@@ -452,6 +455,10 @@ Read one collection's rows with
 polygon per location from zoom 6, with its `split_hash_v1` and whether the collections'
 own splits disagree there (`legacy_conflict`). Below zoom 6 its `overview` layer clusters
 the chip centres, each cluster counting its locations, their hash splits and conflicts.
+[Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
+or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/styles/chips.json)
+the image above is rendered from (green where the collections agree, red where they
+disagree; from zoom 6, chips filled by `split_hash_v1`).
 
 ## What a chip carries
 

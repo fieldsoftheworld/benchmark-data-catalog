@@ -98,6 +98,55 @@ with tempfile.TemporaryDirectory() as tmp:
         except chips_tiles.ChipsTilesError as err:
             check("c1" in str(err), f"the refusal names the chip ({label}): {err}")
 
+    # the thumbnail, against a stand-in chiitiler that returns a fixed PNG
+    import io
+    import json as _json
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from PIL import Image
+
+    seen: dict = {}
+
+    def png(blank: bool) -> bytes:
+        im = Image.new("RGB", (60, 40), (244, 244, 242))
+        if not blank:
+            im.putpixel((5, 5), (215, 48, 31))
+        buf = io.BytesIO()
+        im.save(buf, "PNG")
+        return buf.getvalue()
+
+    class Fake(BaseHTTPRequestHandler):
+        body = b""
+
+        def do_POST(self):  # noqa: N802
+            seen["style"] = _json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            seen["path"] = self.path
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(Fake.body)
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Fake)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_port}"
+    Fake.body = png(blank=False)
+    thumb = chips_tiles.render_thumbnail(tmp / "t.webp", server=url, tiles_url="https://x/chips.pmtiles")
+    source = seen["style"]["style"]["sources"]["data"]
+    check(Image.open(thumb).format == "WEBP", "the thumbnail is WebP")
+    check(source["tiles"] == ["pmtiles://https://x/chips.pmtiles/{z}/{x}/{y}"]
+          and source["minzoom"] == chips_tiles.OVERVIEW_ZOOMS[0],
+          f"chiitiler gets the tiles as a templated source from the overview's first zoom: {source}")
+    Fake.body = png(blank=True)
+    try:
+        chips_tiles.render_thumbnail(tmp / "b.webp", server=url, tiles_url="https://x/chips.pmtiles")
+        errors.append("not refused: a blank thumbnail")
+    except chips_tiles.ChipsTilesError as err:
+        check("blank" in str(err), f"a blank thumbnail is refused: {err}")
+    server.shutdown()
+
     from ftw_dataset_tools.api.tiles import tippecanoe_available
 
     if tippecanoe_available():
