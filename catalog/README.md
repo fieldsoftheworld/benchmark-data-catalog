@@ -18,6 +18,7 @@ repository](https://github.com/fieldsoftheworld/benchmark-data-catalog/tree/main
 so any collection can be rebuilt from the harmonized edition it names.
 
 [Browse the whole catalog](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json)
+· [map of every chip](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles)
 · [agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md)
 · [the paper](https://arxiv.org/abs/2409.16252)
 · [version 1.0](https://source.coop/kerner-lab/fields-of-the-world)
@@ -431,6 +432,35 @@ To look before you query, open the [data
 browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json).
 It renders the collections, their chip footprints and the map styles each one
 ships; the Browse column above opens a single collection in it.
+
+## Splits across collections
+
+![Chip locations of every collection, coloured by the share whose collections' own splits disagree](https://data.source.coop/ftw/benchmark-data/thumbnail.webp)
+
+Each collection assigns its own train / validation / test split, so a location in
+several collections (other years of a country, or overlapping regions) can be test in
+one and train in another.
+[`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips.parquet) lists
+every chip of every collection with one column per split scheme:
+
+- `split_legacy`: the collection's own split, as in each collection's chips file.
+- `split_predefined`: the source's split, for collections whose source defines one.
+- `split_hash_v1`: one split per location in every collection, from a stable hash of
+  the chip's 3x3 block of grid cells (80 / 10 / 10 overall). Use it to train and test
+  across collections without a location on both sides.
+
+Read one collection's rows with
+`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
+[`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
+polygon per location from zoom 7, with its `split_hash_v1` and whether the collections'
+own splits disagree there (`legacy_conflict`). Below zoom 7 its `overview` layer clusters
+the chip centres, each cluster counting its locations, their hash splits and conflicts.
+[Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
+or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips.style.json)
+the image above is rendered from. A cluster's colour is the share of its locations whose
+collections' own splits disagree: green for none (including every location in only one
+collection), yellow for half, red for all. From zoom 7, chips are filled by
+`split_hash_v1`.
 
 ## What a chip carries
 

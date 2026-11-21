@@ -295,6 +295,12 @@ def missing_data(
     ``staging/<id>/`` (``upload_data.py`` carries it), or to an object at
     ``<prefix>/<source>/<id>/<href>``. Publishing a moved collection before its
     data is copied to the new keys would put links to missing objects live.
+
+    The root catalog's own data links (``rel: related`` to a root file such as
+    ``chips.pmtiles``) are checked when the root catalog or README changes, under
+    ``(root)``. A root file must already be in the bucket at ``<prefix>/<href>``:
+    staging it is not enough, because a dataset upload never carries it
+    (``upload_data.py --only <file>`` does).
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     head = f"{prefix}/" if prefix else ""
@@ -316,7 +322,24 @@ def missing_data(
                 continue
             if f"{head}{group}/{dataset_id}/{rel}" not in listing:
                 missing.setdefault(dataset_id, []).append(rel)
+    root_changed = any(u.local.relative_to(base).parts in (("catalog.json",), ("README.md",))
+                       and not is_unchanged(u, listing) for u in uploads)
+    if root_changed:
+        for rel in _root_data_hrefs(json.loads((base / "catalog.json").read_text())):
+            if f"{head}{rel}" not in listing:
+                missing.setdefault("(root)", []).append(rel)
     return missing
+
+
+def _root_data_hrefs(doc: dict) -> list[str]:
+    """The root files a catalog's ``rel: related`` links point at (``chips.parquet``)."""
+    hrefs = []
+    for link in doc.get("links", []):
+        rel = link.get("href", "").removeprefix("./")
+        if (link.get("rel") == "related" and "://" not in rel and "/" not in rel
+                and rel.lower().endswith((".parquet", ".pmtiles"))):
+            hrefs.append(rel)
+    return hrefs
 
 
 def _data_hrefs(doc: dict) -> list[str]:
@@ -813,8 +836,8 @@ def main() -> int:
         return 1
     missing = missing_data(uploads, listing, config)
     if missing:
-        print("\nnot publishing: these collections link data that is neither staged nor at its "
-              "new bucket key; copy the data first:", file=sys.stderr)
+        print("\nnot publishing: these collections (or the root) link data that is neither "
+              "staged nor at its new bucket key; copy or upload the data first:", file=sys.stderr)
         for dataset_id, hrefs in sorted(missing.items()):
             shown = ", ".join(hrefs[:5]) + (f" and {len(hrefs) - 5} more" if len(hrefs) > 5 else "")
             print(f"  {dataset_id}: {shown}", file=sys.stderr)

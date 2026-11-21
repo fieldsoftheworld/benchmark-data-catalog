@@ -81,10 +81,14 @@ def resolve_href_status(
     if ci_light:
         return "skip" if (is_item or is_data) else "missing"
     if staging.exists():
-        # catalog/<source>/<id>/... is staging/<id>/...; the root and the group
-        # catalogs themselves have no staging copy.
+        # catalog/<source>/<id>/... is staging/<id>/...; the group catalogs have no
+        # staging copy, and the root's data files (the chips table) sit at staging/.
         parts = path.parent.relative_to(base).parts
         if len(parts) >= 2 and (staging / Path(*parts[1:]) / href).resolve().exists():
+            return "ok"
+        name = href.removeprefix("./")
+        if not parts and is_data and "/" not in name and name not in ("", ".", "..") \
+                and (staging / name).exists():
             return "ok"
     return "missing"
 
@@ -139,6 +143,33 @@ def _self_test() -> None:
             ) == "missing",
             "staging fallback follows the document's own rel_dir, not just any match",
         )
+
+        # The root's data files are staged at staging/ itself.
+        root_doc = base / "catalog.json"
+        (staging / "chips.parquet").write_text("x")
+        _self_check(
+            resolve_href_status(
+                root_doc, "./chips.parquet", is_item=False, is_data=True,
+                base=base, staging=staging, ci_light=False,
+            ) == "ok",
+            "a root data asset resolves under staging/",
+        )
+        _self_check(
+            resolve_href_status(
+                doc_path, "./chips.parquet", is_item=False, is_data=True,
+                base=base, staging=staging, ci_light=False,
+            ) == "missing",
+            "a dataset's asset does not resolve against staging/'s root files",
+        )
+        (staging / "lu" / "lu_chips.parquet").write_text("x")
+        for nested in ("./lu/lu_chips.parquet", "../chips.parquet"):
+            _self_check(
+                resolve_href_status(
+                    root_doc, nested, is_item=False, is_data=True,
+                    base=base, staging=staging, ci_light=False,
+                ) == "missing",
+                f"a root href that upload_data can't publish at the root ({nested}) is not ok",
+            )
 
         # Outcome 3: missing everywhere. CI_LIGHT skips item/data hrefs and
         # still errors on everything else; without CI_LIGHT, anything missing
