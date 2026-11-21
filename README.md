@@ -109,6 +109,37 @@ Needs `source-coop login` and the `source-coop` AWS profile; the endpoint is
 read from `catalog.publish.yaml`. Only run `--confirm` with the maintainer's
 say-so — it's a real upload to the published bucket.
 
+## Root chips table
+
+`chips.parquet` at the bucket root lists every chip of every published dataset, one row
+per (dataset, chip), with one column per split scheme. Model code picks the column; #16
+has the reasoning.
+
+| Column | Split |
+|---|---|
+| `split_legacy` | What each dataset published before this table (seeded `block3x3` or `predefined`). Frozen, so chips added later get null |
+| `split_predefined` | The source's own split, for datasets whose recipe sets `split_type: predefined` |
+| `split_hash_v1` | ftwd's `block3x3-hash` at 80/10/10. A location has the same split in every dataset and year, and new chips never move existing ones |
+
+The other columns are `dataset`, `group`, `id`, `block` (the chip's 3x3 grid block), the
+admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
+`read_parquet(...) WHERE dataset = 'at_2024'` reads few row groups.
+
+    uv run python tools/chips_table.py --bootstrap        # once: legacy splits from the chips files
+    uv run python tools/chips_table.py --staged pt_2021   # after publishing a dataset
+    cp work/chips.parquet staging/chips.parquet
+    uv run python tools/upload_data.py --only chips.parquet --force --confirm
+
+Rebuild it after each dataset publish, with `--staged` naming the datasets just rebuilt:
+they are read from `staging/`, and every other dataset's `split_legacy` and
+`split_predefined` are carried from the published table. The build refuses to lose a
+frozen split (a dataset left out, chips that vanish from one, a `--bootstrap` over a
+published table) unless `--drop <id>` allows it for that dataset, and refuses to change a
+carried chip's `split_hash_v1`. It writes to `work/` so a dataset's upload never
+publishes it, and `upload_data.py` uploads root files only when `--only` names them.
+`--force` matters: the table is a multipart upload, compared by size alone, and a
+changed table can keep its size.
+
 ## Thumbnails
 
 `tools/thumbnail.py` renders a built collection's manifest-chosen style into

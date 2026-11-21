@@ -660,6 +660,13 @@ try:
         f"only= splits to the same tile depth, got {_flat}",
     )
 
+    _lister = FakeLister(_keys + ["bd/chips.parquet"])
+    with redirect_stdout(_out):
+        _root_file = _publish.remote_index("b", "bd", _cfg, only={"aa_2024", "chips.parquet"},
+                                           root=_listing_root)
+    check("bd/chips.parquet" in _root_file and "bd/aa/aa_2024/items.parquet" in _root_file,
+          "only= naming a root file (upload_data --only chips.parquet) lists the root level")
+
     _lister = FakeLister(_keys, fail_prefix="bd/aa/aa_2024/chips/31TBF/")
     _out = io.StringIO()
     with redirect_stdout(_out):

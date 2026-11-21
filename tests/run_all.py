@@ -34,6 +34,7 @@ TESTS = [
     "test_merge_es_2025.py",
     "test_label_extent.py",
     "test_catalog_stats.py",
+    "test_chips_table.py",
     "test_backfill.py",
     "test_relayout.py",
     "test_bucket_copy.py",
