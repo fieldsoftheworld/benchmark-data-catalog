@@ -61,6 +61,13 @@ def write_chips(path: Path, chips: list[tuple[str, str]], admin: bool = True) ->
               FROM (VALUES {rows}) t(id, split, n))
         TO '{path}' (FORMAT parquet)""")
     con.close()
+    collection = path.parent / "collection.json"  # a staged build writes one too
+    if not collection.exists():
+        collection.write_text(json.dumps({"ftw:chip_size_km": 2.0, "license": "CC-BY-4.0",
+                                          "ftw:presence_only": False}))
+
+
+PRESENCE_ONLY = {"bb_2022"}
 
 
 def write_catalog(root: Path, datasets: dict[str, tuple[str, str]]) -> None:
@@ -72,7 +79,10 @@ def write_catalog(root: Path, datasets: dict[str, tuple[str, str]]) -> None:
         folder = catalog / group / dataset_id
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "collection.json").write_text(json.dumps({
-            "ftw:chip_size_km": 2.0,
+            "ftw:chip_size_km": 2.0, "license": "other",
+            "links": [{"rel": "license", "href": "https://go.planet.com/nicfi-pla-2024"},
+                      {"rel": "license", "href": "https://example.com/embeddings"}],
+            "ftw:presence_only": dataset_id in PRESENCE_ONLY,
             "assets": {"chips": {"href": f"./{dataset_id}_chips.parquet"}}}))
         (root / "datasets").mkdir(exist_ok=True)
         (root / "datasets" / f"{dataset_id}.yaml").write_text(
@@ -130,6 +140,20 @@ with tempfile.TemporaryDirectory() as tmp:
     check(order == sorted(order) and order[0][1] == "bb_2022",
           f"rows are sorted by group (bb before zz), then dataset and id: {order}")
     check(("geo",) in meta, f"the table is GeoParquet: {meta}")
+    con = duckdb.connect()
+    extra = {r[0]: r[1:] for r in con.execute(f"""
+        SELECT dataset || ' ' || id, license, license_url, license_category, presence_only,
+               unit_admin2_v1, split_admin2_v1 FROM read_parquet('{boot}')""").fetchall()}
+    con.close()
+    check(extra[f"bb_2022 {SHARED}"][:4] == ("other", "https://go.planet.com/nicfi-pla-2024",
+                                             "non-commercial", True),
+          f"license, its first link, its category and presence_only come from the collection: "
+          f"{extra[f'bb_2022 {SHARED}']}")
+    check(extra[f"aa_2021 {SHARED}"][4:] == extra[f"bb_2022 {SHARED}"][4:]
+          and extra[f"aa_2021 {SHARED}"][5] == "train",
+          f"a location in a presence-only dataset is train in every dataset: {extra}")
+    check(all(v[5] in chips_table.SPLITS and v[4] for v in extra.values()),
+          "every chip has an admin2 unit and split")
 
     # a staged rebuild of aa_2021: one new chip, reshuffled splits
     staged_rows = [(SHARED, "val"), ("ftw-33TUN0002", "train"), ("ftw-33TUN0602", "val"),
@@ -174,6 +198,10 @@ with tempfile.TemporaryDirectory() as tmp:
         chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False), 'needs the previous table')
     refused("a staged dataset without a chips file", lambda: chips_table.resolve_inputs(
         {"bb_2022"}, **kw), 'does not exist')
+    (staging / "aa_2021" / "collection.json").rename(staging / "aa_2021" / "c.json")
+    refused("a staged dataset without a collection", lambda: chips_table.resolve_inputs(
+        {"aa_2021"}, **kw), 'needs its license')
+    (staging / "aa_2021" / "c.json").rename(staging / "aa_2021" / "collection.json")
 
     # a dataset left out of a later build (unlinked from the catalog)
     write_catalog(root, {"aa_2021": ("zz", "block3x3")})
@@ -320,6 +348,84 @@ with tempfile.TemporaryDirectory() as tmp:
     refused("a split value outside train/val/test", lambda: chips_table.build(
         chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=True,
         staged=frozenset({"aa_2021"}), workers=2), 'has the value')
+
+# license categories
+cat = chips_table.license_category
+check(cat("CC-BY-4.0", None) == "attribution" and cat("CC0-1.0", None) == "public-domain"
+      and cat("CC-BY-SA-4.0", None) == "share-alike", "SPDX licenses map to their category")
+check(cat("other", "https://go.planet.com/nicfi-pla-2024") == "non-commercial",
+      "an other license is judged by its link")
+check(cat("other", "https://example.com/terms") == "unknown" and cat(None, None) == "unknown"
+      and cat("MIT-ish", None) == "unknown", "an unjudged license is unknown")
+check(set(chips_table.LICENSES.values()) <= set(chips_table.LICENSE_CATEGORIES),
+      "every judged license has a known category")
+
+# admin2 splits, on stand-in locations
+import pandas as pd  # noqa: E402
+
+
+def locs(rows):
+    """rows: (id, country, admin1, admin2, presence_only); block = id's first 4 chars."""
+    return pd.DataFrame([{"id": i, "country": c, "admin1": a1, "admin2": a2,
+                          "block": i[:4], "presence_only": po} for i, c, a1, a2, po in rows])
+
+
+def splits(out):
+    return dict(zip(out["id"], out["split"]))
+
+
+big = [(f"a{u:02d}{k:03d}", "AAA", "r", f"u{u}", False) for u in range(20) for k in range(5 + u)]
+out = chips_table.admin2_splits(locs(big))
+by_unit = out.groupby("unit")["split"].nunique()
+check((by_unit == 1).all(), "a unit has one split")
+share = out["split"].value_counts(normalize=True)
+check(set(share.index) == set(chips_table.SPLITS) and abs(share["train"] - 0.8) < 0.08,
+      f"a country with many units is balanced near 80/10/10: {share.to_dict()}")
+check(splits(chips_table.admin2_splits(locs(big[::-1]))) == splits(out),
+      "the result does not depend on row order")
+
+po = big + [("p0001", "AAA", "r", "u0", True), ("q0001", "AAA", "r", "pq", True),
+            ("q0002", "AAA", "r", "pq", False)]
+out = splits(chips_table.admin2_splits(locs(po)))
+check(all(out[i] == "train" for i in ("p0001", "q0001", "q0002"))
+      and all(out[r[0]] == "train" for r in big if r[3] == "u0"),
+      "a unit with a presence-only chip is train, all of it")
+
+few = [("b1x01", "BBB", "r", "u1", False), ("b2x01", "BBB", "r", "u2", False),
+       ("b3x01", "BBB", "r", "u2", False), ("zzzz1", None, None, None, False),
+       ("yyyy1", "CCC", None, None, False)]
+out = chips_table.admin2_splits(locs(few)).set_index("id")["unit"]
+check(out["b1x01"] == "BBB|block:b1x0" and out["zzzz1"] == "|block:zzzz"
+      and out["yyyy1"] == "CCC|block:yyyy",
+      f"blocks are units without a country or admin1, or with under three admin2 units: {out.to_dict()}")
+
+lopsided = [(f"k{u}{k:04d}", "KKK", "r", f"u{u}", False)
+            for u, n in ((0, 300), (1, 5), (2, 3)) for k in range(n)]
+out = chips_table.admin2_splits(locs(lopsided))
+per = out.assign(u=out["unit"]).groupby("u")["split"].first().to_dict()
+check(per["KKK|r|u0"] == "train" and {per["KKK|r|u1"], per["KKK|r|u2"]} == {"val", "test"},
+      f"three units give all three splits, the biggest in train: {per}")
+
+# carried: a known unit keeps its split, new units fill in, nothing moves
+first = chips_table.admin2_splits(locs(big))
+grown = big + [("a00999", "AAA", "r", "u0", False)] + [
+    (f"n{u}{k:03d}", "AAA", "r", f"new{u}", False) for u in range(6) for k in range(8)]
+second = chips_table.admin2_splits(locs(grown), first)
+s1, s2 = splits(first), splits(second)
+check(all(s2[i] == s1[i] for i in s1), "a later build moves no carried chip")
+check(s2["a00999"] == s1["a00000"], "a new chip of a known unit takes that unit's split")
+check(all(s2[i] in chips_table.SPLITS for i in s2), "new units get a split")
+renamed = first.copy()
+renamed.loc[renamed["id"] == "a00000", "unit"] = "AAA|r|old-name"
+check(dict(zip(*chips_table.admin2_splits(locs(big), renamed)[["id", "unit"]].T.values))["a00000"]
+      == "AAA|r|old-name", "a carried chip keeps its unit even if its admin names change")
+frozen = first[first["split"] == "val"]["unit"].iloc[0]
+name = frozen.split("|")[2]
+try:
+    chips_table.admin2_splits(locs(big + [("x0001", "AAA", "r", name, True)]), first)
+    errors.append("not refused: a frozen val unit that gains a presence-only chip")
+except chips_table.ChipsTableError as err:
+    check(frozen in str(err), f"the refusal names the unit: {err}")
 
 if errors:
     for e in errors:

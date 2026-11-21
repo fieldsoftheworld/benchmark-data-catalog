@@ -120,6 +120,17 @@ has the reasoning.
 | `split_legacy` | What each dataset published before this table (seeded `block3x3` or `predefined`). Frozen, so chips added later get null |
 | `split_predefined` | The source's own split, for datasets whose recipe sets `split_type: predefined` |
 | `split_hash_v1` | ftwd's `block3x3-hash` at 80/10/10. A location has the same split in every dataset and year, and new chips never move existing ones |
+| `split_admin2_v1` | Whole admin2 units (`unit_admin2_v1`), balanced to 80/10/10 of locations within each country, so every country with three units or more has all three splits. A unit with a presence-only chip is train. Frozen once published; new units fill the split furthest below its share |
+
+Under `split_admin2_v1`, the countries whose chips are all presence-only (India and most of
+Africa, from lacuna and in_10k_ml) are train only. Rows without a country or admin1, and
+countries with fewer than three admin2 units to balance, use their block as the unit.
+
+`license` and `license_url` come from each collection, and `license_category` sorts them
+for filtering: `public-domain`, `attribution` and `share-alike` are open (any use,
+including commercial); then `non-commercial`, `restricted`, and `unknown` for a license
+nobody has judged yet. A judgment goes in `LICENSES` in `tools/chips_table.py`.
+`presence_only` is the collection's `ftw:presence_only`.
 
 The other columns are `dataset`, `group`, `id`, `block` (the chip's 3x3 grid block), the
 admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
@@ -135,7 +146,8 @@ they are read from `staging/`, and every other dataset's `split_legacy` and
 `split_predefined` are carried from the published table. The build refuses to lose a
 frozen split (a dataset left out, chips that vanish from one, a `--bootstrap` over a
 published table) unless `--drop <id>` allows it for that dataset, and refuses to change a
-carried chip's `split_hash_v1`. It writes to `work/` so a dataset's upload never
+carried chip's `split_hash_v1`, or to put a presence-only chip in a frozen val or test
+admin2 unit. It writes to `work/` so a dataset's upload never
 publishes it, and `upload_data.py` uploads root files only when `--only` names them.
 `--force` matters: the table is a multipart upload, compared by size alone, and a
 changed table can keep its size.
