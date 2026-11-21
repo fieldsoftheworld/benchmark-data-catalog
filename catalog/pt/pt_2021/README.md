@@ -10,7 +10,7 @@ Open this collection in the [data browser](https://browser.portolan-sdi.org/#/ex
 
 ## What is in this collection
 
-This collection holds 20,329 chips and 2,483,992 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
+This collection holds 20,329 chips and 2,483,868 field polygons. Each chip is a square STAC item carrying the label masks rasterized from the field boundaries that fall inside it.
 
 Chips per benchmark split:
 
@@ -40,7 +40,7 @@ Crops are harmonized to the EuroCrops HCAT taxonomy. The classes covering most o
 
 | crop | HCAT code | share |
 | --- | --- | --- |
-| FESCUE | 3302000000 | 64.7% |
+| FESCUE | 3302000000 | 64.6% |
 | OLIVE VALLEY | 3303050000 | 12.2% |
 | VINEYARD | 3303060000 | 5.0% |
 | ANNUAL AND OTHER CULT. FORAGE ANNUALS | 3301990000 | 4.6% |

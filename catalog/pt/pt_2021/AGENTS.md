@@ -5,7 +5,7 @@
 Benchmark chips for Portugal cut from the 2021 edition of the harmonized field boundary collection pt.
 
 
-It contains 20,329 chips and 2,483,992 field polygons. Chips are pre-assigned to benchmark splits (train 16,177, val 2,088, test 2,064).
+It contains 20,329 chips and 2,483,868 field polygons. Chips are pre-assigned to benchmark splits (train 16,177, val 2,088, test 2,064).
 
 Licensed [License](https://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply).
 
@@ -21,15 +21,8 @@ The collection ships these files alongside `collection.json`:
 | `pt_2021_fields_filtered.parquet` | Field polygons after the class filter |
 | `pt_2021_boundary_lines.parquet` | Field boundary lines |
 | `pt_2021_chips.parquet` | Chip definitions with field coverage |
-| `items.parquet` | STAC items in GeoParquet format (collection mirror) |
-| `chips.pmtiles` | Chips (PMTiles) |
-| `fields.pmtiles` | Field boundaries (PMTiles) |
-| `styles/split.json` | Chips by split |
-| `styles/field-coverage.json` | Field coverage |
-| `styles/dominant-crop.json` | Dominant crop per chip |
-| `styles/crops.json` | Crops |
-| `styles/outline.json` | Field outlines |
 | `pt_2021_field_embeddings.parquet` | Per-field embedding statistics (AlphaEarth Foundations, OlmoEarth v1.3) |
+| `items.parquet` | STAC items in GeoParquet format (collection mirror) |
 
 Query them with DuckDB from inside the collection directory, so the relative paths below resolve:
 
@@ -50,11 +43,11 @@ Columns in the chips table:
 - `hcat_dominant_name_en`: English name for hcat_dominant_code
 - `hcat_dominant_pct`: share of the chip's field area under the dominant crop
 - `hcat_top`: the crops covering the chip's field area, as {code, name_en, pct} entries ordered by share (top 5)
-- `split`: which benchmark split the chip belongs to (train / val / test)
 - `admin0_iso3`: ISO 3166-1 alpha-3 code of the country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024); GAUL gives disputed areas its own x-prefixed codes such as xJK
 - `admin0_name`: country: the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
 - `admin1_name`: first-level administrative unit (state, province, region): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
 - `admin2_name`: second-level administrative unit (district, county, department): the unit containing the chip's centre, or the one it overlaps most when its centre is in none (FAO GAUL 2024)
+- `split`: which benchmark split the chip belongs to (train / val / test)
 - `geometry`: the chip footprint, a square polygon in EPSG:4326
 - `bbox`: bounding box of the chip footprint
 
@@ -117,7 +110,7 @@ SELECT id, field_coverage_pct FROM read_parquet('pt_2021_chips.parquet') ORDER B
 
 ```sql
 SELECT hcat_dominant_name_en AS crop, count(*) AS chips FROM read_parquet('pt_2021_chips.parquet') WHERE hcat_dominant_code IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10;
--- result: PERMANENT PASTURES | 11425
+-- result: PERMANENT PASTURES | 11423
 -- result: OLIVE VALLEY | 2720
 -- result: CORN | 1297
 -- result: ... 7 more rows
