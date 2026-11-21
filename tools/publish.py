@@ -503,7 +503,9 @@ def remote_index(
         roots = [(f"{top}{group}/", 1) for group in groups]
         levels = [top]
     else:
-        rels = [dataset_relpath(dataset_id, catalog=catalog, root=root) for dataset_id in sorted(only)]
+        # A root file named in ``only`` (``chips.parquet``) is in the root level listed below.
+        datasets = sorted(name for name in only if "." not in name)
+        rels = [dataset_relpath(dataset_id, catalog=catalog, root=root) for dataset_id in datasets]
         roots = [(f"{top}{rel}/", DATASET_DEPTH) for rel in rels]
         levels = [top, *sorted({f"{top}{rel.split('/')[0]}/" for rel in rels})]
     try:

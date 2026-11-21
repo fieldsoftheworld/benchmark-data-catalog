@@ -7,7 +7,7 @@
 
 Writes ``staging/chips.parquet`` (``--out`` to change), which ``tools/upload_data.py``
 uploads to the bucket root. One row per (dataset, chip), sorted by group, dataset and
-chip id, so a reader that filters on ``dataset`` reads only that dataset's row groups.
+chip id, so a reader that filters on ``dataset`` skips most row groups.
 
 Columns:
 
@@ -28,12 +28,20 @@ Columns:
 
 Datasets are the collections the root catalog links (``catalog_stats.published_datasets``)
 plus any ``--staged`` id that is not published yet.
+
+The frozen columns exist nowhere else once the per-dataset files stop carrying ``split``,
+so the build refuses anything that would lose them: ``--bootstrap`` when a table is
+already published or a published chips file has no ``split``, a later build that leaves
+out a dataset of the previous table (unless ``--drop`` names it), and a staged
+predefined dataset whose chips file has no ``split``.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+import urllib.error
+import urllib.request
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -102,6 +110,9 @@ def resolve_inputs(staged: set[str], *, catalog: Path = CATALOG, staging: Path =
     inputs: dict[str, DatasetInput] = {}
     for relpath in published_datasets(catalog / "catalog.json"):
         group, _, dataset_id = relpath.rpartition("/")
+        if dataset_id in inputs:
+            raise ChipsTableError(f"{dataset_id} is published twice: in {inputs[dataset_id].group} "
+                                  f"and {group}")
         collection = json.loads((catalog / relpath / "collection.json").read_text())
         published = _chips_href(collection, f"{base}/{relpath}")
         if dataset_id in staged:
@@ -123,23 +134,45 @@ def _columns(con, source: str) -> set[str]:
 
 def _read_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
     """One dataset's rows as a parquet file in the table's column order (no hash yet)."""
+    import duckdb
+
+    try:
+        _copy_dataset(item, bootstrap, out)
+    except duckdb.Error as err:
+        raise ChipsTableError(f"{item.dataset}: {err}") from err
+
+
+def _legacy_source(con, item: DatasetInput, cols: set[str]) -> tuple[str, str]:
+    """``(expression, join)`` for --bootstrap's split_legacy: the published file's ``split``."""
+    if not item.published_chips:
+        return "NULL::VARCHAR", ""
+    published_cols = cols if item.published_chips == item.chips else _columns(
+        con, item.published_chips)
+    if "split" not in published_cols:
+        raise ChipsTableError(f"{item.dataset}: --bootstrap, but the published chips file has no "
+                              f"split column, so there is no legacy split to freeze")
+    if item.published_chips == item.chips:
+        return "c.split", ""
+    return "p.split", (f" LEFT JOIN (SELECT id, split FROM read_parquet("
+                       f"{_sql(item.published_chips)})) p USING (id)")
+
+
+def _copy_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
     from ftw_dataset_tools.api import admin_names
 
     con = admin_names.connect()
     try:
         cols = _columns(con, item.chips)
+        staged = item.chips != item.published_chips
+        if staged and item.split_type == "predefined" and "split" not in cols:
+            raise ChipsTableError(f"{item.dataset}: the recipe uses predefined splits, but "
+                                  f"{item.chips} has no split column")
         admin = ", ".join(f"c.{c}" if c in cols else f"NULL::VARCHAR AS {c}"
                           for c in ADMIN_COLUMNS)
         split = "c.split" if "split" in cols else "NULL::VARCHAR"
         predefined = split if item.split_type == "predefined" else "NULL::VARCHAR"
-        legacy, legacy_join = "NULL::VARCHAR", ""
-        if bootstrap and item.published_chips:
-            if item.published_chips == item.chips:
-                legacy = split
-            else:
-                legacy, legacy_join = "p.split", (
-                    f" LEFT JOIN (SELECT id, split FROM read_parquet("
-                    f"{_sql(item.published_chips)})) p USING (id)")
+        legacy, legacy_join = (_legacy_source(con, item, cols) if bootstrap
+                               else ("NULL::VARCHAR", ""))
         con.execute(f"""
             COPY (SELECT {_sql(item.dataset)} AS dataset, {_sql(item.group)} AS "group",
                          c.id, {admin}, c.geometry, c.bbox,
@@ -187,15 +220,39 @@ def _hash_table(con, inputs: list[DatasetInput]) -> None:
     con.execute("CREATE TABLE sizes AS SELECT * FROM sizes_df")
 
 
-def _carry_frozen(con, previous: str, staged: set[str]) -> None:
-    """Fill ``split_legacy`` from the previous table, and ``split_predefined`` for unstaged sets."""
-    con.execute(f"CREATE TABLE prev AS SELECT dataset, id, split_legacy, split_predefined "
-                f"FROM read_parquet({_sql(previous)})")
+def _carry_frozen(con, previous: str, inputs: list[DatasetInput], staged: set[str],
+                  drop: set[str]) -> None:
+    """Fill ``split_legacy`` from the previous table, and ``split_predefined`` for unstaged sets.
+
+    Refuses when a dataset of the previous table is not an input (its frozen splits would be
+    lost), unless ``drop`` names it. Reports chips a staged rebuild no longer has.
+    """
+    import duckdb
+
+    try:
+        con.execute(f"CREATE TABLE prev AS SELECT dataset, id, split_legacy, split_predefined "
+                    f"FROM read_parquet({_sql(previous)})")
+    except duckdb.Error as err:
+        raise ChipsTableError(f"can't read the previous table {previous}: {err}") from err
+    names = {item.dataset for item in inputs}
+    missing = {r[0] for r in con.execute("SELECT DISTINCT dataset FROM prev").fetchall()} - names
+    if missing - drop:
+        raise ChipsTableError(
+            f"the previous table has {', '.join(sorted(missing - drop))}, which this build "
+            f"leaves out; their frozen splits would be lost (--drop them if that is intended)")
+    for dataset, gone in con.execute("""
+            SELECT dataset, count(*) FROM prev ANTI JOIN rows USING (dataset, id)
+            WHERE dataset IN (SELECT unnest(?)) GROUP BY ALL ORDER BY ALL""",
+            [sorted(names)]).fetchall():
+        print(f"note: {dataset}: {gone:,} chips of the previous table are gone, with their "
+              f"frozen splits")
     con.execute("""UPDATE rows SET split_legacy = prev.split_legacy FROM prev
                    WHERE rows.dataset = prev.dataset AND rows.id = prev.id""")
+    predefined = sorted(i.dataset for i in inputs
+                        if i.split_type == "predefined" and i.dataset not in staged)
     con.execute("""UPDATE rows SET split_predefined = prev.split_predefined FROM prev
                    WHERE rows.dataset = prev.dataset AND rows.id = prev.id
-                     AND rows.dataset NOT IN (SELECT unnest(?))""", [sorted(staged)])
+                     AND rows.dataset IN (SELECT unnest(?))""", [predefined])
 
 
 def check_rows(con) -> None:
@@ -211,9 +268,24 @@ def check_rows(con) -> None:
             raise ChipsTableError(f"{bad[0]}: {column} has the value {bad[1]!r}")
 
 
+def table_exists(location: str) -> bool:
+    """True when ``location`` (a path or an http(s) URL) has a file."""
+    if "://" not in location:
+        return Path(location).is_file()
+    try:
+        with urllib.request.urlopen(urllib.request.Request(location, method="HEAD"), timeout=30):
+            return True
+    except urllib.error.HTTPError as err:
+        if err.code == 404:
+            return False
+        raise ChipsTableError(f"can't tell whether {location} exists: {err}") from err
+    except urllib.error.URLError as err:
+        raise ChipsTableError(f"can't tell whether {location} exists: {err}") from err
+
+
 def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
           previous: str | None = None, staged: frozenset[str] = frozenset(),
-          workers: int = 8) -> int:
+          drop: frozenset[str] = frozenset(), workers: int = 8) -> int:
     """Write the table to ``out``; the number of rows."""
     import geoparquet_io as gpio
     from ftw_dataset_tools.api import admin_names
@@ -230,7 +302,7 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
             files = ", ".join(_sql(str(p)) for p in parts)
             con.execute(f"CREATE TABLE rows AS SELECT * FROM read_parquet([{files}])")
             if not bootstrap:
-                _carry_frozen(con, previous, set(staged))
+                _carry_frozen(con, previous, inputs, set(staged), set(drop))
             _hash_table(con, inputs)
             check_rows(con)
             admin = ", ".join(f"r.{c}" for c in ADMIN_COLUMNS)
@@ -244,7 +316,13 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
                       ORDER BY r."group", r.dataset, r.id)
                 TO {_sql(str(joined))} (FORMAT parquet)""")
             gpio.read(str(joined)).write(str(out))
-            return con.execute(f"SELECT count(*) FROM read_parquet({_sql(str(out))})").fetchone()[0]
+            written = con.execute(
+                f"SELECT count(*) FROM read_parquet({_sql(str(out))})").fetchone()[0]
+            expected = con.execute("SELECT count(*) FROM rows").fetchone()[0]
+            if written != expected:
+                out.unlink()
+                raise ChipsTableError(f"wrote {written:,} rows from {expected:,} chips")
+            return written
         finally:
             con.close()
 
@@ -257,15 +335,21 @@ def main(argv: list[str] | None = None) -> int:
                         help="dataset ids to read from staging/ instead of the bucket")
     parser.add_argument("--previous", default=f"{PUBLIC_BASE}/{TABLE_NAME}",
                         help="the table to carry frozen splits from (default: the published one)")
+    parser.add_argument("--drop", nargs="*", default=[],
+                        help="datasets of the previous table to leave out, losing their frozen splits")
     parser.add_argument("--out", type=Path, default=STAGING / TABLE_NAME)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
     staged = set(args.staged)
     try:
+        if args.bootstrap and table_exists(args.previous):
+            raise ChipsTableError(f"--bootstrap, but {args.previous} exists; a later build "
+                                  f"carries its frozen splits instead")
         inputs = resolve_inputs(staged)
         rows = build(inputs, args.out, bootstrap=args.bootstrap,
                      previous=None if args.bootstrap else args.previous,
-                     staged=frozenset(staged), workers=args.workers)
+                     staged=frozenset(staged), drop=frozenset(args.drop),
+                     workers=args.workers)
     except ChipsTableError as err:
         sys.exit(f"chips table: {err}")
     print(f"wrote {args.out}: {rows:,} chips from {len(inputs)} datasets")
