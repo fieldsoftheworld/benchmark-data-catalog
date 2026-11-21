@@ -255,8 +255,9 @@ def _carry_frozen(con, previous: str, inputs: list[DatasetInput], staged: set[st
                      AND rows.dataset IN (SELECT unnest(?))""", [predefined])
 
 
-def check_rows(con) -> None:
-    """Refuse duplicate (dataset, id) rows and split values outside train/val/test."""
+def check_rows(con, inputs: list[DatasetInput]) -> None:
+    """Refuse duplicate rows, split values outside train/val/test, and a predefined dataset
+    left with no ``split_predefined`` (its file has no ``split`` and nothing was carried)."""
     dup = con.execute("SELECT dataset, id FROM rows GROUP BY ALL HAVING count(*) > 1 "
                       "LIMIT 1").fetchone()
     if dup:
@@ -266,6 +267,13 @@ def check_rows(con) -> None:
                           f"AND {column} NOT IN {SPLITS} LIMIT 1").fetchone()
         if bad:
             raise ChipsTableError(f"{bad[0]}: {column} has the value {bad[1]!r}")
+    predefined = sorted(i.dataset for i in inputs if i.split_type == "predefined")
+    empty = con.execute("""SELECT dataset FROM rows WHERE dataset IN (SELECT unnest(?))
+                           GROUP BY ALL HAVING count(split_predefined) = 0 ORDER BY ALL LIMIT 1""",
+                        [predefined]).fetchone()
+    if empty:
+        raise ChipsTableError(f"{empty[0]}: the recipe uses predefined splits, but no chip has "
+                              f"one (stage it from a build whose chips file has split)")
 
 
 def table_exists(location: str) -> bool:
@@ -304,7 +312,7 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
             if not bootstrap:
                 _carry_frozen(con, previous, inputs, set(staged), set(drop))
             _hash_table(con, inputs)
-            check_rows(con)
+            check_rows(con, inputs)
             admin = ", ".join(f"r.{c}" for c in ADMIN_COLUMNS)
             joined = Path(tmp) / "joined.parquet"
             con.execute(f"""

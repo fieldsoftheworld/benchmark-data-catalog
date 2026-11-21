@@ -159,26 +159,27 @@ with tempfile.TemporaryDirectory() as tmp:
     check(len(t) == 6, f"the later build has the new chip: {len(t)}")
 
     # refusals
-    def refused(label: str, fn) -> None:
+    def refused(label: str, fn, match: str) -> None:
         try:
             fn()
-        except chips_table.ChipsTableError:
+        except chips_table.ChipsTableError as err:
+            check(match in str(err), f"{label}: refused for another reason: {err}")
             return
         errors.append(f"not refused: {label}")
 
     refused("an unreadable previous table", lambda: chips_table.build(
         chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False,
-        previous=str(root / "nope.parquet"), workers=2))
+        previous=str(root / "nope.parquet"), workers=2), "can't read the previous table")
     refused("a later build without a previous table", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False))
+        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False), 'needs the previous table')
     refused("a staged dataset without a chips file", lambda: chips_table.resolve_inputs(
-        {"bb_2022"}, **kw))
+        {"bb_2022"}, **kw), 'does not exist')
 
     # a dataset left out of a later build (unlinked from the catalog)
     write_catalog(root, {"aa_2021": ("zz", "block3x3")})
     refused("a later build that leaves out a dataset of the previous table",
             lambda: chips_table.build(chips_table.resolve_inputs(set(), **kw), root / "x.parquet",
-                                      bootstrap=False, previous=str(boot), workers=2))
+                                      bootstrap=False, previous=str(boot), workers=2), 'leaves out')
     dropped = root / "dropped.parquet"
     chips_table.build(chips_table.resolve_inputs(set(), **kw), dropped, bootstrap=False,
                       previous=str(boot), drop=frozenset({"bb_2022"}), workers=2)
@@ -204,7 +205,7 @@ with tempfile.TemporaryDirectory() as tmp:
     con.close()
     shutil.copy(write_chips_nosplit, base / "zz" / "aa_2021" / "aa_2021_chips.parquet")
     refused("--bootstrap over published files without split", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=True, workers=2))
+        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=True, workers=2), 'no legacy split')
     try:
         with contextlib.redirect_stderr(io.StringIO()):
             chips_table.main(["--bootstrap", "--previous", str(boot), "--out", str(root / "x")])
@@ -217,7 +218,25 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy(write_chips_nosplit, staging / "aa_2021" / "aa_2021_chips.parquet")
     refused("a staged predefined dataset without split", lambda: chips_table.build(
         chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
-        previous=str(later), staged=frozenset({"aa_2021"}), workers=2))
+        previous=str(later), staged=frozenset({"aa_2021"}), workers=2), 'has no split column')
+
+    # a predefined dataset new to the table, unstaged, whose file has no split
+    (root / "catalog" / "cc" / "cc_2023").mkdir(parents=True)
+    (root / "catalog" / "cc" / "cc_2023" / "collection.json").write_text(json.dumps({
+        "ftw:chip_size_km": 2.0, "assets": {"chips": {"href": "./cc_2023_chips.parquet"}}}))
+    (root / "catalog" / "cc" / "catalog.json").write_text(json.dumps({"links": [
+        {"rel": "child", "href": "./cc_2023/collection.json"}]}))
+    links = json.loads((root / "catalog" / "catalog.json").read_text())
+    links["links"].append({"rel": "child", "href": "./cc/catalog.json"})
+    (root / "catalog" / "catalog.json").write_text(json.dumps(links))
+    (root / "datasets" / "cc_2023.yaml").write_text("stages:\n  splits:\n    split_type: predefined\n")
+    (base / "cc" / "cc_2023").mkdir(parents=True)
+    shutil.copy(write_chips_nosplit, base / "cc" / "cc_2023" / "cc_2023_chips.parquet")
+    write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows)
+    refused("a new unstaged predefined dataset without split", lambda: chips_table.build(
+        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False,
+        previous=str(later), workers=2), "no chip has one")
+    write_catalog(root, {"aa_2021": ("zz", "predefined"), "bb_2022": ("bb", "predefined")})
 
     # one dataset id in two groups
     (root / "catalog" / "bb" / "aa_2021").mkdir()
@@ -226,19 +245,20 @@ with tempfile.TemporaryDirectory() as tmp:
     (root / "catalog" / "bb" / "catalog.json").write_text(json.dumps({"links": [
         {"rel": "child", "href": "./bb_2022/collection.json"},
         {"rel": "child", "href": "./aa_2021/collection.json"}]}))
-    refused("a dataset published twice", lambda: chips_table.resolve_inputs(set(), **kw))
+    refused("a dataset published twice", lambda: chips_table.resolve_inputs(set(), **kw), 'published twice')
     write_catalog(root, {"aa_2021": ("zz", "block3x3"), "bb_2022": ("bb", "predefined")})
     shutil.rmtree(root / "catalog" / "bb" / "aa_2021")
 
+    write_chips(base / "zz" / "aa_2021" / "aa_2021_chips.parquet", AA)  # published split back
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", [(SHARED, "train"), (SHARED, "val")])
     refused("a duplicate chip", lambda: chips_table.build(
         chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=True,
-        staged=frozenset({"aa_2021"}), workers=2))
+        staged=frozenset({"aa_2021"}), workers=2), 'more than once')
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", [(SHARED, "training")])
     write_catalog(root, {"aa_2021": ("zz", "predefined"), "bb_2022": ("bb", "predefined")})
     refused("a split value outside train/val/test", lambda: chips_table.build(
         chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=True,
-        staged=frozenset({"aa_2021"}), workers=2))
+        staged=frozenset({"aa_2021"}), workers=2), 'has the value')
 
 if errors:
     for e in errors:
