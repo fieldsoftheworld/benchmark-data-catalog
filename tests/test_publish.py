@@ -537,8 +537,16 @@ with tempfile.TemporaryDirectory() as tmp:
           == {"(root)": ["chips.pmtiles"]},
           "a root data link that is neither staged nor in the bucket blocks the root's publish")
     write(root / "staging/chips.pmtiles", "staged")
-    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root) == {},
-          "a staged root data file is enough")
+    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root)
+          == {"(root)": ["chips.pmtiles"]},
+          "a staged root file is not enough: a dataset upload never carries it")
+    check(missing_data([up_root], {"pre/chips.parquet": (1, "x"), "pre/chips.pmtiles": (1, "y")},
+                       cfg, root) == {},
+          "root files in the bucket are enough")
+    root_readme = write(root / "catalog/README.md", "links chips.pmtiles")
+    check(missing_data([Upload(root_readme, "pre/README.md", "text/markdown")],
+                       {"pre/chips.parquet": (1, "x")}, cfg, root) == {"(root)": ["chips.pmtiles"]},
+          "a change to the root README alone is checked too")
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:

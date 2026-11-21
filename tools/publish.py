@@ -297,8 +297,10 @@ def missing_data(
     data is copied to the new keys would put links to missing objects live.
 
     The root catalog's own data links (``rel: related`` to a root file such as
-    ``chips.pmtiles``) are checked the same way when the root catalog changes,
-    under ``(root)``: staged at ``staging/<href>`` or at ``<prefix>/<href>``.
+    ``chips.pmtiles``) are checked when the root catalog or README changes, under
+    ``(root)``. A root file must already be in the bucket at ``<prefix>/<href>``:
+    staging it is not enough, because a dataset upload never carries it
+    (``upload_data.py --only <file>`` does).
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     head = f"{prefix}/" if prefix else ""
@@ -320,11 +322,11 @@ def missing_data(
                 continue
             if f"{head}{group}/{dataset_id}/{rel}" not in listing:
                 missing.setdefault(dataset_id, []).append(rel)
-    root_changed = any(u.local.relative_to(base).parts == ("catalog.json",)
+    root_changed = any(u.local.relative_to(base).parts in (("catalog.json",), ("README.md",))
                        and not is_unchanged(u, listing) for u in uploads)
     if root_changed:
         for rel in _root_data_hrefs(json.loads((base / "catalog.json").read_text())):
-            if not (staging / rel).exists() and f"{head}{rel}" not in listing:
+            if f"{head}{rel}" not in listing:
                 missing.setdefault("(root)", []).append(rel)
     return missing
 
