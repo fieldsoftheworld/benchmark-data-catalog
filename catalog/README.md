@@ -435,7 +435,7 @@ ships; the Browse column above opens a single collection in it.
 
 ## Splits across collections
 
-![Chip locations of every collection, coloured by the share whose collections' own splits disagree](https://data.source.coop/ftw/benchmark-data/thumbnail.webp)
+![Chip locations of every collection, coloured by their admin2 split: train green, validation orange, test purple](https://data.source.coop/ftw/benchmark-data/thumbnail.webp)
 
 Each collection assigns its own train / validation / test split, so a location in
 several collections (other years of a country, or overlapping regions) can be test in
@@ -448,19 +448,32 @@ every chip of every collection with one column per split scheme:
 - `split_hash_v1`: one split per location in every collection, from a stable hash of
   the chip's 3x3 block of grid cells (80 / 10 / 10 overall). Use it to train and test
   across collections without a location on both sides.
+- `split_admin2_v1`: whole admin2 areas (`unit_admin2_v1`), balanced to 80 / 10 / 10
+  within each country, so every country with three areas or more has all three splits
+  and no area is on both sides. An area with any chip from a presence-only collection
+  is train, since presence-only labels can't be scored; countries whose chips are all
+  presence-only (India and most of Africa) are train only.
+
+Each row also has the collection's `license`, `license_url` and `license_category`
+(`public-domain`, `attribution` and `share-alike` allow any use, including commercial;
+then `non-commercial`, `restricted`, and `unknown` where the terms aren't clear yet),
+and `presence_only`.
 
 Read one collection's rows with
-`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
+`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`,
+or the openly licensed chips with
+`... WHERE license_category IN ('public-domain', 'attribution', 'share-alike')`.
+
 [`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
-polygon per location from zoom 7, with its `split_hash_v1` and whether the collections'
-own splits disagree there (`legacy_conflict`). Below zoom 7 its `overview` layer clusters
-the chip centres, each cluster counting its locations, their hash splits and conflicts.
-[Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
+polygon per location from zoom 7, with its `split_admin2_v1`, `split_hash_v1`, whether
+any of its collections is presence-only, and whether the collections' own splits
+disagree there (`legacy_conflict`). Below zoom 7 its `overview_train`, `overview_val` and
+`overview_test` layers cluster each split's chip centres separately, each cluster counting
+its locations. [Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
 or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips.style.json)
-the image above is rendered from. A cluster's colour is the share of its locations whose
-collections' own splits disagree: green for none (including every location in only one
-collection), yellow for half, red for all. From zoom 7, chips are filled by
-`split_hash_v1`.
+the image above is rendered from: train green, validation orange, test purple. From zoom
+7, chips are filled by `split_admin2_v1`, paler where a collection is presence-only, and
+outlined in red where the collections' own splits disagree.
 
 ## What a chip carries
 

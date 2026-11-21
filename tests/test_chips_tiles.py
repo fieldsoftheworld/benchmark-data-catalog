@@ -32,14 +32,24 @@ def check(condition: bool, message: str) -> None:
 
 
 def write_table(path: Path, rows: list[tuple], size: float = 0.01) -> None:
-    """rows: (dataset, id, split_legacy, split_hash_v1, x) with a square of ``size`` degrees at x."""
+    """rows: (dataset, id, split_legacy, split_hash_v1, x[, split_admin2_v1]) with a square of
+    ``size`` degrees at x; the admin2 split defaults to the hash split."""
     con = duckdb.connect()
     con.execute("INSTALL spatial; LOAD spatial")
-    values = ", ".join(f"('{d}', '{i}', '{l}', '{h}', {x})" for d, i, l, h, x in rows)
+
+    def admin2(row):
+        return row[3] if len(row) < 6 else row[5]
+
+    values = ", ".join(
+        f"('{r[0]}', '{r[1]}', '{r[2]}', '{r[3]}', {r[4]}, "
+        f"{'NULL' if admin2(r) is None else repr(admin2(r))}, {str(r[0] == 'po').lower()})"
+        for r in rows)
     con.execute(f"""
         COPY (SELECT dataset, id, id || '_b' AS block, 'Austria' AS admin0_name,
-                     split_legacy, split_hash_v1, ST_MakeEnvelope(x, 0, x + {size}, {size}) AS geometry
-              FROM (VALUES {values}) t(dataset, id, split_legacy, split_hash_v1, x))
+                     split_legacy, split_hash_v1, split_admin2_v1::VARCHAR AS split_admin2_v1,
+                     presence_only, ST_MakeEnvelope(x, 0, x + {size}, {size}) AS geometry
+              FROM (VALUES {values}) t(dataset, id, split_legacy, split_hash_v1, x,
+                                       split_admin2_v1, presence_only))
         TO '{path}' (FORMAT parquet)""")
     con.close()
 
@@ -73,23 +83,32 @@ with tempfile.TemporaryDirectory() as tmp:
           f"every tiled attribute is a column (the export drops missing ones): "
           f"{set(chips_tiles.ATTRIBUTES) - columns}")
 
-    seq = tmp / "overview.geojsonseq"
-    chips_tiles.write_overview(locations, seq)
     import json
-    points = [json.loads(line) for line in seq.read_text().splitlines() if line.strip()]
-    sums = {k: sum(p["properties"][k] for p in points) for k in chips_tiles.OVERVIEW_SUMS}
-    check(sums == {"chips": 3, "train": 1, "val": 1, "test": 1, "conflicts": 1, "datasets": 5},
-          f"the overview points carry every count the clusters sum: {sums}")
-    check(all(p["geometry"]["type"] == "Point" for p in points), "overview features are points")
-    cmd = chips_tiles.overview_command(seq, tmp / "o.pmtiles")
+    expected = {"train": {"chips": 1, "conflicts": 0, "datasets": 2},   # c2
+                "val": {"chips": 1, "conflicts": 1, "datasets": 2},     # c1
+                "test": {"chips": 1, "conflicts": 0, "datasets": 1}}    # c3
+    for split in chips_tiles.SPLITS:
+        seq = tmp / f"overview_{split}.geojsonseq"
+        n = chips_tiles.write_overview(locations, seq, split)
+        points = [json.loads(line) for line in seq.read_text().splitlines() if line.strip()]
+        sums = {k: sum(p["properties"][k] for p in points) for k in chips_tiles.OVERVIEW_SUMS}
+        check(n == len(points) and sums == expected[split],
+              f"the {split} overview holds that split's chips with every count the clusters "
+              f"sum: {sums}")
+        check(all(p["geometry"]["type"] == "Point" for p in points), "overview features are points")
+    cmd = chips_tiles.overview_command(seq, tmp / "o.pmtiles", "overview_test")
     check(all(f"--accumulate-attribute={k}:sum" in cmd for k in chips_tiles.OVERVIEW_SUMS)
-          and "-r1" in cmd and "--cluster-densest-as-needed" in cmd,
+          and "-r1" in cmd and "--cluster-densest-as-needed" in cmd
+          and cmd[cmd.index("-l") + 1] == "overview_test",
           f"the overview clusters, sums every count and drops nothing by rate: {cmd}")
 
     for label, rows in (
         ("two hash splits", [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "test", 0)]),
         ("two footprints", [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "val", 5)]),
         ("a tiny footprint", [("aa_2021", "c1", "train", "val", 0)]),
+        ("two admin2 splits", [("aa_2021", "c1", "train", "val", 0, "val"),
+                               ("aa_2022", "c1", "train", "val", 0, "test")]),
+        ("no admin2 split", [("aa_2021", "c1", "train", "val", 0, None)]),
     ):
         bad = tmp / "bad.parquet"
         write_table(bad, rows, size=0.001 if label == "a tiny footprint" else 0.01)
@@ -159,7 +178,8 @@ with tempfile.TemporaryDirectory() as tmp:
             for part in expr:
                 walk(part)
 
-    tiled = {"chips": set(chips_tiles.ATTRIBUTES), "overview": set(chips_tiles.OVERVIEW_SUMS)}
+    tiled = {"chips": set(chips_tiles.ATTRIBUTES),
+             **{layer: set(chips_tiles.OVERVIEW_SUMS) for layer in chips_tiles.OVERVIEW_LAYERS}}
     by_layer = {}
     for layer in style["layers"]:
         if "source-layer" in layer:
@@ -170,8 +190,10 @@ with tempfile.TemporaryDirectory() as tmp:
             have = tiled.get(layer["source-layer"], set())
             check(used <= have, f"style layer {layer['id']} reads only properties of its "
                                 f"source layer: {used - have}")
-    check(set(by_layer) == {"chips", "overview"}, f"the style draws the two layers: {set(by_layer)}")
-    check(all(l.get("maxzoom") == chips_tiles.CHIPS_ZOOMS[0] for l in by_layer["overview"])
+    check(set(by_layer) == {"chips", *chips_tiles.OVERVIEW_LAYERS},
+          f"the style draws every layer: {set(by_layer)}")
+    check(all(l.get("maxzoom") == chips_tiles.CHIPS_ZOOMS[0]
+              for layer in chips_tiles.OVERVIEW_LAYERS for l in by_layer[layer])
           and all(l.get("minzoom") == chips_tiles.CHIPS_ZOOMS[0] for l in by_layer["chips"]),
           "the overview hands over to the chips at the chips' first zoom, with no gap")
     import publish
@@ -221,7 +243,7 @@ with tempfile.TemporaryDirectory() as tmp:
     readme = " ".join((root / "README.md").read_text().split())
     catalog_readme = " ".join((root / "catalog" / "README.md").read_text().split())
     (c0, c1), (o0, o1) = chips_tiles.CHIPS_ZOOMS, chips_tiles.OVERVIEW_ZOOMS
-    check(f"`chips` (zoom {c0}-{c1}" in readme and f"`overview` (zoom {o0}-{o1}" in readme,
+    check(f"`chips` (zoom {c0}-{c1}" in readme and f"`overview_test` (zoom {o0}-{o1}" in readme,
           "README.md gives the layers' zooms")
     check(f"from zoom {c0}" in catalog_readme and f"Below zoom {c0}" in catalog_readme
           and f"From zoom {c0}" in catalog_readme, "catalog/README.md gives the chips' first zoom")

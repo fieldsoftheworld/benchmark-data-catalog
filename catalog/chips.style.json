@@ -2,7 +2,7 @@
   "version": 8,
   "name": "Chips of every collection",
   "metadata": {
-    "description": "Below zoom 7, clusters of chip locations sized by count and coloured by the share of locations whose collections' own splits disagree (legacy_conflict): green for none, yellow for half, red for all; a location in only one collection counts as not disagreeing. From zoom 7, each chip filled by split_hash_v1, outlined in red where its collections' own splits disagree."
+    "description": "Coloured by split_admin2_v1: train green, val orange, test purple. Below zoom 7, each split's chip locations are clustered on their own and sized by count. From zoom 7, each chip is filled by its split, paler where it is in a presence-only collection, and outlined in red where its collections' own splits disagree."
   },
   "sources": {
     "data": {
@@ -19,10 +19,10 @@
       }
     },
     {
-      "id": "overview-clusters",
+      "id": "overview-train",
       "type": "circle",
       "source": "data",
-      "source-layer": "overview",
+      "source-layer": "overview_train",
       "maxzoom": 7,
       "paint": {
         "circle-radius": [
@@ -44,40 +44,78 @@
           100,
           14
         ],
-        "circle-color": [
-          "interpolate",
-          [
-            "linear"
-          ],
-          [
-            "/",
-            [
-              "get",
-              "conflicts"
-            ],
-            [
-              "max",
-              [
-                "get",
-                "chips"
-              ],
-              1
-            ]
-          ],
-          0,
-          "#1b9e77",
-          0.5,
-          "#e6ab02",
-          1,
-          "#d7301f"
-        ],
+        "circle-color": "#1b9e77",
         "circle-opacity": 0.75,
         "circle-stroke-color": "rgba(51,51,51,0.5)",
         "circle-stroke-width": 0.5
       }
     },
     {
-      "id": "chips-by-hash-split",
+      "id": "overview-val",
+      "type": "circle",
+      "source": "data",
+      "source-layer": "overview_val",
+      "maxzoom": 7,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "sqrt",
+            [
+              "get",
+              "chips"
+            ]
+          ],
+          1,
+          2,
+          30,
+          7,
+          100,
+          14
+        ],
+        "circle-color": "#d95f02",
+        "circle-opacity": 0.9,
+        "circle-stroke-color": "rgba(51,51,51,0.5)",
+        "circle-stroke-width": 0.5
+      }
+    },
+    {
+      "id": "overview-test",
+      "type": "circle",
+      "source": "data",
+      "source-layer": "overview_test",
+      "maxzoom": 7,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "sqrt",
+            [
+              "get",
+              "chips"
+            ]
+          ],
+          1,
+          2,
+          30,
+          7,
+          100,
+          14
+        ],
+        "circle-color": "#7570b3",
+        "circle-opacity": 0.9,
+        "circle-stroke-color": "rgba(51,51,51,0.5)",
+        "circle-stroke-width": 0.5
+      }
+    },
+    {
+      "id": "chips-by-admin2-split",
       "type": "fill",
       "source": "data",
       "source-layer": "chips",
@@ -87,7 +125,7 @@
           "match",
           [
             "get",
-            "split_hash_v1"
+            "split_admin2_v1"
           ],
           "train",
           "#1b9e77",
@@ -97,7 +135,19 @@
           "#7570b3",
           "#c8c8c8"
         ],
-        "fill-opacity": 0.65
+        "fill-opacity": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "presence_only"
+            ],
+            true
+          ],
+          0.3,
+          0.7
+        ]
       }
     },
     {
