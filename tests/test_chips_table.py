@@ -219,6 +219,16 @@ with tempfile.TemporaryDirectory() as tmp:
         previous=str(root / "moved.parquet"), staged=frozenset({"aa_2021"}),
         drop=frozenset({"bb_2022"}), workers=2), "would change its block or split_hash_v1")
 
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial")
+    con.execute(f"""COPY (SELECT * REPLACE (block || '_x' AS block) FROM read_parquet('{later}'))
+                    TO '{root / "reblocked.parquet"}' (FORMAT parquet)""")
+    con.close()
+    refused("a carried chip whose block changes", lambda: chips_table.build(
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
+        previous=str(root / "reblocked.parquet"), staged=frozenset({"aa_2021"}),
+        drop=frozenset({"bb_2022"}), workers=2), "would change its block or split_hash_v1")
+
     # a restaged predefined dataset takes its new splits, not the previous table's
     write_catalog(root, {"aa_2021": ("zz", "block3x3"), "bb_2022": ("bb", "predefined")})
     write_chips(staging / "bb_2022" / "bb_2022_chips.parquet",
