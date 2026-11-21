@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tile the root chips table into ``chips.pmtiles``: one feature per chip location.
+"""Tile the root chips table into ``chips.pmtiles``: every chip location, at every zoom.
 
     uv run python tools/chips_tiles.py                        # from the published table
     uv run python tools/chips_tiles.py --table work/chips.parquet
@@ -8,20 +8,24 @@ Writes ``work/chips.pmtiles`` (``--out`` to change); upload it like the table
 (README, "Root chips table"). Needs tippecanoe on PATH.
 
 A location is in every collection that covers it (other years, and a few overlapping
-regions), so the table repeats it. The tiles keep one feature per chip id, with:
+regions), so the table repeats it. Two layers, neither dropping a location:
 
+``chips`` (zoom 6-12): one polygon per chip id, with
 - ``id``, ``block`` and ``split_hash_v1`` (the same in every dataset, by construction);
 - ``datasets``: how many datasets have the chip;
 - ``legacy_conflict``: true when those datasets' ``split_legacy`` values disagree (any
   two of train, val and test);
 - ``admin0_name``.
 
-Zooms 2-5 drop the densest features so each tile stays under tippecanoe's size limit;
-from zoom 6 every location is kept.
+``overview`` (zoom 2-5): chip centres, clustered where they crowd, so the whole catalog
+shows at once. Each point (or cluster) sums ``chips`` (locations), ``train``, ``val``,
+``test`` (by ``split_hash_v1``), ``conflicts`` (locations with ``legacy_conflict``) and
+``datasets`` (chip-collection pairs).
 """
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -33,6 +37,9 @@ from common import PUBLIC_BASE, ROOT  # noqa: E402
 
 TILES_NAME = "chips.pmtiles"
 ATTRIBUTES = ("id", "block", "split_hash_v1", "datasets", "legacy_conflict", "admin0_name")
+OVERVIEW_SUMS = ("chips", "train", "val", "test", "conflicts", "datasets")
+CHIPS_ZOOMS = (6, 12)
+OVERVIEW_ZOOMS = (2, 5)
 
 
 class ChipsTilesError(Exception):
@@ -73,21 +80,65 @@ def write_locations(table: str, out: Path) -> int:
         con.close()
 
 
+def write_overview(locations: Path, out: Path) -> int:
+    """Chip centres with the counts the overview sums, as GeoJSONSeq; the number of points."""
+    from ftw_dataset_tools.api import admin_names
+
+    con = admin_names.connect()
+    try:
+        con.execute(f"""
+            COPY (SELECT 1 AS chips, (split_hash_v1 = 'train')::INTEGER AS train,
+                         (split_hash_v1 = 'val')::INTEGER AS val,
+                         (split_hash_v1 = 'test')::INTEGER AS test,
+                         legacy_conflict::INTEGER AS conflicts, datasets,
+                         ST_Centroid(geometry) AS geometry
+                  FROM read_parquet({_sql(str(locations))}))
+            TO {_sql(str(out))} WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')""")
+        return con.execute(
+            f"SELECT count(*) FROM read_parquet({_sql(str(locations))})").fetchone()[0]
+    finally:
+        con.close()
+
+
+def _run(cmd: list[str]) -> None:
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError) as err:
+        detail = getattr(err, "stderr", "") or str(err)
+        raise ChipsTilesError(f"{cmd[0]} failed: {detail.strip()[:500]}") from err
+
+
+def overview_command(seq: Path, out: Path) -> list[str]:
+    """tippecanoe for the overview: cluster crowded points, summing every count, drop none."""
+    cmd = ["tippecanoe", "-o", str(out), "-l", "overview", "--force", "--quiet",
+           f"-Z{OVERVIEW_ZOOMS[0]}", f"-z{OVERVIEW_ZOOMS[1]}", "-r1",
+           "--cluster-densest-as-needed", "--cluster-distance=2"]
+    cmd += [f"--accumulate-attribute={name}:sum" for name in OVERVIEW_SUMS]
+    return [*cmd, str(seq)]
+
+
 def build_tiles(table: str, out: Path) -> int:
-    """Tile ``table``'s chip locations into ``out``; the number of features."""
+    """Tile ``table``'s chip locations into ``out``; the number of locations."""
     from ftw_dataset_tools.api.tiles import TileSpec, build_pmtiles
 
     out = out.resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=out.parent) as tmp:
-        locations = Path(tmp) / "locations.parquet"
+        tmp = Path(tmp)
+        locations = tmp / "locations.parquet"
         count = write_locations(table, locations)
-        # 620k locations: drop the densest at low zooms so a tile stays under the size limit
-        spec = TileSpec("chips", ATTRIBUTES, 2, 12, False, True)
+        chips, overview = tmp / "chips.pmtiles", tmp / "overview.pmtiles"
+        # from zoom 6 a tile fits every chip; the flag is a guard, and drops nothing there
+        spec = TileSpec("chips", ATTRIBUTES, *CHIPS_ZOOMS, False, True)
         try:
-            build_pmtiles(locations, out, spec)
+            build_pmtiles(locations, chips, spec)
         except RuntimeError as err:
             raise ChipsTilesError(str(err)) from err
+        seq = tmp / "overview.geojsonseq"
+        write_overview(locations, seq)
+        _run(overview_command(seq, overview))
+        _run(["tile-join", "-o", str(out), "--force", "--quiet", "--no-tile-size-limit",
+              str(chips), str(overview)])
     return count
 
 

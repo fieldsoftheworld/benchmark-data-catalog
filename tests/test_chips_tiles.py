@@ -2,8 +2,9 @@
 """tools/chips_tiles.py: one feature per chip location, from a small stand-in table.
 
 Checks the location rows (one per id, dataset count, legacy conflict, the shared hash
-split), that a table where one id has two hash splits is refused, and, when tippecanoe
-is installed, that the PMTiles archive is written.
+split), the overview points and their summed counts, the overview's tippecanoe flags,
+that a table where one id has two hash splits or footprints is refused, and, when
+tippecanoe is installed, that the PMTiles archive is written.
 
 Run: python3 tests/test_chips_tiles.py
 """
@@ -71,6 +72,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check(set(chips_tiles.ATTRIBUTES) <= columns,
           f"every tiled attribute is a column (the export drops missing ones): "
           f"{set(chips_tiles.ATTRIBUTES) - columns}")
+
+    seq = tmp / "overview.geojsonseq"
+    chips_tiles.write_overview(locations, seq)
+    import json
+    points = [json.loads(line) for line in seq.read_text().splitlines() if line.strip()]
+    sums = {k: sum(p["properties"][k] for p in points) for k in chips_tiles.OVERVIEW_SUMS}
+    check(sums == {"chips": 3, "train": 1, "val": 1, "test": 1, "conflicts": 1, "datasets": 5},
+          f"the overview points carry every count the clusters sum: {sums}")
+    check(all(p["geometry"]["type"] == "Point" for p in points), "overview features are points")
+    cmd = chips_tiles.overview_command(seq, tmp / "o.pmtiles")
+    check(all(f"--accumulate-attribute={k}:sum" in cmd for k in chips_tiles.OVERVIEW_SUMS)
+          and "-r1" in cmd and "--cluster-densest-as-needed" in cmd,
+          f"the overview clusters, sums every count and drops nothing by rate: {cmd}")
 
     for label, rows in (
         ("two hash splits", [("aa_2021", "c1", "train", "val", 0), ("aa_2022", "c1", "train", "test", 0)]),

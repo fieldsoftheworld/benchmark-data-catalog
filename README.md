@@ -133,11 +133,11 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
     cp work/chips.pmtiles staging/chips.pmtiles
     uv run python tools/upload_data.py --only chips.pmtiles --force --confirm
 
-`chips.pmtiles` holds one feature per chip location (the table repeats a location once
-per collection that covers it):
-`id`, `block`, `split_hash_v1`, `datasets` (how many collections have it),
-`legacy_conflict` (their `split_legacy` values disagree) and `admin0_name`; zooms 2-5
-drop the densest features. Upload it before publishing the root catalog:
+`chips.pmtiles` shows every chip location at every zoom, in two layers: `chips` (zoom
+6-12, one polygon per location with `id`, `block`, `split_hash_v1`, `datasets`,
+`legacy_conflict` and `admin0_name`) and `overview` (zoom 2-5, chip centres clustered
+where they crowd, each summing `chips`, `train`, `val`, `test`, `conflicts` and
+`datasets`). Upload it before publishing the root catalog:
 `publish.py` refuses a root that links a missing root file. The root
 `catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
 

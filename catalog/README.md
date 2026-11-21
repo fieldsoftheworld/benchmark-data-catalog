@@ -449,8 +449,9 @@ every chip of every collection with one column per split scheme:
 Read one collection's rows with
 `SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`.
 [`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
-feature per location with its `split_hash_v1` and whether the collections' own splits
-disagree there (`legacy_conflict`); below zoom 6 it shows a sample of locations.
+polygon per location from zoom 6, with its `split_hash_v1` and whether the collections'
+own splits disagree there (`legacy_conflict`). Below zoom 6 its `overview` layer clusters
+the chip centres, each cluster counting its locations, their hash splits and conflicts.
 
 ## What a chip carries
 
