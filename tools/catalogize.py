@@ -668,9 +668,19 @@ def _ensure_license_link(doc: dict, recipe: dict) -> None:
         links.append({"rel": "license", "href": license_url, "type": "text/html", "title": "License terms"})
 
 
-def _chip_counts(chips_parquet: Path) -> dict[str, int]:
-    """Total chips and the per-split count, from a chips parquet's ``split`` column."""
+def _chip_counts(chips_parquet: Path) -> dict[str, int | None]:
+    """Total chips and the per-split count, from a chips parquet's ``split`` column.
+
+    A dataset built with ftwd's splits stage off (every recipe but the predefined
+    ones; the root chips table holds the splits) has no ``split``: its per-split
+    counts are None.
+    """
     con = duckdb.connect()
+    columns = {
+        r[0] for r in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(chips_parquet)]).fetchall()
+    }
+    if "split" not in columns:
+        return {"total": _row_count(chips_parquet), "train": None, "val": None, "test": None}
     total, train, val, test = con.execute(
         "SELECT count(*), "
         "count(*) FILTER (split = 'train'), "
@@ -961,6 +971,13 @@ _ASSET_DESCRIPTIONS = {
     "thumbnail": "Preview image of the collection rendered with its default map style.",
 }
 
+# A chips file built with ftwd's splits stage off has no ``split`` column: the root
+# chips table (``chips.parquet`` at the bucket root) holds its splits.
+_CHIPS_WITHOUT_SPLIT = (
+    "One row per chip: its grid location, how much of it is mapped field, its "
+    "dominant crop and administrative unit. Its benchmark splits are in the root chips table."
+)
+
 # AGENTS.md's "## Schema & field notes" bullet list: "- `name`: description".
 # Parses the two sub-lists it documents (chips table columns, and the item's
 # own ftw:* properties) without needing anything else from the file.
@@ -1071,6 +1088,9 @@ def fill_asset_descriptions(doc: dict) -> int:
         if asset.get("description"):
             continue
         description = _ASSET_DESCRIPTIONS.get(key)
+        columns = {c.get("name") for c in asset.get("table:columns") or []}
+        if key == "chips" and columns and "split" not in columns:
+            description = _CHIPS_WITHOUT_SPLIT
         if description is None:
             print(f"warning  no description source for asset {key!r}; left undocumented")
             continue
@@ -2021,7 +2041,9 @@ def _collection_row(
         "collection": f"[{title}]({human_url(manifest, relpath)})",
         "chips": f"{counts['total']:,}" if counts else "—",
         "splits": (
-            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}" if counts else "—"
+            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}"
+            if counts and counts["train"] is not None
+            else "—"
         ),
         "imagery": _imagery_cell(imagery, _imagery_mode(dataset_dir)),
         "imagery_n": _count_cell(imagery),
