@@ -2380,7 +2380,7 @@ def _check_group(dataset_id: str, recipe: dict, catalog: Path) -> None:
     if group and group != published:
         sys.exit(
             f"{dataset_id}: published under catalog/{published}/ but its recipe's source_via "
-            f"names {group}; move it with tools/relayout.py or fix the recipe"
+            f"names {group}; move its catalog folder or fix the recipe"
         )
 
 

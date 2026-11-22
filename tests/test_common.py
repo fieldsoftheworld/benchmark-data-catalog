@@ -92,17 +92,6 @@ with tempfile.TemporaryDirectory() as tmp:
           dataset_relpath("lv_2020", catalog=catalog), "lv/lv_2020")
     check("published_collections finds grouped collections only",
           sorted(published_collections(catalog)), ["d1"])
-    (catalog / "d2").mkdir()
-    (catalog / "d2" / "collection.json").write_text("{}")  # flat: not yet relaid out
-    for name, call in (("published_collections", lambda: published_collections(catalog)),
-                       ("dataset_relpath", lambda: dataset_relpath("d1", catalog=catalog))):
-        try:
-            call()
-            errors.append(f"{name} refuses a catalog that still has a flat collection")
-        except LayoutError as exc:
-            check(f"{name} names the flat folder and the fix",
-                  "catalog/d2 is still flat" in str(exc) and "relayout.py --confirm" in str(exc), True)
-    (catalog / "d2" / "collection.json").unlink()
     try:
         dataset_relpath("d9", catalog=catalog)
         errors.append("a dataset with neither a folder nor a recipe has no place")

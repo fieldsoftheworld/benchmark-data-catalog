@@ -491,15 +491,12 @@ with tempfile.TemporaryDirectory() as tmp:
     planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root)
     check("pre/catalog.json" in {u.key for u in planned} and why,
           "--only on a new group adds the root files")
-    planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root, no_root=True)
-    check({u.key for u in planned} == {"pre/aa/catalog.json", "pre/aa/aa_2024/collection.json"}
-          and why is None,
-          f"--no-root keeps root files out even for a new group, group files still go: {planned}")
-    planned, why = plan_root_files(collect_uploads(cfg, root), None, {}, cfg, root, no_root=True)
-    check(not {"pre/catalog.json", "pre/README.md"} & {u.key for u in planned} and why,
-          "--no-root drops the root files from a full publish too")
+    planned, why = plan_root_files(group_only, {"aa_2024"}, {"pre/aa/catalog.json": (1, "x")},
+                                   cfg, root)
+    check(planned == group_only and why is None,
+          "--only on a group already in the bucket leaves the root files out")
 
-# --- a moved collection is not published before its data is at the new keys -------
+# --- a collection is not published before its data is in the bucket --------------
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
     cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
@@ -514,14 +511,14 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "catalog/aa/aa_2024/thumbnail.webp", "git owns it")
     up_coll = Upload(coll, "pre/aa/aa_2024/collection.json", "application/json")
     check(missing_data([up_coll], {}, cfg, root) == {"aa_2024": ["aa_2024_chips.parquet", "chips.pmtiles"]},
-          f"data neither staged nor at the new key is missing: {missing_data([up_coll], {}, cfg, root)}")
+          f"data neither staged nor in the bucket is missing: {missing_data([up_coll], {}, cfg, root)}")
     write(root / "staging/aa_2024/aa_2024_chips.parquet", "staged")
-    listing = {"pre/aa/aa_2024/chips.pmtiles": (1, "x"), "pre/aa_2024/chips.pmtiles": (1, "old")}
+    listing = {"pre/aa/aa_2024/chips.pmtiles": (1, "x")}
     check(missing_data([up_coll], listing, cfg, root) == {},
-          "staged data, or data already copied to the new key, is enough")
-    check(missing_data([up_coll], {"pre/aa_2024/chips.pmtiles": (1, "x")}, cfg, root)
+          "staged data, or data already in the bucket, is enough")
+    check(missing_data([up_coll], {"pre/bb/aa_2024/chips.pmtiles": (1, "x")}, cfg, root)
           == {"aa_2024": ["chips.pmtiles"]},
-          "data still only at the old flat key does not count")
+          "data under another group's key does not count")
     uploaded(listing, up_coll)
     (root / "staging/aa_2024/aa_2024_chips.parquet").unlink()
     check(missing_data([up_coll], listing, cfg, root) == {},
@@ -628,7 +625,7 @@ for tile in ("30SVH", "31TBF"):
         for f in ("image_s2.tif", "mask.tif"):
             _keys.append(f"bd/aa/aa_2024/chips/{tile}/ftw-{tile}{chip}/{f}")
 _keys.append("bd/bb/bb_2025/chips/32ULU/ftw-32ULU0/mask.tif")
-# A dataset still at the old flat key during the move: never walked, never split.
+# A top-level folder that is not a source group: never walked, never split.
 _old = [f"bd/zz_2020/chips/30SVH/ftw-30SVH{c}/mask.tif" for c in range(3)] + ["bd/zz_2020/collection.json"]
 _expected = {k: (len(k), f'"{k}"') for k in _keys if k.startswith("bd/")}
 
@@ -659,7 +656,7 @@ try:
     )
     check(
         not any(p.startswith("bd/zz_2020/") for p, _ in _lister.requests),
-        "a top-level folder that is not a source group (an old flat dataset) is never walked",
+        "a top-level folder that is not a source group is never walked",
     )
 
     _lister = FakeLister(_keys)

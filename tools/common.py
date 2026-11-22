@@ -116,24 +116,8 @@ def recipe_group(dataset_id: str, root: Path = ROOT) -> str:
     return group
 
 
-def refuse_flat(catalog: Path = CATALOG) -> None:
-    """Exit when ``catalog/`` still has a flat ``catalog/<id>/collection.json``.
-
-    The tools read only ``catalog/<source>/<id>/``; a flat collection would be
-    silently skipped or placed twice. ``tools/relayout.py`` reads the flat
-    tree itself and does not call this.
-    """
-    flat = sorted(p.parent.name for p in catalog.glob("*/collection.json"))
-    if flat:
-        shown = ", ".join(flat[:3]) + (f" and {len(flat) - 3} more" if len(flat) > 3 else "")
-        raise LayoutError(
-            f"catalog/{flat[0]} is still flat ({shown}); run tools/relayout.py --confirm"
-        )
-
-
 def published_collections(catalog: Path = CATALOG) -> dict[str, Path]:
     """``{dataset id: collection.json}`` for every collection under ``catalog/<source>/``."""
-    refuse_flat(catalog)
     found: dict[str, Path] = {}
     for path in sorted(catalog.glob("*/*/collection.json")):
         dataset_id = path.parent.name
@@ -151,7 +135,6 @@ def dataset_relpath(dataset_id: str, *, catalog: Path = CATALOG, root: Path = RO
     A published dataset stays where ``catalog/`` already has it; a new one goes
     under the group its recipe's ``source_via`` names. ``staging/<id>/`` stays flat.
     """
-    refuse_flat(catalog)
     found = sorted(catalog.glob(f"*/{dataset_id}/collection.json"))
     if len(found) > 1:
         raise LayoutError(f"{dataset_id} is published twice: {[str(p.parent) for p in found]}")
