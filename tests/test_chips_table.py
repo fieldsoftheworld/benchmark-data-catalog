@@ -4,19 +4,15 @@
 Two published datasets (one seeded block3x3, one predefined) that share a chip id, and a
 staged rebuild of the first with one extra chip and reshuffled splits. Checks:
 
-- --bootstrap freezes each dataset's published split in split_legacy, fills
-  split_predefined only for the predefined dataset, and gives a shared location the same
-  split_hash_v1 in both datasets;
-- a staged dataset under --bootstrap keeps its published splits and the new chip gets
-  null legacy;
-- a later build carries split_legacy (and unstaged split_predefined) from the previous
-  table, not from the reshuffled chips file;
+- a build carries split_legacy (and unstaged split_predefined) from the previous table,
+  not from the reshuffled chips file, leaves split_predefined null for the block3x3
+  dataset, gives a shared location the same split_hash_v1 in both datasets, and a new
+  chip null legacy;
 - rows are sorted by group, dataset and id, and the file is GeoParquet;
-- duplicate chips, bad split values, a missing staged file, a later build without a
-  previous table or with an unreadable one, a dataset published twice, and each way of
-  losing frozen splits (a --bootstrap rerun over files without split or over a published
-  table, a dataset left out of a later build, a staged predefined dataset without split)
-  are refused; --drop leaves a dataset out on purpose.
+- duplicate chips, bad split values, a missing staged file, an unreadable previous table
+  or one without split_admin2_v1, a dataset published twice, and each way of losing
+  frozen splits (a dataset left out, chips that vanish, a staged predefined dataset
+  without split) are refused; --drop leaves a dataset out on purpose.
 
 Run: python3 tests/test_chips_table.py
 """
@@ -105,6 +101,30 @@ def table(path: Path) -> dict[tuple[str, str], tuple]:
     return {(r[0], r[1]): r[2:] for r in rows}
 
 
+def write_previous(path: Path, published: list[tuple[str, str, list[tuple[str, str]], bool]]) -> None:
+    """A stand-in for the published table: published is (dataset, split_type, chips, admin)."""
+    import pandas as pd
+
+    rows = pd.DataFrame([
+        {"dataset": d, "id": i, "split_legacy": s,
+         "split_predefined": s if split_type == "predefined" else None,
+         "country": "AUT" if admin else None, "presence_only": d in PRESENCE_ONLY}
+        for d, split_type, chips, admin in published for i, s in chips])
+    ids = sorted(set(rows["id"]))
+    blocks, hashes = chips_table.hash_splits(ids, 2.0)
+    rows = rows.merge(pd.DataFrame({"id": ids, "block": blocks, "split_hash_v1": hashes}), on="id")
+    locations = rows.groupby("id").agg(country=("country", "min"), block=("block", "first"),
+                                       presence_only=("presence_only", "any")).reset_index()
+    locations["admin1"] = locations["admin2"] = None
+    admin2 = chips_table.admin2_splits(locations).rename(
+        columns={"unit": "unit_admin2_v1", "split": "split_admin2_v1"})
+    rows = rows.merge(admin2, on="id").drop(columns=["country", "presence_only"])
+    con = duckdb.connect()
+    con.register("rows_df", rows)
+    con.execute(f"COPY (SELECT * FROM rows_df) TO '{path}' (FORMAT parquet)")
+    con.close()
+
+
 SHARED = "ftw-33TUN0000"
 AA = [(SHARED, "train"), ("ftw-33TUN0002", "test"), ("ftw-33TUN0602", "val")]
 BB = [(SHARED, "test"), ("ftw-33TUN2020", "val")]
@@ -118,34 +138,44 @@ with tempfile.TemporaryDirectory() as tmp:
     write_chips(base / "bb" / "bb_2022" / "bb_2022_chips.parquet", BB, admin=False)
     kw = {"catalog": root / "catalog", "staging": staging, "base": str(base), "root": root}
 
-    # --bootstrap from the published files
+    # the published table, frozen from the published files
     boot = root / "boot.parquet"
-    rows = chips_table.build(chips_table.resolve_inputs(set(), **kw), boot, bootstrap=True,
-                             workers=2)
-    t = table(boot)
-    check(rows == 5, f"bootstrap writes one row per dataset chip: {rows}")
-    check(t[("aa_2021", SHARED)][0] == "train" and t[("bb_2022", SHARED)][0] == "test",
-          f"split_legacy is each dataset's published split: {t}")
+    write_previous(boot, [("aa_2021", "block3x3", AA, True), ("bb_2022", "predefined", BB, False)])
+
+    # a staged rebuild of aa_2021: one new chip, reshuffled splits; and published files
+    # that now say something else. Frozen splits come from the previous table.
+    staged_rows = [(SHARED, "val"), ("ftw-33TUN0002", "train"), ("ftw-33TUN0602", "val"),
+                   ("ftw-33TUN4040", "train")]
+    write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows)
+    write_chips(base / "bb" / "bb_2022" / "bb_2022_chips.parquet",
+                [(SHARED, "train"), ("ftw-33TUN2020", "train")], admin=False)
+    later = root / "later.parquet"
+    rows = chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), later,
+                             previous=str(boot), staged=frozenset({"aa_2021"}), workers=2)
+    t = table(later)
+    check(rows == 6 and len(t) == 6, f"one row per dataset chip, with the new chip: {rows}")
+    check(t[("aa_2021", SHARED)][0] == "train" and t[("aa_2021", "ftw-33TUN0002")][0] == "test"
+          and t[("bb_2022", SHARED)][0] == "test",
+          f"split_legacy comes from the previous table: {t}")
+    check(t[("aa_2021", "ftw-33TUN4040")][0] is None, "a chip added later has null legacy")
     check(all(v[1] is None for k, v in t.items() if k[0] == "aa_2021"),
           "split_predefined is null for a block3x3 dataset")
     check(t[("bb_2022", "ftw-33TUN2020")][1] == "val",
-          "split_predefined holds a predefined dataset's split")
+          "split_predefined of an unstaged dataset is carried over")
     check(t[("aa_2021", SHARED)][2] == t[("bb_2022", SHARED)][2],
           "a shared location has one split_hash_v1 in every dataset")
     check(all(v[2] in chips_table.SPLITS and v[3] for v in t.values()),
           "every chip has a hash split and a block")
     con = duckdb.connect()
-    order = con.execute(f'SELECT "group", dataset, id FROM read_parquet(\'{boot}\')').fetchall()
-    meta = con.execute(f"SELECT decode(key) FROM parquet_kv_metadata('{boot}')").fetchall()
+    order = con.execute(f'SELECT "group", dataset, id FROM read_parquet(\'{later}\')').fetchall()
+    meta = con.execute(f"SELECT decode(key) FROM parquet_kv_metadata('{later}')").fetchall()
+    extra = {r[0]: r[1:] for r in con.execute(f"""
+        SELECT dataset || ' ' || id, license, license_url, license_category, presence_only,
+               unit_admin2_v1, split_admin2_v1 FROM read_parquet('{later}')""").fetchall()}
     con.close()
     check(order == sorted(order) and order[0][1] == "bb_2022",
           f"rows are sorted by group (bb before zz), then dataset and id: {order}")
     check(("geo",) in meta, f"the table is GeoParquet: {meta}")
-    con = duckdb.connect()
-    extra = {r[0]: r[1:] for r in con.execute(f"""
-        SELECT dataset || ' ' || id, license, license_url, license_category, presence_only,
-               unit_admin2_v1, split_admin2_v1 FROM read_parquet('{boot}')""").fetchall()}
-    con.close()
     check(extra[f"bb_2022 {SHARED}"][:4] == ("other", "https://go.planet.com/nicfi-pla-2024",
                                              "non-commercial", True),
           f"license, its own link (not the embeddings'), its category and presence_only come "
@@ -157,53 +187,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check(all(v[5] in chips_table.SPLITS and v[4] for v in extra.values()),
           "every chip has an admin2 unit and split")
 
-    # a staged rebuild of aa_2021: one new chip, reshuffled splits
-    staged_rows = [(SHARED, "val"), ("ftw-33TUN0002", "train"), ("ftw-33TUN0602", "val"),
-                   ("ftw-33TUN4040", "train")]
-    write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows)
-    boot2 = root / "boot2.parquet"
-    chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), boot2, bootstrap=True,
-                      staged=frozenset({"aa_2021"}), workers=2)
-    t = table(boot2)
-    check(t[("aa_2021", SHARED)][0] == "train",
-          f"--bootstrap keeps a staged dataset's published split: {t[('aa_2021', SHARED)]}")
-    check(t[("aa_2021", "ftw-33TUN4040")][0] is None, "a new chip has no legacy split")
-
-    # a later build carries frozen splits from the previous table, even when the
-    # published files now say something else
-    write_chips(base / "bb" / "bb_2022" / "bb_2022_chips.parquet",
-                [(SHARED, "train"), ("ftw-33TUN2020", "train")], admin=False)
-    later = root / "later.parquet"
-    chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), later, bootstrap=False,
-                      previous=str(boot), staged=frozenset({"aa_2021"}), workers=2)
-    t = table(later)
-    check(t[("aa_2021", SHARED)][0] == "train" and t[("aa_2021", "ftw-33TUN0002")][0] == "test",
-          f"split_legacy comes from the previous table: {t}")
-    check(t[("aa_2021", "ftw-33TUN4040")][0] is None, "a chip added later has null legacy")
-    check(t[("bb_2022", "ftw-33TUN2020")][1] == "val",
-          "split_predefined of an unstaged dataset is carried over")
-    check(len(t) == 6, f"the later build has the new chip: {len(t)}")
-
-    # the first build that adds split_admin2_v1 reads a previous table without it
+    # a previous table without split_admin2_v1 would start that split from scratch
     con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
-    con.execute(f"""COPY (SELECT * EXCLUDE (unit_admin2_v1, split_admin2_v1, license, license_url,
-                                            license_category, presence_only)
+    con.execute(f"""COPY (SELECT * EXCLUDE (unit_admin2_v1, split_admin2_v1)
                           FROM read_parquet('{boot}')) TO '{root / "old.parquet"}' (FORMAT parquet)""")
     con.close()
-    try:
-        chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
-                          bootstrap=False, previous=str(root / "old.parquet"),
-                          staged=frozenset({"aa_2021"}), workers=2)
-        errors.append("not refused: a previous table without split_admin2_v1")
-    except chips_table.ChipsTableError as err:
-        check("--start-admin2-split" in str(err), f"the refusal names the flag: {err}")
-    started = root / "started.parquet"
-    chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), started, bootstrap=False,
-                      previous=str(root / "old.parquet"), staged=frozenset({"aa_2021"}),
-                      workers=2, start_admin2=True)
-    t2 = table(started)
-    check(all(t2[k][:3] == t[k][:3] for k in t), "starting the admin2 split keeps the other splits")
 
     # refusals
     def refused(label: str, fn, match: str) -> None:
@@ -215,10 +203,12 @@ with tempfile.TemporaryDirectory() as tmp:
         errors.append(f"not refused: {label}")
 
     refused("an unreadable previous table", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs(set(), **kw), root / "x.parquet",
         previous=str(root / "nope.parquet"), workers=2), "can't read the previous table")
-    refused("a later build without a previous table", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False), 'needs the previous table')
+    refused("a previous table without split_admin2_v1", lambda: chips_table.build(
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
+        previous=str(root / "old.parquet"), staged=frozenset({"aa_2021"}), workers=2),
+        "has no split_admin2_v1")
     refused("a staged dataset without a chips file", lambda: chips_table.resolve_inputs(
         {"bb_2022"}, **kw), 'does not exist')
     (staging / "aa_2021" / "collection.json").rename(staging / "aa_2021" / "c.json")
@@ -230,30 +220,30 @@ with tempfile.TemporaryDirectory() as tmp:
     write_catalog(root, {"aa_2021": ("zz", "block3x3")})
     refused("a later build that leaves out a dataset of the previous table",
             lambda: chips_table.build(chips_table.resolve_inputs(set(), **kw), root / "x.parquet",
-                                      bootstrap=False, previous=str(boot), workers=2), 'leaves out')
+                                      previous=str(boot), workers=2), 'leaves out')
     dropped = root / "dropped.parquet"
-    chips_table.build(chips_table.resolve_inputs(set(), **kw), dropped, bootstrap=False,
+    chips_table.build(chips_table.resolve_inputs(set(), **kw), dropped,
                       previous=str(boot), drop=frozenset({"bb_2022"}), workers=2)
     check({k[0] for k in table(dropped)} == {"aa_2021"}, "--drop leaves the dataset out")
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
-                          bootstrap=False, previous=str(later), staged=frozenset({"aa_2021"}),
+                          previous=str(later), staged=frozenset({"aa_2021"}),
                           drop=frozenset({"bb_2022"}), workers=2)
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows[:3])
     with contextlib.redirect_stdout(out):
         chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
-                          bootstrap=False, previous=str(later), staged=frozenset({"aa_2021"}),
+                          previous=str(later), staged=frozenset({"aa_2021"}),
                           drop=frozenset({"bb_2022"}), workers=2)
     check("aa_2021: 1 chips of the previous table are gone" in out.getvalue(),
           f"a dropped chip without frozen splits is a note: {out.getvalue()!r}")
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows[1:])
     refused("a rebuild that loses a chip with a frozen split", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
         previous=str(later), staged=frozenset({"aa_2021"}), drop=frozenset({"bb_2022"}),
         workers=2), "1 chips of the previous table are gone, with their frozen splits")
     chips_table.build(chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
-                      bootstrap=False, previous=str(later), staged=frozenset({"aa_2021"}),
+                      previous=str(later), staged=frozenset({"aa_2021"}),
                       drop=frozenset({"bb_2022", "aa_2021"}), workers=2)
 
     # a carried chip whose hash split would change
@@ -266,7 +256,7 @@ with tempfile.TemporaryDirectory() as tmp:
     con.close()
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows)
     refused("a carried chip whose hash split changes", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
         previous=str(root / "moved.parquet"), staged=frozenset({"aa_2021"}),
         drop=frozenset({"bb_2022"}), workers=2), "would change its block or split_hash_v1")
 
@@ -276,7 +266,7 @@ with tempfile.TemporaryDirectory() as tmp:
                     TO '{root / "reblocked.parquet"}' (FORMAT parquet)""")
     con.close()
     refused("a carried chip whose block changes", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
         previous=str(root / "reblocked.parquet"), staged=frozenset({"aa_2021"}),
         drop=frozenset({"bb_2022"}), workers=2), "would change its block or split_hash_v1")
 
@@ -286,7 +276,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 [(SHARED, "val"), ("ftw-33TUN2020", "test")], admin=False)
     restaged = root / "restaged.parquet"
     chips_table.build(chips_table.resolve_inputs({"aa_2021", "bb_2022"}, **kw), restaged,
-                      bootstrap=False, previous=str(later),
+                      previous=str(later),
                       staged=frozenset({"aa_2021", "bb_2022"}), workers=2)
     t = table(restaged)
     check(t[("bb_2022", "ftw-33TUN2020")][1] == "test" and t[("bb_2022", SHARED)][1] == "val",
@@ -295,41 +285,18 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.rmtree(staging / "bb_2022")
     write_catalog(root, {"aa_2021": ("zz", "block3x3")})
 
-    # a --bootstrap over a published file where a chip has no split
-    con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
-    con.execute(f"""COPY (SELECT * REPLACE (CASE WHEN id = '{SHARED}' THEN NULL ELSE split END
-                                            AS split)
-                          FROM read_parquet('{base}/zz/aa_2021/aa_2021_chips.parquet'))
-                    TO '{root / "gap.parquet"}' (FORMAT parquet)""")
-    con.close()
-    shutil.copy(root / "gap.parquet", base / "zz" / "aa_2021" / "aa_2021_chips.parquet")
-    refused("--bootstrap over a published file with a missing split", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=True, workers=2),
-        "published chips have no split")
-    write_chips(base / "zz" / "aa_2021" / "aa_2021_chips.parquet", AA)
-
-    # a --bootstrap rerun once the published files have no split
+    # a chips file without split
     write_chips_nosplit = root / "nosplit.parquet"
     con = duckdb.connect()
     con.execute(f"COPY (SELECT * EXCLUDE (split) FROM read_parquet('{base}/zz/aa_2021/"
                 f"aa_2021_chips.parquet')) TO '{write_chips_nosplit}' (FORMAT parquet)")
     con.close()
-    shutil.copy(write_chips_nosplit, base / "zz" / "aa_2021" / "aa_2021_chips.parquet")
-    refused("--bootstrap over published files without split", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=True, workers=2), 'no legacy split')
-    try:
-        with contextlib.redirect_stderr(io.StringIO()):
-            chips_table.main(["--bootstrap", "--previous", str(boot), "--out", str(root / "x")])
-        errors.append("not refused: --bootstrap over a published table")
-    except SystemExit as stop:
-        check("exists" in str(stop.code), f"--bootstrap names the existing table: {stop.code}")
 
     # a staged predefined dataset whose chips file has no split
     write_catalog(root, {"aa_2021": ("zz", "predefined"), "bb_2022": ("bb", "predefined")})
     shutil.copy(write_chips_nosplit, staging / "aa_2021" / "aa_2021_chips.parquet")
     refused("a staged predefined dataset without split", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
         previous=str(later), staged=frozenset({"aa_2021"}), workers=2), 'has no split column')
 
     # a predefined dataset new to the table, unstaged, whose file has no split
@@ -346,7 +313,7 @@ with tempfile.TemporaryDirectory() as tmp:
     shutil.copy(write_chips_nosplit, base / "cc" / "cc_2023" / "cc_2023_chips.parquet")
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", staged_rows)
     refused("a new unstaged predefined dataset without split", lambda: chips_table.build(
-        chips_table.resolve_inputs(set(), **kw), root / "x.parquet", bootstrap=False,
+        chips_table.resolve_inputs(set(), **kw), root / "x.parquet",
         previous=str(later), workers=2), "no chip has one")
     write_catalog(root, {"aa_2021": ("zz", "predefined"), "bb_2022": ("bb", "predefined")})
 
@@ -361,16 +328,19 @@ with tempfile.TemporaryDirectory() as tmp:
     write_catalog(root, {"aa_2021": ("zz", "block3x3"), "bb_2022": ("bb", "predefined")})
     shutil.rmtree(root / "catalog" / "bb" / "aa_2021")
 
-    write_chips(base / "zz" / "aa_2021" / "aa_2021_chips.parquet", AA)  # published split back
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", [(SHARED, "train"), (SHARED, "val")])
-    refused("a duplicate chip", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=True,
-        staged=frozenset({"aa_2021"}), workers=2), 'more than once')
+    with contextlib.redirect_stdout(io.StringIO()):
+        refused("a duplicate chip", lambda: chips_table.build(
+            chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
+            previous=str(later), staged=frozenset({"aa_2021"}), drop=frozenset({"aa_2021"}),
+            workers=2), 'more than once')
     write_chips(staging / "aa_2021" / "aa_2021_chips.parquet", [(SHARED, "training")])
     write_catalog(root, {"aa_2021": ("zz", "predefined"), "bb_2022": ("bb", "predefined")})
-    refused("a split value outside train/val/test", lambda: chips_table.build(
-        chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet", bootstrap=True,
-        staged=frozenset({"aa_2021"}), workers=2), 'has the value')
+    with contextlib.redirect_stdout(io.StringIO()):
+        refused("a split value outside train/val/test", lambda: chips_table.build(
+            chips_table.resolve_inputs({"aa_2021"}, **kw), root / "x.parquet",
+            previous=str(later), staged=frozenset({"aa_2021"}), drop=frozenset({"aa_2021"}),
+            workers=2), 'has the value')
 
 # license categories
 cat = chips_table.license_category
