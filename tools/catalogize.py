@@ -710,34 +710,6 @@ def _field_count(dataset_dir: Path) -> int | None:
     return _row_count(path) if path else None
 
 
-def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) -> str:
-    """The '## Compared with Fields of the World 1.0' section, or "" without an ftw1 block.
-
-    Every number for *this* collection is measured, never typed in: chip and
-    split counts come from ``<id>_chips.parquet``, the field count from
-    ``<id>_fields.parquet``, and the edition year from the recipe's own
-    description (``... (edition YYYY)``).
-    """
-    ftw1 = spec.get("ftw1")
-    if not ftw1:
-        return ""
-    counts = _chip_counts(staging / dataset_id / f"{dataset_id}_chips.parquet")
-    n_fields = _row_count(_fields_parquet(staging / dataset_id))
-    description = (recipe.get("metadata") or {}).get("description") or ""
-    match = re.search(r"edition (\d{4})", description)
-    edition_year = match.group(1) if match else "?"
-
-    text = (
-        f"Fields of the World 1.0 published `{spec['ftw1_name']}` with `{ftw1['chips']}` chips "
-        f"(`{ftw1['train']}` train / `{ftw1['val']}` val / `{ftw1['test']}` test) cut from "
-        f"`{ftw1['parcels']}` parcels declared for `{ftw1['year']}`, under `{ftw1['license']}`. "
-        f"This collection has `{counts['total']}` chips "
-        f"(`{counts['train']}`/`{counts['val']}`/`{counts['test']}`) cut from `{n_fields}` fields "
-        f"declared for `{edition_year}`."
-    )
-    return f"\n## Compared with Fields of the World 1.0\n\n{text}\n"
-
-
 def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     """Re-read ``file:size`` for every relative asset that exists in staging.
 
@@ -1185,12 +1157,10 @@ def enrich_collection(
     ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
     — for an "other" license — a ``license`` link exist, registers a
     ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), makes the
-    absolute builder paths in ``ftw:config`` repository-relative, and, when
-    the manifest carries an ``ftw1`` block for this dataset, appends the FTW
-    1.0 comparison to README.md. Also applies the Portolan v0.3 metadata
-    fixups: the schema URI, every
-    missing ``table:columns``/asset description, and ``file:size``/
-    ``file:checksum`` for the committed (non-data) assets.
+    absolute builder paths in ``ftw:config`` repository-relative. Also
+    applies the Portolan v0.3 metadata fixups: the schema URI, every missing
+    ``table:columns``/asset description, and ``file:size``/``file:checksum``
+    for the committed (non-data) assets.
     """
     dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
     collection_path = dataset_dir / "collection.json"
@@ -1218,19 +1188,7 @@ def enrich_collection(
     fill_local_checksums(doc, dataset_dir)
     doc["updated"] = _now_iso(now)
     write_json(collection_path, doc)
-    written = [collection_path, *reapply_chip_subcatalog_schema(dataset_dir)]
-
-    spec = (manifest.get("datasets") or {}).get(dataset_id) or {}
-    section = ftw1_section(dataset_id, spec, staging=staging, recipe=recipe)
-    if section:
-        readme_path = dataset_dir / "README.md"
-        text = readme_path.read_text()
-        if not text.endswith("\n"):
-            text += "\n"
-        readme_path.write_text(text + section)
-        written.append(readme_path)
-
-    return written
+    return [collection_path, *reapply_chip_subcatalog_schema(dataset_dir)]
 
 
 # --- post-processing the collection's README.md and AGENTS.md --------------

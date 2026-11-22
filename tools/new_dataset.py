@@ -16,8 +16,7 @@ HTTPS, then writes:
 - ``datasets/filters/<filter>``: a byte-for-byte copy of ftwd's
   ``configs/filters/<filter>`` at the pinned commit (or from a local checkout
   with ``--ftwd-checkout``). ``tests/test_filters.py`` fails if they drift.
-- a ``datasets.yaml`` entry with ``ftw1_name: none`` and the default
-  thumbnail framing (``thumbnail_spec``).
+- a ``datasets.yaml`` entry with the default thumbnail framing (``thumbnail_spec``).
 
 Refuses to overwrite an existing recipe unless ``--force``; the manifest entry
 is only appended when missing.
@@ -389,7 +388,6 @@ def filter_bytes(name: str, checkout: Path | None) -> bytes:
 def manifest_entry(dataset_id: str, thumb: dict) -> str:
     return (
         f"  {dataset_id}:\n"
-        f"    ftw1_name: none\n"
         f"    thumbnail: {{style: {thumb['style']}, zoom: {thumb['zoom']}, rank: {thumb['rank']}}}\n"
     )
 

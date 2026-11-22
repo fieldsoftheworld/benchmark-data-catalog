@@ -372,11 +372,7 @@ MANIFEST = {
     },
     "host": {"name": "Source Cooperative", "url": "https://source.coop", "roles": ["host"]},
     "datasets": {
-        "be_wal_2022": {
-            "ftw1_name": "luxembourg",
-            "ftw1": {"year": 2022, "parcels": 29018, "chips": 808, "train": 643, "val": 81, "test": 84,
-                      "license": "CC0-1.0"},
-        },
+        "be_wal_2022": {},
     },
 }
 
@@ -754,13 +750,7 @@ with tempfile.TemporaryDirectory() as tmp:
     scratch = json.loads((staging / "be_wal_2022" / "chips" / "32UNA" / "scratch.json").read_text())
     check(scratch == ["not", "a", "stac", "doc"], "a non-STAC JSON array under chips/ is left untouched")
 
-    # --- README carries the FTW 1.0 section with computed numbers ---
     readme = (be_wal_2022_dir / "README.md").read_text()
-    check("## Compared with Fields of the World 1.0" in readme, "FTW 1.0 section present")
-    check("`4` chips" in readme, "computed chip count (4) appears in the FTW 1.0 section")
-    check("`2`/`1`/`1`" in readme, "computed split counts (2/1/1) appear in the FTW 1.0 section")
-    check("`10` fields" in readme, "computed field count (10) appears in the FTW 1.0 section")
-    check("`808` chips" in readme, "the FTW 1.0 chip count (808) appears verbatim from the manifest")
 
     agents_text1 = (be_wal_2022_dir / "AGENTS.md").read_text()
 
@@ -910,7 +900,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check(len(host_providers2) == 1, "host provider still appears exactly once after a second run")
 
     readme2 = (be_wal_2022_dir / "README.md").read_text()
-    check(readme2 == readme, "README.md is byte-identical on rerun (no duplicated FTW 1.0 section)")
+    check(readme2 == readme, "README.md is byte-identical on rerun")
 
     check((be_wal_2022_dir / "AGENTS.md").read_text() == agents_text1, "AGENTS.md stable on rerun")
     check((be_wal_2022_dir / "llms.txt").read_text() == llms, "llms.txt stable on rerun")
@@ -1152,13 +1142,13 @@ with tempfile.TemporaryDirectory() as tmp:
     hr_2024_manifest = {
         "catalog": MANIFEST["catalog"],
         "host": MANIFEST["host"],
-        "datasets": {"hr_2024": {"ftw1_name": "slovenia"}},  # no ftw1 block: README section must be skipped
+        "datasets": {"hr_2024": {}},
     }
     recipe_hr_2024 = catalogize._load_recipe("hr_2024")
     written = catalogize.enrich_collection(
         "hr_2024", catalog=catalog, staging=staging, manifest=hr_2024_manifest, recipe=recipe_hr_2024, now=datetime(2026, 1, 1)
     )
-    check(len(written) == 1, "no README written when the manifest carries no ftw1 block for this dataset")
+    check(len(written) == 1, "enrich_collection writes only collection.json here")
     hr_2024_collection = json.loads((hr_2024_dir / "collection.json").read_text())
     license_links = [l for l in hr_2024_collection["links"] if l["rel"] == "license"]
     check(
@@ -1294,18 +1284,6 @@ with tempfile.TemporaryDirectory() as tmp:
             "no item JSON" in str(exc) and "tools/build.py be_wal_2022" in str(exc),
             f"the exit message names the empty tree and the fix, got {str(exc)!r}",
         )
-
-# --- the FTW 1.0 comparison counts the class-filtered fields when present ------
-with tempfile.TemporaryDirectory() as tmp:
-    staging = Path(tmp) / "staging"; (staging / "be_wal_2022").mkdir(parents=True)
-    con = duckdb.connect()
-    con.execute(f"COPY (SELECT range AS id FROM range(10)) TO '{staging / 'be_wal_2022' / 'be_wal_2022_fields.parquet'}' (FORMAT PARQUET)")
-    con.execute(f"COPY (SELECT range AS id FROM range(3)) TO '{staging / 'be_wal_2022' / 'be_wal_2022_fields_filtered.parquet'}' (FORMAT PARQUET)")
-    con.execute(f"COPY (SELECT 'ftw-1' AS id, 'train' AS split) TO '{staging / 'be_wal_2022' / 'be_wal_2022_chips.parquet'}' (FORMAT PARQUET)")
-    con.close()
-    spec = {"ftw1_name": "luxembourg", "ftw1": {"year": 2022, "parcels": 29018, "chips": 808, "train": 643, "val": 81, "test": 84, "license": "CC0-1.0"}}
-    section = catalogize.ftw1_section("be_wal_2022", spec, staging=staging, recipe={"metadata": {"description": "edition 2026"}})
-    check("`3` fields" in section, "the comparison counts the class-filtered fields, not the full set")
 
 # --- sibling links in the mirror are absolute too -----------------------------
 _links = catalogize._rewrite_item_links(

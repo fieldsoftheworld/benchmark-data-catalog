@@ -304,7 +304,8 @@ spec = new_dataset.thumbnail_spec()
 spec["zoom"] = 99
 check(new_dataset.thumbnail_spec()["zoom"] == 13, "callers get their own copy of the default")
 entry = yaml.safe_load(new_dataset.manifest_entry("xx_2022", {"style": "s", "zoom": 12, "rank": 0}))
-check(entry["xx_2022"]["ftw1_name"] == "none", "new region-years have no FTW 1.0 counterpart")
+check(entry == {"xx_2022": {"thumbnail": {"style": "s", "zoom": 12, "rank": 0}}},
+      f"the manifest entry carries the thumbnail framing, got {entry}")
 
 # --- run_batch.py marks rows done only when the batch's gates pass --------
 _saved = (run_batch.run_pass, run_batch.finish_batch, run_batch.hold_lock, tracking.update,
