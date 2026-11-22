@@ -173,6 +173,9 @@ with tempfile.TemporaryDirectory() as tmp:
         check(po_rows["n8"][1] == "es:1", f"national class, got {po_rows['n8'][1]}")
         check(all(r[0] == "es" and r[2] is None for r in po_rows.values()),
               "presence-only parcels are national, with no land use")
+        po_names = dict(duckdb.sql(
+            f"""SELECT source_id, "crop:name" FROM read_parquet('{po}')""").fetchall())
+        check(po_names["n8"] == "cultivo 1", f"es_po_2025 keeps crop names, got {po_names}")
     po_geo = json.loads(pq.read_schema(po).metadata[b"geo"])
     check("covering" in po_geo["columns"]["geometry"], "es_po_2025 declares its bbox covering")
     check(list(merge_es_2025.REGIONS) == ["es_pv"],
