@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """tools/catalog_stats.py: totals over published datasets, from local stand-ins.
 
-Two fake published datasets on disk (no network): one whose chips already carry
-ftwd's admin columns, one with a class filter (so fields_filtered is the count).
+Two fake published datasets on disk (no network), their chips with ftwd's admin
+columns, one with a class filter (so fields_filtered is the count).
 Checks the chip count comes from the chips file, not items.parquet (which also holds
 imagery child items), storage sums item and collection asset sizes, and countries
 add up across datasets.

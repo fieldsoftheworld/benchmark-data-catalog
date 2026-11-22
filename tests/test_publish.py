@@ -547,12 +547,10 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
-    from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _retry_config, _transfer_config
+    from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _client_config, _transfer_config
 
-    _cfg = _retry_config()
+    _cfg = _client_config(retry=True, pool_size=None)
     check(_cfg is not None and _cfg.retries == {"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"}, "S3 clients use the standard retry mode with more attempts")
-    from publish import _client_config
-
     _pc = _client_config(retry=True, pool_size=32)
     check(_pc.max_pool_connections == 32 and _pc.retries["mode"] == "standard", "the listing client gets a pool for every worker and keeps the retries")
     check(_client_config(retry=False, pool_size=None) is None, "a default client gets no Config")

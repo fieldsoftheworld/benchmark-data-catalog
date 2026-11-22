@@ -449,15 +449,6 @@ RETRY_MAX_ATTEMPTS = 8
 MULTIPART_CHUNK_BYTES = 16 * 1024 * 1024
 
 
-def _retry_config():
-    """A botocore Config with the standard retry mode, or None without botocore."""
-    try:
-        from botocore.config import Config
-    except ImportError:
-        return None
-    return Config(retries={"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"})
-
-
 def _transfer_config():
     """A boto3 TransferConfig with large multipart chunks, or None without boto3."""
     try:
