@@ -55,10 +55,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "catalog.publish.yaml"
 
-# Values the template ships with. Publishing while any of these survives would
-# upload to a bucket that is not yours, so it is refused before any AWS call.
-SENTINELS = ("EXAMPLE-BUCKET", "EXAMPLE-PREFIX", "example.invalid")
-
 CONTENT_TYPES = {
     ".json": "application/json",
     ".geojson": "application/geo+json",
@@ -73,7 +69,6 @@ CONTENT_TYPES = {
     ".svg": "image/svg+xml",
     ".tif": "image/tiff; application=geotiff; profile=cloud-optimized",
     ".tiff": "image/tiff; application=geotiff; profile=cloud-optimized",
-    ".laz": "application/vnd.laszip",
     ".xml": "application/xml",
     ".yaml": "application/yaml",
 }
@@ -111,7 +106,7 @@ def load_config(path: Path = CONFIG) -> dict[str, str]:
     """Read the flat scalar map in catalog.publish.yaml.
 
     Deliberately not a YAML parser. The file is a flat map of strings by
-    design, so the template publishes with no dependencies at all. Do not add
+    design, so reading it needs no dependencies at all. Do not add
     nesting to it.
 
     ``write_prefix``, ``public_base`` and ``publish_dir`` are required.
@@ -141,12 +136,6 @@ def split_s3_uri(uri: str) -> tuple[str, str]:
     if not bucket:
         sys.exit(f"write_prefix names no bucket — got {uri!r}")
     return bucket, prefix
-
-
-def unedited_sentinels(config: dict[str, str]) -> list[str]:
-    """Sentinel values still present in the config, if any."""
-    blob = f"{config['write_prefix']} {config['public_base']}"
-    return [s for s in SENTINELS if s in blob]
 
 
 def _is_item_json(parts: tuple[str, ...]) -> bool:
@@ -187,9 +176,7 @@ def is_publishable(rel: Path) -> bool:
     """False for paths the publisher skips inside the published directory.
 
     Dotfiles and dot-directories are skipped, which covers .gitkeep and any
-    .portolan tooling state. A template cannot know whether a downstream user's
-    .portolan/metadata.yaml holds something they want public, so it publishes
-    none of it.
+    .portolan tooling state; none of it is published.
     """
     return not any(part.startswith(".") for part in rel.parts)
 
@@ -758,14 +745,6 @@ def main() -> int:
     only = set(args.only) if args.only else None
 
     config = load_config()
-
-    stale = unedited_sentinels(config)
-    if stale:
-        print("catalog.publish.yaml still carries template values:")
-        for value in stale:
-            print(f"  {value}")
-        print("\nEdit write_prefix and public_base, then see README.md.")
-        return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
     uploads = collect_uploads(config, only=only)

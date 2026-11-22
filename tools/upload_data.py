@@ -7,16 +7,15 @@ and PMTiles archives are too large for git, so they live outside ``catalog/``
 and never reach the bucket. This script carries them there.
 
 Every rule the two scripts share comes from ``publish.py``. This file imports
-the sentinel guard, the content types, the change detection, the AWS session,
+the content types, the change detection, the AWS session,
 and the upload pool. It adds one thing, a second walk root.
 
     python3 tools/upload_data.py            # dry run: what would change
     python3 tools/upload_data.py --confirm  # upload; needs AWS credentials
     python3 tools/upload_data.py --confirm --force   # re-upload everything
 
-Set ``data_dir`` in ``catalog.publish.yaml`` to the staging directory that
-holds the data. The template ships no staging tree, so this script exits with
-a message until you set that key.
+``data_dir`` in ``catalog.publish.yaml`` names the staging directory that
+holds the data; without it this script exits with a message.
 
 Two gates decide what uploads. The path gate admits only files under
 ``data_dir``. The extension gate admits only the suffixes in
@@ -51,7 +50,6 @@ from publish import (  # noqa: E402
     load_config,
     remote_index,
     split_s3_uri,
-    unedited_sentinels,
     upload_all,
 )
 from common import dataset_relpath  # noqa: E402
@@ -72,7 +70,6 @@ PUBLISHABLE_SUFFIXES = {
     ".pmtiles",
     ".tif",
     ".tiff",
-    ".laz",
     ".json",
     # Chip previews. Without these the item JSON advertises a thumbnail the
     # browser then 404s on, which is what every chip card showed until now.
@@ -95,7 +92,7 @@ def data_root(config: dict[str, str], root: Path = ROOT) -> Path:
         sys.exit(
             "catalog.publish.yaml sets no data_dir, so there is nothing to "
             "upload.\nSet data_dir to the directory that holds your data "
-            "files.\nSee the commented example in catalog.publish.yaml."
+            "files."
         )
     base = Path(configured)
     if not base.is_absolute():
@@ -213,14 +210,6 @@ def main() -> int:
 
     config = load_config()
     base = data_root(config)
-
-    stale = unedited_sentinels(config)
-    if stale:
-        print("catalog.publish.yaml still carries template values:")
-        for value in stale:
-            print(f"  {value}")
-        print("\nEdit write_prefix and public_base, then see README.md.")
-        return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
     skipped: list[Path] = []

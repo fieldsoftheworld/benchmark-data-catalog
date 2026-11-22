@@ -93,8 +93,7 @@ Both:
 
 - dry-run by default; `--confirm` to actually upload,
 - never delete — removing a file locally does not unpublish it,
-- retry proxy 5xxs, and refuse to run against the template's example
-  bucket/prefix/host sentinels,
+- retry proxy 5xxs,
 - compare local size+MD5 against the bucket listing to skip unchanged files
   (`upload_data.py` falls back to size-only for multipart-uploaded, i.e.
   large, objects); `--force` re-uploads everything, which is needed after a

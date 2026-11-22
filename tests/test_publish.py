@@ -32,7 +32,6 @@ from publish import (  # noqa: E402
     load_config,
     s3_client,
     split_s3_uri,
-    unedited_sentinels,
     upload_all,
 )
 
@@ -209,22 +208,6 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not is_unchanged(upload, {"k": (9, digest)}), "size differs")
     check(is_unchanged(upload, {"k": (5, "abc-2")}), "multipart: size only")
 
-# --- the sentinel guard ------------------------------------------------
-check(
-    unedited_sentinels({
-        "write_prefix": "s3://EXAMPLE-BUCKET/EXAMPLE-PREFIX",
-        "public_base": "https://example.invalid/EXAMPLE-PREFIX",
-    }) != [],
-    "an unedited config is refused",
-)
-check(
-    unedited_sentinels({
-        "write_prefix": "s3://real/prefix",
-        "public_base": "https://data.example.org/prefix",
-    }) == [],
-    "an edited config is accepted",
-)
-
 # --- the parallel upload pool ------------------------------------------
 # A fake session stands in for boto3, so this stays offline and has no
 # credentials. It records every call and fails one chosen key.
@@ -327,7 +310,7 @@ else:
 cfg = load_config()
 check(cfg.get("endpoint_url") == "https://data.source.coop", "endpoint_url is read from catalog.publish.yaml")
 check(cfg.get("profile") == "source-coop", "profile is read from catalog.publish.yaml")
-check(unedited_sentinels(cfg) == [], "no template sentinels survive in catalog.publish.yaml")
+check(cfg.get("write_prefix") == "s3://ftw/benchmark-data", "write_prefix is read from catalog.publish.yaml")
 
 # endpoint_url in the config is not enough on its own; it has to reach
 # session.client(...). s3_client is the one place every client in this

@@ -6,8 +6,8 @@ catalog. It admits a file only when both gates pass. The path gate admits only
 files under data_dir. The extension gate admits only the suffixes in
 PUBLISHABLE_SUFFIXES.
 
-This gate also checks that the script refuses an unedited config and that it
-exits with a message when data_dir is absent.
+This gate also checks that the script exits with a message when data_dir is
+absent.
 
 No network, no AWS, no credentials.
 
@@ -29,7 +29,6 @@ from upload_data import (  # noqa: E402
     data_root,
     git_owned,
     is_data_publishable,
-    unedited_sentinels,
 )
 
 errors: list[str] = []
@@ -312,41 +311,6 @@ finally:
     upload_data.load_config = real_load
     sys.argv = argv
 check("data_dir" in message, f"a config without data_dir exits on data_dir: {message!r}")
-
-# --- the sentinel guard ------------------------------------------------
-check(
-    unedited_sentinels({
-        "write_prefix": "s3://EXAMPLE-BUCKET/EXAMPLE-PREFIX",
-        "public_base": "https://example.invalid/EXAMPLE-PREFIX",
-    }) != [],
-    "an unedited config is refused",
-)
-
-with tempfile.TemporaryDirectory() as tmp:
-    root = Path(tmp)
-    write(root / "staging/roads/part-0.parquet")
-    sentinel_config = {
-        "write_prefix": "s3://EXAMPLE-BUCKET/EXAMPLE-PREFIX",
-        "public_base": "https://example.invalid/EXAMPLE-PREFIX",
-        "publish_dir": "catalog",
-        "data_dir": str(root / "staging"),
-    }
-    out = io.StringIO()
-    argv = sys.argv
-    sys.argv = ["upload_data.py", "--confirm"]
-    real_load = upload_data.load_config
-    upload_data.load_config = lambda *a, **k: sentinel_config
-    try:
-        with redirect_stdout(out):
-            code = upload_data.main()
-    finally:
-        upload_data.load_config = real_load
-        sys.argv = argv
-    check(code == 1, f"the sentinel guard refuses to upload, got {code}")
-    check(
-        "EXAMPLE-BUCKET" in out.getvalue(),
-        "the guard names the sentinel it found",
-    )
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
