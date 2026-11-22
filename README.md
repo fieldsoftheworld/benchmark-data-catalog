@@ -148,11 +148,11 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
     cp work/chips.pmtiles staging/chips.pmtiles
     uv run python tools/upload_data.py --only chips.pmtiles --force --confirm
 
-`chips.pmtiles` shows every chip location at every zoom, in two layers: `chips` (zoom
-7-12, one polygon per location with `id`, `block`, `split_hash_v1`, `datasets`,
-`legacy_conflict` and `admin0_name`) and `overview` (zoom 0-6, chip centres clustered
-where they crowd, each summing `chips`, `train`, `val`, `test`, `conflicts` and
-`datasets`). The build refuses an archive where tippecanoe dropped features at any zoom. `catalog/chips.style.json` styles it, and
+`chips.pmtiles` shows every chip location at every zoom: `chips` (zoom 7-12, one polygon
+per location with `id`, `block`, `split_hash_v1`, `split_admin2_v1`, `datasets`,
+`presence_only`, `legacy_conflict` and `admin0_name`) and `overview_train`, `overview_val`
+and `overview_test` (zoom 0-6, the chip centres of each `split_admin2_v1` clustered on
+their own where they crowd, each summing `chips`, `conflicts` and `datasets`). The build refuses an archive where tippecanoe dropped features at any zoom. `catalog/chips.style.json` styles it, and
 `chips_tiles.py --thumbnail` renders `catalog/thumbnail.webp` from it over the published
 tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root catalog:
 `publish.py` refuses a root that links a missing root file. The root

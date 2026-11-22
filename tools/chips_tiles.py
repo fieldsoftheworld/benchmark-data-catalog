@@ -9,18 +9,21 @@ Writes ``work/chips.pmtiles`` (``--out`` to change); upload it like the table
 (README, "Root chips table"). Needs tippecanoe on PATH.
 
 A location is in every collection that covers it (other years, and a few overlapping
-regions), so the table repeats it. Two layers, neither dropping a location:
+regions), so the table repeats it. Four layers, none dropping a location:
 
 ``chips`` (zoom 7-12): one polygon per chip id, with
-- ``id``, ``block`` and ``split_hash_v1`` (the same in every dataset, by construction);
+- ``id``, ``block``, ``split_hash_v1`` and ``split_admin2_v1`` (the same in every
+  dataset, by construction);
 - ``datasets``: how many datasets have the chip;
+- ``presence_only``: true when any of them is presence-only;
 - ``legacy_conflict``: true when those datasets' ``split_legacy`` values disagree (any
   two of train, val and test);
 - ``admin0_name``.
 
-``overview`` (zoom 0-6): chip centres, clustered where they crowd, so the whole catalog
-shows at once. Each point (or cluster) sums ``chips`` (locations), ``train``, ``val``,
-``test`` (by ``split_hash_v1``), ``conflicts`` (locations with ``legacy_conflict``) and
+``overview_train``, ``overview_val`` and ``overview_test`` (zoom 0-6): the chip centres of
+each ``split_admin2_v1``, clustered where they crowd, each split on its own so a cluster
+never mixes splits and the whole catalog shows at once. Each point (or cluster) sums
+``chips`` (locations), ``conflicts`` (locations with ``legacy_conflict``) and
 ``datasets`` (chip-collection pairs).
 """
 from __future__ import annotations
@@ -44,8 +47,13 @@ THUMBNAIL = ROOT / "catalog" / "thumbnail.webp"
 THUMBNAIL_BBOX = (-130, -45, 150, 72)
 THUMBNAIL_RENDER_SIZE = 2400
 THUMBNAIL_SIZE = 1200
-ATTRIBUTES = ("id", "block", "split_hash_v1", "datasets", "legacy_conflict", "admin0_name")
-OVERVIEW_SUMS = ("chips", "train", "val", "test", "conflicts", "datasets")
+ATTRIBUTES = ("id", "block", "split_hash_v1", "split_admin2_v1", "datasets", "presence_only",
+              "legacy_conflict", "admin0_name")
+SPLITS = ("train", "val", "test")
+OVERVIEW_LAYERS = tuple(f"overview_{split}" for split in SPLITS)
+OVERVIEW_SUMS = ("chips", "conflicts", "datasets")
+REQUIRED_COLUMNS = ("id", "block", "split_legacy", "split_hash_v1", "split_admin2_v1",
+                    "presence_only", "admin0_name", "geometry")
 CHIPS_ZOOMS = (7, 12)
 # tippecanoe turns sub-pixel polygons into dust, which can lose them. At zoom 7 a chip of
 # this area is about 10 tile units across, far above that; real chips are 4 km2 or more.
@@ -60,7 +68,7 @@ class ChipsTilesError(Exception):
 def write_locations(table: str, out: Path) -> int:
     """One row per chip id from ``table`` as GeoParquet at ``out``; the number of rows.
 
-    Refuses a table where one chip id has more than one hash split or geometry, which the
+    Refuses a table where one chip id has more than one hash or admin2 split or geometry, which the
     one-feature-per-location tiles would hide, or a footprint below MIN_CHIP_KM2.
     """
     import geoparquet_io as gpio
@@ -68,12 +76,27 @@ def write_locations(table: str, out: Path) -> int:
 
     con = admin_names.connect()
     try:
+        columns = {r[0] for r in con.execute(
+            f"DESCRIBE SELECT * FROM read_parquet({_sql(table)})").fetchall()}
+        missing = [c for c in REQUIRED_COLUMNS if c not in columns]
+        if missing:
+            raise ChipsTilesError(f"{table} has no {', '.join(missing)}; build the chips table "
+                                  f"with tools/chips_table.py first")
         bad = con.execute(f"""
             SELECT id FROM read_parquet({_sql(table)}) GROUP BY id
-            HAVING count(DISTINCT split_hash_v1) > 1 OR count(DISTINCT ST_AsWKB(geometry)) > 1
+            HAVING count(DISTINCT split_hash_v1) > 1 OR count(DISTINCT split_admin2_v1) > 1
+                OR count(DISTINCT ST_AsWKB(geometry)) > 1
             LIMIT 1""").fetchone()
         if bad:
-            raise ChipsTilesError(f"chip {bad[0]} has more than one hash split or footprint")
+            raise ChipsTilesError(f"chip {bad[0]} has more than one hash or admin2 split or "
+                                  f"footprint")
+        unsplit = con.execute(f"""
+            SELECT id FROM read_parquet({_sql(table)})
+            WHERE split_admin2_v1 IS NULL
+               OR split_admin2_v1 NOT IN ({", ".join(_sql(s) for s in SPLITS)}) LIMIT 1""").fetchone()
+        if unsplit:
+            raise ChipsTilesError(f"chip {unsplit[0]} has no admin2 split; the overview would "
+                                  f"leave it out")
         tiny = con.execute(f"""
             SELECT id, ST_Area_Spheroid(ST_FlipCoordinates(geometry)) / 1e6 AS km2
             FROM read_parquet({_sql(table)})
@@ -87,7 +110,9 @@ def write_locations(table: str, out: Path) -> int:
         con.execute(f"""
             COPY (SELECT id, any_value(block) AS block,
                          any_value(split_hash_v1) AS split_hash_v1,
+                         any_value(split_admin2_v1) AS split_admin2_v1,
                          count(*)::INTEGER AS datasets,
+                         bool_or(presence_only) AS presence_only,
                          count(DISTINCT split_legacy) > 1 AS legacy_conflict,
                          any_value(admin0_name) AS admin0_name,
                          any_value(geometry) AS geometry
@@ -100,22 +125,19 @@ def write_locations(table: str, out: Path) -> int:
         con.close()
 
 
-def write_overview(locations: Path, out: Path) -> int:
-    """Chip centres with the counts the overview sums, as GeoJSONSeq; the number of points."""
+def write_overview(locations: Path, out: Path, split: str) -> int:
+    """The centres of ``split``'s chips with the counts the overview sums, as GeoJSONSeq;
+    the number of points."""
     from ftw_dataset_tools.api import admin_names
 
     con = admin_names.connect()
+    where = f"FROM read_parquet({_sql(str(locations))}) WHERE split_admin2_v1 = {_sql(split)}"
     try:
         con.execute(f"""
-            COPY (SELECT 1 AS chips, (split_hash_v1 = 'train')::INTEGER AS train,
-                         (split_hash_v1 = 'val')::INTEGER AS val,
-                         (split_hash_v1 = 'test')::INTEGER AS test,
-                         legacy_conflict::INTEGER AS conflicts, datasets,
-                         ST_Centroid(geometry) AS geometry
-                  FROM read_parquet({_sql(str(locations))}))
+            COPY (SELECT 1 AS chips, legacy_conflict::INTEGER AS conflicts, datasets,
+                         ST_Centroid(geometry) AS geometry {where})
             TO {_sql(str(out))} WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')""")
-        return con.execute(
-            f"SELECT count(*) FROM read_parquet({_sql(str(locations))})").fetchone()[0]
+        return con.execute(f"SELECT count(*) {where}").fetchone()[0]
     finally:
         con.close()
 
@@ -128,9 +150,9 @@ def _run(cmd: list[str]) -> None:
         raise ChipsTilesError(f"{cmd[0]} failed: {detail.strip()[:500]}") from err
 
 
-def overview_command(seq: Path, out: Path) -> list[str]:
-    """tippecanoe for the overview: cluster crowded points, summing every count, drop none."""
-    cmd = ["tippecanoe", "-o", str(out), "-l", "overview", "--force", "--quiet",
+def overview_command(seq: Path, out: Path, layer: str) -> list[str]:
+    """tippecanoe for an overview layer: cluster crowded points, summing every count, drop none."""
+    cmd = ["tippecanoe", "-o", str(out), "-l", layer, "--force", "--quiet",
            f"-Z{OVERVIEW_ZOOMS[0]}", f"-z{OVERVIEW_ZOOMS[1]}", "-r1",
            "--cluster-densest-as-needed", "--cluster-distance=2"]
     cmd += [f"--accumulate-attribute={name}:sum" for name in OVERVIEW_SUMS]
@@ -162,7 +184,7 @@ def build_tiles(table: str, out: Path) -> int:
         tmp = Path(tmp)
         locations = tmp / "locations.parquet"
         count = write_locations(table, locations)
-        chips, overview = tmp / "chips.pmtiles", tmp / "overview.pmtiles"
+        chips = tmp / "chips.pmtiles"
         # from zoom 7 the densest tile is a quarter of the size limit; a drop is refused
         spec = TileSpec("chips", ATTRIBUTES, *CHIPS_ZOOMS, False, True)
         try:
@@ -170,14 +192,22 @@ def build_tiles(table: str, out: Path) -> int:
         except RuntimeError as err:
             raise ChipsTilesError(str(err)) from err
         check_no_drops(chips, "chips")
-        seq = tmp / "overview.geojsonseq"
-        write_overview(locations, seq)
-        _run(overview_command(seq, overview))
-        check_no_drops(overview, "overview")
+        overviews, points = [], 0
+        for split, layer in zip(SPLITS, OVERVIEW_LAYERS):
+            seq, archive = tmp / f"{layer}.geojsonseq", tmp / f"{layer}.pmtiles"
+            n = write_overview(locations, seq, split)
+            if not n:
+                continue
+            points += n
+            _run(overview_command(seq, archive, layer))
+            check_no_drops(archive, layer)
+            overviews.append(str(archive))
+        if points != count:
+            raise ChipsTilesError(f"the overview has {points:,} of {count:,} locations")
         _run(["tile-join", "-o", str(out), "--force", "--quiet", "--no-tile-size-limit",
               "-n", "Chips of every collection",
               "-N", "Fields of the World benchmark chip locations with their splits",
-              str(chips), str(overview)])
+              str(chips), *overviews])
     return count
 
 
