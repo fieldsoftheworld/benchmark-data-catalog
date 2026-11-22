@@ -39,9 +39,6 @@ replace the field files only when every join succeeded, so a dataset whose names
 left as fetched (as published): it is reported and skipped, and the run carries on
 with the others and exits 1.
 
-The bucket is read at ``<source>/<id>/``; ``--read-flat`` reads the old flat
-``<id>/`` instead, for the pass that moves a dataset into its source group.
-
 Nothing is uploaded. Publish afterwards the usual way:
 
     uv run python tools/backfill.py rw_rwanda_ml_2021 --workers 32
@@ -66,7 +63,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (  # noqa: E402
     CATALOG,
-    ROOT,
     STAGING,
     dataset_dir,
     dataset_relpath,
@@ -98,8 +94,6 @@ _OPTIONAL_ASSETS = ("field_embeddings",)
 # Files the backfill writes itself, so they may differ from the bucket or be new.
 _OUTPUTS = ("items.parquet", "{id}_field_embeddings.parquet")
 _OUTPUT_DIRS = ("{id}_field_embeddings.parquet.partial",)
-# The chips stage flags a rebuild needs to keep what the backfill adds.
-RECIPE_STEPS = ("admin_names", "field_embeddings")
 
 
 @dataclass(frozen=True)
@@ -276,12 +270,11 @@ def fetch(
     *,
     staging: Path = STAGING,
     catalog: Path = CATALOG,
-    read_flat: bool = False,
     boundary_lines: bool = False,
 ) -> int:
     """Make ``staging/<id>`` hold what the backfill reads, as published. Returns files fetched.
 
-    Reads ``<prefix>/<source>/<id>/``, or the old flat ``<prefix>/<id>/`` with ``read_flat``.
+    Reads ``<prefix>/<source>/<id>/``.
     ``boundary_lines`` reads the boundary lines too, to name them; staged ones are made
     the published copy again either way.
     """
@@ -294,8 +287,7 @@ def fetch(
     if boundary_lines or any((root / rel).is_file() for rel in lines):
         top_level |= lines
     client = _client()
-    remote_rel = dataset_id if read_flat else dataset_relpath(dataset_id, catalog=catalog)
-    listing = _listing(client, remote_rel)
+    listing = _listing(client, dataset_relpath(dataset_id, catalog=catalog))
     missing = sorted(top_level - set(listing))
     if missing:
         raise SystemExit(f"{dataset_id}: not in the bucket: {', '.join(missing)}")
@@ -394,38 +386,6 @@ def write_chip_items_parquet(
     rustac.write_sync(str(tmp), items, format="parquet")
     _ensure_geoparquet_metadata(tmp)
     tmp.replace(path)
-
-
-def enable_recipe_steps(recipe: Path) -> bool:
-    """Turn the backfilled steps on in a recipe, so a rebuild keeps them. True if edited.
-
-    Edits the text under ``stages: chips:`` (comments stay), adding each missing flag
-    and setting one found false to true.
-    """
-    lines = recipe.read_text().splitlines(keepends=True)
-    try:
-        at = next(i for i, line in enumerate(lines) if line.rstrip() == "  chips:")
-    except StopIteration:
-        raise SystemExit(f"{recipe}: no 'stages: chips:' block to turn the steps on in") from None
-    end = next(
-        (i for i in range(at + 1, len(lines))
-         if lines[i].strip() and not lines[i].startswith("    ")),
-        len(lines),
-    )
-    edited = False
-    for step in RECIPE_STEPS:
-        found = [i for i in range(at + 1, end) if lines[i].strip().startswith(f"{step}:")]
-        if found:
-            if lines[found[0]].split(":", 1)[1].strip() != "true":
-                lines[found[0]] = f"    {step}: true\n"
-                edited = True
-            continue
-        lines.insert(end, f"    {step}: true\n")
-        end += 1
-        edited = True
-    if edited:
-        recipe.write_text("".join(lines))
-    return edited
 
 
 def harmonized_edition(dataset_id: str, harmonized_staging: Path) -> Path:
@@ -555,7 +515,6 @@ def backfill_dataset(
     workers: int,
     manifest: dict,
     staging: Path = STAGING,
-    read_flat: bool = False,
     crop_names_from: Path | None = None,
     crop_names_by: str = "id",
 ) -> None:
@@ -566,7 +525,7 @@ def backfill_dataset(
 
     start = time.monotonic()
     naming = crop_names_from is not None
-    fetched = fetch(dataset_id, staging=staging, read_flat=read_flat, boundary_lines=naming)
+    fetched = fetch(dataset_id, staging=staging, boundary_lines=naming)
     root = staging / dataset_id
     collection_path = root / "collection.json"
     doc = read_json(collection_path)
@@ -619,8 +578,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--workers", type=int, default=16, help="threads reading embeddings (default 16)"
     )
-    parser.add_argument("--read-flat", action="store_true",
-                        help="read the bucket's old flat <id>/ folder (the move into source groups)")
     parser.add_argument("--crop-names-from", type=Path, metavar="DIR",
                         help="the harmonized catalog's staging, rebuilt with crop names: join "
                              "crop:name onto the field files from each dataset's edition")
@@ -665,7 +622,6 @@ def main(argv: list[str] | None = None) -> int:
                 dataset_id,
                 workers=args.workers,
                 manifest=manifest,
-                read_flat=args.read_flat,
                 crop_names_from=args.crop_names_from,
                 crop_names_by=args.crop_names_by or "id",
             )
@@ -673,9 +629,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{dataset_id}: crop names refused, skipped (staging/{dataset_id} left as "
                   f"fetched): {err}", file=sys.stderr, flush=True)
             refused.append(dataset_id)
-            continue
-        if enable_recipe_steps(ROOT / "datasets" / f"{dataset_id}.yaml"):
-            print(f"{dataset_id}: turned on {', '.join(RECIPE_STEPS)} in its recipe", flush=True)
     if refused:
         print(f"crop names refused for {len(refused)} dataset(s): {', '.join(refused)}",
               file=sys.stderr, flush=True)

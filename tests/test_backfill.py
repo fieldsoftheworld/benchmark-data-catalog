@@ -108,9 +108,6 @@ with tempfile.TemporaryDirectory() as tmp:
         pre + "chips/S/c/c.json": b'{"type": "Feature"}',
         pre + "chips/S/c/c_image.tif": b"tif",
         f"{backfill.READ_PREFIX}/g/ds_other/ds_chips.parquet": b"other dataset",
-        f"{backfill.READ_PREFIX}/ds/chips/S/c/c.json": b"the old flat copy",
-        f"{backfill.READ_PREFIX}/ds/ds_chips.parquet": b"chips",
-        f"{backfill.READ_PREFIX}/ds/ds_fields.parquet": b"fields",
     }
     (staging / "ds").mkdir(parents=True)
     (staging / "ds" / "ds_fields.parquet").write_bytes(b"fields")  # already as published
@@ -122,13 +119,6 @@ with tempfile.TemporaryDirectory() as tmp:
     check(fetched == 2, f"fetch reports two files, got {fetched}")
     check(json.loads((staging / "ds" / "collection.json").read_text()) == collection,
           "fetch takes collection.json from catalog/<source>/<id>/")
-    client.downloaded.clear()
-    (staging / "ds" / "chips/S/c/c.json").unlink()
-    backfill.fetch("ds", staging=staging, catalog=catalog, read_flat=True)
-    check(client.downloaded == [f"{backfill.READ_PREFIX}/ds/chips/S/c/c.json"],
-          f"read_flat reads the old flat <id>/ folder, got {client.downloaded}")
-    (staging / "ds" / "chips/S/c/c.json").unlink()
-    backfill.fetch("ds", staging=staging, catalog=catalog)
     client.downloaded.clear()
     backfill.fetch("ds", staging=staging, catalog=catalog, boundary_lines=True)
     check(client.downloaded == [pre + "ds_boundary_lines.parquet"],
@@ -266,26 +256,6 @@ doc = {"assets": {}, "links": [], "providers": [
 check(backfill.staged_collection(doc, host)["providers"] == [{"name": "NASA", "roles": ["producer"]}],
       "the docs do not see the host provider")
 check(len(doc["providers"]) == 2, "the published providers are left as they were")
-
-# --- the recipe keeps both steps on ----------------------------------------------------------
-with tempfile.TemporaryDirectory() as tmp:
-    recipe = Path(tmp) / "ds.yaml"
-    recipe.write_text("name: ds\nstages:\n  chips:\n    min_coverage: 0.01\n"
-                      "    # keep\n    admin_names: false\n  splits:\n    random_seed: 42\n")
-    check(backfill.enable_recipe_steps(recipe), "the recipe is edited")
-    text = recipe.read_text()
-    check(text == "name: ds\nstages:\n  chips:\n    min_coverage: 0.01\n    # keep\n"
-                  "    admin_names: true\n    field_embeddings: true\n  splits:\n"
-                  "    random_seed: 42\n", f"flags set inside chips, comments kept, got {text!r}")
-    check(not backfill.enable_recipe_steps(recipe), "a second run leaves it alone")
-    import yaml
-    check(yaml.safe_load(text)["stages"]["chips"]["field_embeddings"] is True, "still valid YAML")
-    recipe.write_text("name: ds\n")
-    try:
-        backfill.enable_recipe_steps(recipe)
-        check(False, "a recipe without a chips block is refused")
-    except SystemExit:
-        pass
 
 # --- where the crop names come from ---------------------------------------------
 import tracking  # noqa: E402
@@ -521,11 +491,10 @@ with tempfile.TemporaryDirectory() as tmp:
         if dataset_id == "bad":
             raise CropNameError(Path("/f"), "3 field(s) not in the edition")
 
-    saved = (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
-             build._check_recipe, common.load_manifest)
+    saved = (backfill.dataset_dir, backfill.backfill_dataset, build._check_recipe,
+             common.load_manifest)
     backfill.dataset_dir = lambda dataset_id: published
     backfill.backfill_dataset = _fake_backfill
-    backfill.enable_recipe_steps = lambda recipe: ran.append(("recipe", recipe.stem)) and False
     build._check_recipe = lambda dataset_id: None
     common.load_manifest = lambda: {}
     try:
@@ -533,12 +502,12 @@ with tempfile.TemporaryDirectory() as tmp:
         with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
             code = backfill.main(["bad", "good", "--allow-uncommitted-ftwd"])
         check(code == 1, "a run with a refused dataset exits 1")
-        check(ran == [("bad", "id"), ("good", "id"), ("recipe", "good")],
+        check(ran == [("bad", "id"), ("good", "id")],
               f"the refused dataset is skipped and the next one still runs: {ran}")
         check("bad: crop names refused" in err.getvalue(), "the refusal is reported briefly")
     finally:
-        (backfill.dataset_dir, backfill.backfill_dataset, backfill.enable_recipe_steps,
-         build._check_recipe, common.load_manifest) = saved
+        (backfill.dataset_dir, backfill.backfill_dataset, build._check_recipe,
+         common.load_manifest) = saved
 
 # --- which staged field files are named, and which assets refreshed -----------------
 with tempfile.TemporaryDirectory() as tmp:
