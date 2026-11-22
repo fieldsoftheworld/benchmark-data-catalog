@@ -44,8 +44,8 @@ Columns of both outputs:
   because regional ids repeat (es_pv reuses one id for up to 143 parcels).
 - ``source_id``: the id in the source file.
 - ``ftw:source``: ``es`` or the regional collection id.
-- ``crop:code``, ``hcat:code``, ``hcat:name_en``: national crop type; NULL on
-  regional parcels.
+- ``crop:code``, ``crop:name``, ``hcat:code``, ``hcat:name_en``: national crop type,
+  with the source's own crop name; NULL on regional parcels.
 - ``landuse:code``, ``landuse:name_en``: SIGPAC land use. On regional parcels, their
   own; on national parcels that overlap a País Vasco parcel, the land use
   of the regional parcel they overlap most (a few of these lie just across the border,
@@ -171,6 +171,7 @@ def load_national(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     con.execute(
         f"""CREATE OR REPLACE TABLE nat AS
             SELECT 'es:' || id AS id, id AS source_id, CAST("crop:code" AS VARCHAR) AS crop_code,
+                   "crop:name" AS crop_name,
                    "hcat:code" AS hcat_code, "hcat:name_en" AS hcat_name_en,
                    admin_province_code, "metrics:area" AS area, irrigation_system,
                    CASE WHEN CAST("crop:code" AS VARCHAR) IN ({pasture})
@@ -278,6 +279,7 @@ def _national_sql(where: str) -> str:
     """National parcels matching ``where`` (on ``n``), with land use where known."""
     return f"""
         SELECT n.id, n.source_id, 'es' AS "ftw:source", n.crop_code AS "crop:code",
+               n.crop_name AS "crop:name",
                n.hcat_code AS "hcat:code", n.hcat_name_en AS "hcat:name_en",
                l.landuse.code AS "landuse:code", l.landuse.name AS "landuse:name_en",
                n.admin_province_code, n.area AS "metrics:area", n.irrigation_system,
