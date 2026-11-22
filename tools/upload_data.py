@@ -151,7 +151,7 @@ def collect_data_uploads(
     """Every staged data file that would be uploaded, in sorted order.
 
     ``only`` restricts the walk to the named dataset directories directly
-    under ``data_dir`` (``{"lu"}`` uploads ``staging/lu/**`` alone), so one
+    under ``data_dir`` (``{"at_2024"}`` uploads ``staging/at_2024/**`` alone), so one
     dataset can be published while another is still being built.
 
     The walk is rooted at ``data_dir`` and nothing else. Keys go under the

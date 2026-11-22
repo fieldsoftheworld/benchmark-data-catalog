@@ -175,7 +175,7 @@ running chiitiler:
 
     tools/chiitiler.sh &                       # clone/npm install if needed, then run
     curl -s http://localhost:13579/health      # wait for "OK"
-    uv run python tools/thumbnail.py lu        # writes catalog/lu/thumbnail.webp
+    uv run python tools/thumbnail.py at_2024   # writes catalog/at/at_2024/thumbnail.webp
     pkill -f "tile-server --port 13579"        # stop it when done
 
 `datasets.yaml` names each collection's framing under `thumbnail:` — `style`

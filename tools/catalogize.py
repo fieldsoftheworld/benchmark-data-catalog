@@ -18,10 +18,10 @@ source.coop renders these files where a relative link cannot resolve), and —
 with ``--root`` — regenerates the root catalog's child links and the ``##
 Collections`` tables in the root docs.
 
-    uv run python tools/catalogize.py lu            # one dataset
-    uv run python tools/catalogize.py lu --root      # + regenerate the root
-    uv run python tools/catalogize.py --root         # root only (e.g. after
-                                                      # removing a dataset)
+    uv run python tools/catalogize.py at_2024          # one dataset
+    uv run python tools/catalogize.py at_2024 --root   # + regenerate the root
+    uv run python tools/catalogize.py --root           # root only (e.g. after
+                                                       # removing a dataset)
 
 Item JSON under ``staging/<id>/chips/*/*/`` is read and its ``root`` links
 rewritten in place, but no item directory and no raster is ever copied into
@@ -1211,7 +1211,7 @@ def _absolute_target(target: str, *, base_rel: str, manifest: dict) -> str:
     """One markdown link target, made absolute against the published catalog.
 
     A relative target is resolved against ``base_rel`` (the document's own
-    directory inside the catalog, e.g. ``lu``) and then published: markdown
+    directory inside the catalog, e.g. ``at/at_2024``) and then published: markdown
     goes to the human page on source.coop, everything else to the raw file on
     data.source.coop. Already-absolute targets, fragments and ``mailto:``
     are returned untouched.
@@ -2321,7 +2321,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Copy staging/<id>'s git-owned metadata into catalog/<source>/<id>, published.",
     )
-    parser.add_argument("dataset_id", nargs="?", help="dataset id, e.g. 'lu' (see datasets.yaml)")
+    parser.add_argument("dataset_id", nargs="?", help="dataset id, e.g. 'at_2024' (see datasets.yaml)")
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )

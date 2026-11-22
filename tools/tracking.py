@@ -79,7 +79,7 @@ def update(dataset_id: str, path: Path = TRACKING, **fields: str) -> None:
     save(rows, path)
 
 
-#: ``filter`` value for a source with no class column to filter on (lu): every parcel is a field.
+#: ``filter`` value for a source with no class column to filter on (lu_2026): every parcel is a field.
 NO_FILTER = "none"
 
 
