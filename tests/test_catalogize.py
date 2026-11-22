@@ -1408,6 +1408,23 @@ with tempfile.TemporaryDirectory() as tmp:
     check(
         be_wal_2022_row["splits"] == "1,200/20/14", f"splits are measured per split, got {be_wal_2022_row['splits']!r}"
     )
+    # A dataset built with the splits stage off has no split column: chips counted, splits '—'.
+    write_json(catalog / "at" / "at_2024" / "collection.json",
+               {"type": "Collection", "id": "at_2024", "title": "Austria", "license": "CC-BY-4.0"})
+    unsplit = staging / "at_2024" / "at_2024_chips.parquet"
+    unsplit.parent.mkdir(parents=True)
+    pq.write_table(pa.table({"id": ["c1", "c2", "c3"]}), str(unsplit))
+    at_2024_row = catalogize._collection_row(
+        "at_2024",
+        json.loads((catalog / "at" / "at_2024" / "collection.json").read_text()),
+        staging=staging,
+        catalog=catalog,
+        manifest=MANIFEST,
+    )
+    check(
+        (at_2024_row["chips"], at_2024_row["splits"], at_2024_row["n_chips"]) == ("3", "—", 3),
+        f"chips without a split column are counted, their splits are '—': {at_2024_row}",
+    )
     check(
         be_wal_2022_row["imagery"] == "1",
         f"imagery counts the chips with season scenes, not the season items, got {be_wal_2022_row['imagery']!r}",
@@ -1694,6 +1711,17 @@ with tempfile.TemporaryDirectory() as tmp:
     except SystemExit as exc:
         check("catalog/lv/" in str(exc) and "be_wal" in str(exc), f"the refusal names both groups: {exc}")
 
+
+# The chips description names the split only when the chips file has one.
+with_split = {"assets": {"chips": {"table:columns": [{"name": "id"}, {"name": "split"}]}}}
+without_split = {"assets": {"chips": {"table:columns": [{"name": "id"}]}}}
+catalogize.fill_asset_descriptions(with_split)
+catalogize.fill_asset_descriptions(without_split)
+check("benchmark split it is assigned to" in with_split["assets"]["chips"]["description"],
+      f"a chips file with split says so: {with_split}")
+check("root chips table" in without_split["assets"]["chips"]["description"]
+      and "assigned" not in without_split["assets"]["chips"]["description"],
+      f"a chips file without split points at the root chips table: {without_split}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

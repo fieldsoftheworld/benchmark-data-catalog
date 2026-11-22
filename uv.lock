@@ -300,7 +300,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35" },
     { name = "certifi", specifier = ">=2024" },
     { name = "duckdb", specifier = ">=1.1" },
-    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=e1c4ed27c547daf8648e39112113baaf335de4d0" },
+    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=ebf6965a66f406ba0b91919f3a630147728e64a2" },
     { name = "pillow", specifier = ">=10" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pyflakes", specifier = ">=3.2" },
@@ -868,7 +868,7 @@ wheels = [
 [[package]]
 name = "ftw-dataset-tools"
 version = "0.1.0"
-source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=e1c4ed27c547daf8648e39112113baaf335de4d0#e1c4ed27c547daf8648e39112113baaf335de4d0" }
+source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=ebf6965a66f406ba0b91919f3a630147728e64a2#ebf6965a66f406ba0b91919f3a630147728e64a2" }
 dependencies = [
     { name = "click" },
     { name = "duckdb" },
@@ -880,6 +880,7 @@ dependencies = [
     { name = "obstore" },
     { name = "pillow" },
     { name = "planetary-computer" },
+    { name = "pmtiles" },
     { name = "pyproj" },
     { name = "pystac" },
     { name = "pystac-client" },

@@ -112,14 +112,22 @@ say-so — it's a real upload to the published bucket.
 
 `chips.parquet` at the bucket root lists every chip of every published dataset, one row
 per (dataset, chip), with one column per split scheme. Model code picks the column; #16
-has the reasoning.
+has the reasoning. ftwd builds it (`ftwd chips-table` and `ftwd chips-tiles`, in
+`ftw_dataset_tools.api.chips_table` and `chips_tiles`); `tools/chips_table.py` and
+`tools/chips_tiles.py` run them with this catalog's paths and defaults.
 
 | Column | Split |
 |---|---|
 | `split_legacy` | What each dataset published before this table (seeded `block3x3` or `predefined`). Frozen, so chips added later get null |
-| `split_predefined` | The source's own split, for datasets whose recipe sets `split_type: predefined` |
+| `split_predefined` | The source's own split, for collections with `ftw:split_type: predefined` (or whose earlier table rows have one) |
 | `split_hash_v1` | ftwd's `block3x3-hash` at 80/10/10. A location has the same split in every dataset and year, and new chips never move existing ones |
 | `split_admin2_v1` | Whole admin2 units (`unit_admin2_v1`), balanced to 80/10/10 of locations within each country, so a country with three units or more gets all three splits when first assigned. A unit with a presence-only chip is train. Frozen once published; new units fill the split furthest below its share |
+
+Recipes leave ftwd's per-chip splits stage off (no `stages.splits`), so a dataset built
+now has no `split` column in its chips file and no `ftw:split` on its items; the table is
+where the splits live. Only recipes of sources with their own split (the `wri_trazo_ml`
+years) keep `stages.splits` with `split_type: predefined`, which `split_predefined` reads.
+Datasets published earlier keep their `split` until they are rebuilt.
 
 Under `split_admin2_v1`, the countries whose chips are all presence-only (India and most of
 Africa, from lacuna and in_10k_ml) are train only. A row with no admin2 name joins its
@@ -131,7 +139,8 @@ once published. A build refuses a previous table without the column.
 page for a standard id) come from each collection, and `license_category` sorts them
 for filtering: `public-domain`, `attribution` and `share-alike` are open (any use,
 including commercial); then `non-commercial`, `restricted`, and `unknown` for a license
-nobody has judged yet. A judgment goes in `LICENSES` in `tools/chips_table.py`.
+nobody has judged yet. A judgment goes in `LICENSES` in ftwd's
+`ftw_dataset_tools/api/chips_table.py`, then a new ftwd pin here.
 `presence_only` is the collection's `ftw:presence_only`.
 
 The other columns are `dataset`, `group`, `id`, `block` (the chip's 3x3 grid block), the

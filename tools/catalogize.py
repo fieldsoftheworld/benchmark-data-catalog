@@ -668,9 +668,19 @@ def _ensure_license_link(doc: dict, recipe: dict) -> None:
         links.append({"rel": "license", "href": license_url, "type": "text/html", "title": "License terms"})
 
 
-def _chip_counts(chips_parquet: Path) -> dict[str, int]:
-    """Total chips and the per-split count, from a chips parquet's ``split`` column."""
+def _chip_counts(chips_parquet: Path) -> dict[str, int | None]:
+    """Total chips and the per-split count, from a chips parquet's ``split`` column.
+
+    A dataset built with ftwd's splits stage off (every recipe but the predefined
+    ones; the root chips table holds the splits) has no ``split``: its per-split
+    counts are None.
+    """
     con = duckdb.connect()
+    columns = {
+        r[0] for r in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(chips_parquet)]).fetchall()
+    }
+    if "split" not in columns:
+        return {"total": _row_count(chips_parquet), "train": None, "val": None, "test": None}
     total, train, val, test = con.execute(
         "SELECT count(*), "
         "count(*) FILTER (split = 'train'), "
@@ -961,6 +971,13 @@ _ASSET_DESCRIPTIONS = {
     "thumbnail": "Preview image of the collection rendered with its default map style.",
 }
 
+# A chips file built with ftwd's splits stage off has no ``split`` column: the root
+# chips table (``chips.parquet`` at the bucket root) holds its splits.
+_CHIPS_WITHOUT_SPLIT = (
+    "One row per chip: its grid location, how much of it is mapped field, its "
+    "dominant crop and administrative unit. Its benchmark splits are in the root chips table."
+)
+
 # AGENTS.md's "## Schema & field notes" bullet list: "- `name`: description".
 # Parses the two sub-lists it documents (chips table columns, and the item's
 # own ftw:* properties) without needing anything else from the file.
@@ -1071,6 +1088,9 @@ def fill_asset_descriptions(doc: dict) -> int:
         if asset.get("description"):
             continue
         description = _ASSET_DESCRIPTIONS.get(key)
+        columns = {c.get("name") for c in asset.get("table:columns") or []}
+        if key == "chips" and columns and "split" not in columns:
+            description = _CHIPS_WITHOUT_SPLIT
         if description is None:
             print(f"warning  no description source for asset {key!r}; left undocumented")
             continue
@@ -1709,7 +1729,8 @@ def _group_catalog(
         "title": title,
         "description": (
             f"Fields of the World benchmark collections cut from the harmonized field boundary "
-            f"collection {title} ({group}), one per year, each with train, validation and test splits."
+            f"collection {title} ({group}), one per year. Train, validation and test splits for "
+            f"every chip are in the root chips table (chips.parquet)."
         ),
         "version": manifest["catalog"]["version"],
         # PTL-PRO-003 / PORTO-CORE-057: a sync tool (this one) MUST stamp
@@ -1772,9 +1793,9 @@ def _group_agents(
         "Every column and asset is documented in each collection's own agent guide; the "
         "collections in this group share one schema.\n\n"
         "## Data quality & usage notes\n\n"
-        "Years of the same source can overlap in space. Keep each year's own train, validation "
-        "and test split rather than pooling chips across years, or the same field can land on "
-        "both sides of a split.\n\n"
+        "Years of the same source can overlap in space. Take splits from the root chips table "
+        "(`chips.parquet`), whose `split_hash_v1` and `split_admin2_v1` give a location the same "
+        "split in every year, so pooling years never puts the same field on both sides.\n\n"
         "## Example queries\n\n"
         "See each collection's agent guide for worked examples against its `items.parquet`.\n\n"
         "## Related collections\n\n"
@@ -2021,7 +2042,9 @@ def _collection_row(
         "collection": f"[{title}]({human_url(manifest, relpath)})",
         "chips": f"{counts['total']:,}" if counts else "—",
         "splits": (
-            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}" if counts else "—"
+            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}"
+            if counts and counts["train"] is not None
+            else "—"
         ),
         "imagery": _imagery_cell(imagery, _imagery_mode(dataset_dir)),
         "imagery_n": _count_cell(imagery),
@@ -2089,8 +2112,8 @@ _COVERAGE_NOTE = (
     "mosaics of the collection's year (and planting/harvest scenes, where a collection has "
     "them). `linked` means the chip's imagery items point at "
     "whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with "
-    "no imagery still carries its masks and its split — pair it with imagery of your own, "
-    "on the footprint in `items.parquet`."
+    "no imagery still carries its masks (and its row in the root chips table) — pair it "
+    "with imagery of your own, on the footprint in `items.parquet`."
 )
 
 
