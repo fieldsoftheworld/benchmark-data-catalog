@@ -357,10 +357,8 @@ stages:
     admin_names: true
     # Mean and std of AlphaEarth and OlmoEarth v1.3 embeddings over each field.
     field_embeddings: true
-  splits:
-    split_type: block3x3
-    split_percents: [80, 10, 10]
-    random_seed: 42
+  # No splits stage: the root chips table holds the splits. A source with its own split
+  # adds splits: {{split_type: predefined}} by hand (see wri_trazo_ml_*).
   masks:
     mask_types: {mask_types(presence_only, extent)}
     resolution: 10.0

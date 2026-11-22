@@ -269,6 +269,11 @@ for dataset_id in sorted(declared & recipes):
                 f"datasets/{dataset_id}.yaml: stages.masks.mask_types is missing {required!r} "
                 f"(got {mask_types})"
             )
+    # The root chips table holds the splits; a per-chip split is only the source's own.
+    splits = (recipe.get("stages") or {}).get("splits")
+    if splits is not None and (splits or {}).get("split_type") != "predefined":
+        err(f"datasets/{dataset_id}.yaml: stages.splits is only for split_type: predefined "
+            f"(the root chips table holds every other split), got {splits!r}")
     spec = MANIFEST["datasets"][dataset_id] or {}
     thumb = spec.get("thumbnail") or {}
     if not thumb.get("style"):
