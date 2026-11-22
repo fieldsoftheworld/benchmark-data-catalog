@@ -57,7 +57,8 @@ def box(x: float, y: float, w: float = D) -> shapely.Polygon:
 
 
 def national(id_, code, prov, geom):
-    return {"id": id_, "crop:code": code, "hcat:code": 1, "hcat:name_en": f"crop {code}",
+    return {"id": id_, "crop:code": code, "crop:name": f"cultivo {code}", "hcat:code": 1,
+            "hcat:name_en": f"crop {code}",
             "admin_province_code": prov, "metrics:area": 1.0, "irrigation_system": None,
             "geometry": geom}
 
@@ -147,6 +148,11 @@ with tempfile.TemporaryDirectory() as tmp:
         check(rows["es:n4"][3] == "es:63:atlantic", f"Basque pasture, got {rows['es:n4'][3]}")
         check(rows["es:n1"][3] == "es:1", f"national class, got {rows['es:n1'][3]}")
         check(rows["es_cb:r3"][1] is None, "a gap parcel has no crop code")
+        names = dict(con.execute(
+            f"""SELECT "ftw:source" || ':' || source_id, "crop:name" FROM read_parquet('{out}')"""
+        ).fetchall())
+        check(names["es:n1"] == "cultivo 1", f"a national parcel keeps its crop name, got {names['es:n1']}")
+        check(names["es_cb:r3"] is None, "a gap parcel has no crop name")
         check(rows["es_cb:r3"][3] == "es_cb:TA", f"gap class, got {rows['es_cb:r3'][3]}")
         check(rows["es_pv:p2"][0] == "es_pv", "gap parcels name their source")
         x, bx = rows["es_pv:p2"][4], rows["es_pv:p2"][5]
