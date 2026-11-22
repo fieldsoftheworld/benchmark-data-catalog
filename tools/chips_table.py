@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+
+import duckdb
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -61,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         inputs = resolve_inputs(CATALOG / "catalog.json", PUBLIC_BASE, local_dirs, groups)
         rows = build_chips_table(inputs, args.out, args.previous, drop=args.drop,
                                  workers=args.workers)
-    except (ChipsTableError, LayoutError, OSError) as err:
+    except (ChipsTableError, LayoutError, OSError, duckdb.Error) as err:
         sys.exit(f"chips table: {err}")
     print(f"wrote {args.out}: {rows:,} chips from {len(inputs)} datasets")
     return 0

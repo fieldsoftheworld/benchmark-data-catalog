@@ -119,7 +119,7 @@ has the reasoning. ftwd builds it (`ftwd chips-table` and `ftwd chips-tiles`, in
 | Column | Split |
 |---|---|
 | `split_legacy` | What each dataset published before this table (seeded `block3x3` or `predefined`). Frozen, so chips added later get null |
-| `split_predefined` | The source's own split, for datasets whose recipe sets `split_type: predefined` |
+| `split_predefined` | The source's own split, for collections with `ftw:split_type: predefined` (or whose earlier table rows have one) |
 | `split_hash_v1` | ftwd's `block3x3-hash` at 80/10/10. A location has the same split in every dataset and year, and new chips never move existing ones |
 | `split_admin2_v1` | Whole admin2 units (`unit_admin2_v1`), balanced to 80/10/10 of locations within each country, so a country with three units or more gets all three splits when first assigned. A unit with a presence-only chip is train. Frozen once published; new units fill the split furthest below its share |
 

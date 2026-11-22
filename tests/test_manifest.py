@@ -212,6 +212,15 @@ for dataset_id, path in sorted(PUBLISHED.items()):
 for dataset_id in sorted(built):
     check_built_collection(dataset_id)
 
+# The root chips table holds the splits; a per-chip split is only the source's own. Every
+# recipe, listed in datasets.yaml or not.
+for dataset_id in sorted(recipes):
+    splits = ((yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {})
+              .get("stages") or {}).get("splits")
+    if splits is not None and (splits or {}).get("split_type") != "predefined":
+        err(f"datasets/{dataset_id}.yaml: stages.splits is only for split_type: predefined "
+            f"(the root chips table holds every other split), got {splits!r}")
+
 for dataset_id in sorted(declared & recipes):
     recipe = yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {}
     if recipe.get("name") != dataset_id:
@@ -269,11 +278,6 @@ for dataset_id in sorted(declared & recipes):
                 f"datasets/{dataset_id}.yaml: stages.masks.mask_types is missing {required!r} "
                 f"(got {mask_types})"
             )
-    # The root chips table holds the splits; a per-chip split is only the source's own.
-    splits = (recipe.get("stages") or {}).get("splits")
-    if splits is not None and (splits or {}).get("split_type") != "predefined":
-        err(f"datasets/{dataset_id}.yaml: stages.splits is only for split_type: predefined "
-            f"(the root chips table holds every other split), got {splits!r}")
     spec = MANIFEST["datasets"][dataset_id] or {}
     thumb = spec.get("thumbnail") or {}
     if not thumb.get("style"):

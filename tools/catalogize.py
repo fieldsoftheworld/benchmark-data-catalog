@@ -1729,7 +1729,8 @@ def _group_catalog(
         "title": title,
         "description": (
             f"Fields of the World benchmark collections cut from the harmonized field boundary "
-            f"collection {title} ({group}), one per year, each with train, validation and test splits."
+            f"collection {title} ({group}), one per year. Train, validation and test splits for "
+            f"every chip are in the root chips table (chips.parquet)."
         ),
         "version": manifest["catalog"]["version"],
         # PTL-PRO-003 / PORTO-CORE-057: a sync tool (this one) MUST stamp
@@ -1792,9 +1793,9 @@ def _group_agents(
         "Every column and asset is documented in each collection's own agent guide; the "
         "collections in this group share one schema.\n\n"
         "## Data quality & usage notes\n\n"
-        "Years of the same source can overlap in space. Keep each year's own train, validation "
-        "and test split rather than pooling chips across years, or the same field can land on "
-        "both sides of a split.\n\n"
+        "Years of the same source can overlap in space. Take splits from the root chips table "
+        "(`chips.parquet`), whose `split_hash_v1` and `split_admin2_v1` give a location the same "
+        "split in every year, so pooling years never puts the same field on both sides.\n\n"
         "## Example queries\n\n"
         "See each collection's agent guide for worked examples against its `items.parquet`.\n\n"
         "## Related collections\n\n"
@@ -2111,8 +2112,8 @@ _COVERAGE_NOTE = (
     "mosaics of the collection's year (and planting/harvest scenes, where a collection has "
     "them). `linked` means the chip's imagery items point at "
     "whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with "
-    "no imagery still carries its masks and its split — pair it with imagery of your own, "
-    "on the footprint in `items.parquet`."
+    "no imagery still carries its masks (and its row in the root chips table) — pair it "
+    "with imagery of your own, on the footprint in `items.parquet`."
 )
 
 
