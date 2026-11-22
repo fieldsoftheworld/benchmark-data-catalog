@@ -2108,7 +2108,7 @@ _COVERAGE_COLUMNS = ("Collection", "Label masks", "Sentinel-2 imagery", "HCAT cr
 
 _COVERAGE_NOTE = (
     "`stored` means four-band GeoTIFFs (red, green, blue, NIR at 10 m) clipped to the "
-    "chip's mask grid and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless "
+    "chip's mask footprint and published with it: the Q1-Q4 Sentinel-2 quarterly cloudless "
     "mosaics of the collection's year (and planting/harvest scenes, where a collection has "
     "them). `linked` means the chip's imagery items point at "
     "whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with "

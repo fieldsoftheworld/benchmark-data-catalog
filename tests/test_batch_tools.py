@@ -147,6 +147,11 @@ check(recipe["fields_file"] == urls["parquet"], "an ordinary dataset reads the h
 check(recipe["stages"]["masks"]["presence_only"] is False, "wall-to-wall by default")
 check(recipe["stages"]["chips"]["drop_border_chips"] is True, "wall-to-wall drops border chips")
 check("splits" not in recipe["stages"], "no per-chip splits stage: the root chips table holds the splits")
+check(
+    (recipe["stages"]["masks"].get("resolution"), recipe["stages"]["masks"].get("boundary_width_m"))
+    == (2.5, 10),
+    "masks at 2.5 m with 10 m boundary lines",
+)
 
 # A derived dataset reads the script's output; a Presence-only row gets presence-only masks.
 es_row = {**ROW, "dataset_id": "es_po_2025", "harmonized_id": "es", "year": "2025",

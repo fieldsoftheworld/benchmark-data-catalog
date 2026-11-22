@@ -8,11 +8,15 @@ Training and evaluation data for field boundary delineation models, one
 collection per country or region. Each collection holds chip items on the FTW
 grid (a fixed, MGRS-derived grid, so a cell id means the same square of ground
 in every collection). Each chip item carries label masks — instance, semantic
-2-class, semantic 3-class, and the DECODE boundary and distance layers — and,
+2-class, semantic 3-class, and the DECODE boundary and distance layers, at 2.5 m
+(800×800 for a 2 km chip) with 10 m boundary lines — its field outlines
+(`field_boundaries`, `<item_id>_fields.parquet`: the fields cut to the chip, in
+the masks' CRS), and,
 where the collection has imagery, the four Sentinel-2 quarterly cloudless
 mosaics (Q1-Q4) of the collection's year as child items alongside it, assets
 `q1_image` to `q4_image`. Each is `stored`: a four-band GeoTIFF (red, green,
-blue, NIR; 10 m) clipped to the chip's mask grid and published with it. Pixels
+blue, NIR; 10 m, 200×200 for a 2 km chip) clipped to the masks' footprint and
+published with it. Pixels
 a quarter's mosaic has no data for are nodata (-32768), not filled. Imagery can
 also be `linked` (the whole scene COG on the source STAC API, for the reader to
 window); the coverage table below says which, per collection, and a collection
