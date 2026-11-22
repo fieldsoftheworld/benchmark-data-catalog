@@ -1178,30 +1178,6 @@ with tempfile.TemporaryDirectory() as tmp:
           "relative paths and URLs are left alone")
     check("/home/" not in json.dumps(hr_2024_collection), "no builder home directory is published")
 
-    # --sanitize-config: only ftw:config's local paths change, in place, on --confirm
-    dirty = {"type": "Collection", "id": "x", "updated": "2026-01-01T00:00:00Z",
-             "ftw:config": {"config": {"class_filter": {
-                 "source": f"/home/ubuntu/benchmark-data-catalog/{REAL_FILTER}"}}}}
-    write_json(catalog / "g" / "x" / "collection.json", dirty)
-    clean_doc = {**dirty, "id": "y", "ftw:config": {"config": {"output_dir": "staging/y"}}}
-    write_json(catalog / "g" / "y" / "collection.json", clean_doc)
-    before = (catalog / "g" / "x" / "collection.json").read_text()
-    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [catalog / "g" / "x" / "collection.json"],
-          "the dry run names only the collection with a local path")
-    check((catalog / "g" / "x" / "collection.json").read_text() == before, "a dry run writes nothing")
-    catalogize.sanitize_config(["x", "y"], catalog=catalog, confirm=True)
-    after = json.loads((catalog / "g" / "x" / "collection.json").read_text())
-    check(after["ftw:config"]["config"]["class_filter"]["source"] == REAL_FILTER
-          and after["updated"] == dirty["updated"] and {**after, "ftw:config": None} == {**dirty, "ftw:config": None},
-          f"--confirm rewrites ftw:config and nothing else: {after}")
-    check(catalogize.sanitize_config(["x", "y"], catalog=catalog) == [], "a second pass finds nothing")
-    # a path outside any checkout is skipped, not rewritten to a bare file name
-    stray = {**dirty, "id": "z", "ftw:config": {"config": {"class_filter": {"source": "/tmp/f.yaml"}}}}
-    write_json(catalog / "g" / "z" / "collection.json", stray)
-    stray_text = (catalog / "g" / "z" / "collection.json").read_text()
-    check(catalogize.sanitize_config(["z"], catalog=catalog, confirm=True) == []
-          and (catalog / "g" / "z" / "collection.json").read_text() == stray_text,
-          "an unplaceable path is skipped, the file left as it is")
     # a checkout under another folder name (a git worktree) still finds the repository part
     # only a file this checkout has counts as placed; anything else is unresolved
     for other, expected in [

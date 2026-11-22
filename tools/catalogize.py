@@ -812,38 +812,6 @@ def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = 
     return config
 
 
-def sanitize_config(
-    dataset_ids: list[str], *, catalog: Path = CATALOG, confirm: bool = False
-) -> list[Path]:
-    """The ``catalog/<source>/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
-
-    With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
-    same code a full catalogize run uses), so collections published before the fix
-    can be cleaned without a rebuild and republished as metadata only. Nothing else
-    in the file changes, ``updated`` included. A file holding a path that cannot be
-    placed in the repository is skipped with a warning, never rewritten to a guess.
-    """
-    changed = []
-    for dataset_id in dataset_ids:
-        path = catalog / dataset_relpath(dataset_id, catalog=catalog) / "collection.json"
-        doc = read_json(path)
-        if "ftw:config" not in doc:
-            continue
-        unresolved: list[str] = []
-        clean = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
-        if unresolved:
-            print(f"warning  {dataset_id}: skipped, {unresolved} is not inside a "
-                  f"{_REPO_NAME} checkout; fix it by hand or rebuild")
-            continue
-        if clean == doc["ftw:config"]:
-            continue
-        if confirm:
-            doc["ftw:config"] = clean
-            write_json(path, doc)
-        changed.append(path)
-    return changed
-
-
 # --- Portolan v0.3 metadata: table:columns and asset descriptions ----------
 #
 # PORTO-FMT-077/078/079 (SHOULD): every table:columns entry should carry a
@@ -854,9 +822,7 @@ def sanitize_config(
 #
 # None of this needs staging/<id>/ — every input is already in catalog/ or
 # committed to the repository (the fiboa field descriptions fetched from each
-# group's harmonized source, below), so these fixups run directly against the
-# published tree via ``reapply_metadata`` and also run inside
-# ``enrich_collection`` for a real build.
+# group's harmonized source, below); they run inside ``enrich_collection``.
 
 # tools/fiboa_field_descriptions.json: {group id: {column name: description}},
 # fetched from each group's harmonized source collection
@@ -1182,38 +1148,6 @@ def fill_local_checksums(doc: dict, dataset_dir: Path) -> int:
     return changed
 
 
-def reapply_metadata(dataset_id: str, *, catalog: Path = CATALOG) -> list[Path]:
-    """Re-apply the Portolan v0.3 metadata fixups directly to a published collection.
-
-    Unlike ``catalogize()``, this needs no ``staging/<id>/``: every input is
-    already in ``catalog/`` or committed to the repository. Canonicalizes the
-    declared Portolan schema URI, fills every missing ``table:columns``
-    description and asset description, and sets ``file:size``/``file:checksum``
-    for the two asset kinds whose bytes are actually committed (thumbnail,
-    styles). Never touches ``updated`` — this is a metadata re-apply, not a
-    sync (PORTO-CORE-057 only binds a sync tool). Idempotent: a second run on
-    an already-fixed collection writes nothing.
-    """
-    dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
-    collection_path = dataset_dir / "collection.json"
-    doc = read_json(collection_path)
-    before = json.dumps(doc, sort_keys=True)
-
-    group = dataset_relpath(dataset_id, catalog=catalog).split("/")[0]
-    canonicalize_portolan_schema(doc)
-    fill_table_column_descriptions(doc, group=group, dataset_dir=dataset_dir)
-    fill_asset_descriptions(doc)
-    fill_local_checksums(doc, dataset_dir)
-
-    if json.dumps(doc, sort_keys=True) == before:
-        written = []
-    else:
-        write_json(collection_path, doc)
-        written = [collection_path]
-
-    return written + reapply_chip_subcatalog_schema(dataset_dir)
-
-
 def reapply_chip_subcatalog_schema(dataset_dir: Path) -> list[Path]:
     """Canonicalize the Portolan schema URI in every ``chips/<square>/catalog.json``.
 
@@ -1254,7 +1188,7 @@ def enrich_collection(
     absolute builder paths in ``ftw:config`` repository-relative, and, when
     the manifest carries an ``ftw1`` block for this dataset, appends the FTW
     1.0 comparison to README.md. Also applies the Portolan v0.3 metadata
-    fixups (``reapply_metadata``'s own three calls): the schema URI, every
+    fixups: the schema URI, every
     missing ``table:columns``/asset description, and ``file:size``/
     ``file:checksum`` for the committed (non-data) assets.
     """
@@ -2433,38 +2367,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )
-    parser.add_argument(
-        "--sanitize-config", nargs="*", metavar="ID", default=None,
-        help="only make the local paths in catalog/<source>/<id>/collection.json's ftw:config "
-             "repository-relative (all built collections when no id is given); a dry run "
-             "unless --confirm",
-    )
-    parser.add_argument(
-        "--reapply-metadata", nargs="*", metavar="ID", default=None,
-        help="re-apply the Portolan v0.3 metadata fixups (schema URI, table:columns and "
-             "asset descriptions, thumbnail/style checksums) directly to catalog/<source>/<id>/"
-             "collection.json, no staging/ needed (all built collections when no id is given); "
-             "see reapply_metadata",
-    )
-    parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
-    if args.sanitize_config is not None:
-        ids = args.sanitize_config or sorted(published_collections(CATALOG))
-        changed = sanitize_config(ids, confirm=args.confirm)
-        for path in changed:
-            print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")
-        print(f"{len(changed)} of {len(ids)} collection(s) carry local paths in ftw:config"
-              + ("" if args.confirm else " (dry run; --confirm to write)"))
-        return 0
-    if args.reapply_metadata is not None:
-        ids = args.reapply_metadata or sorted(published_collections(CATALOG))
-        changed = []
-        for dataset_id in ids:
-            changed += reapply_metadata(dataset_id)
-        for path in changed:
-            print(path.relative_to(ROOT))
-        print(f"{len(changed)} of {len(ids)} collection(s) changed")
-        return 0
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")
 
