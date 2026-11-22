@@ -32,7 +32,6 @@ from publish import (  # noqa: E402
     load_config,
     s3_client,
     split_s3_uri,
-    unedited_sentinels,
     upload_all,
 )
 
@@ -209,22 +208,6 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not is_unchanged(upload, {"k": (9, digest)}), "size differs")
     check(is_unchanged(upload, {"k": (5, "abc-2")}), "multipart: size only")
 
-# --- the sentinel guard ------------------------------------------------
-check(
-    unedited_sentinels({
-        "write_prefix": "s3://EXAMPLE-BUCKET/EXAMPLE-PREFIX",
-        "public_base": "https://example.invalid/EXAMPLE-PREFIX",
-    }) != [],
-    "an unedited config is refused",
-)
-check(
-    unedited_sentinels({
-        "write_prefix": "s3://real/prefix",
-        "public_base": "https://data.example.org/prefix",
-    }) == [],
-    "an edited config is accepted",
-)
-
 # --- the parallel upload pool ------------------------------------------
 # A fake session stands in for boto3, so this stays offline and has no
 # credentials. It records every call and fails one chosen key.
@@ -327,7 +310,7 @@ else:
 cfg = load_config()
 check(cfg.get("endpoint_url") == "https://data.source.coop", "endpoint_url is read from catalog.publish.yaml")
 check(cfg.get("profile") == "source-coop", "profile is read from catalog.publish.yaml")
-check(unedited_sentinels(cfg) == [], "no template sentinels survive in catalog.publish.yaml")
+check(cfg.get("write_prefix") == "s3://ftw/benchmark-data", "write_prefix is read from catalog.publish.yaml")
 
 # endpoint_url in the config is not enough on its own; it has to reach
 # session.client(...). s3_client is the one place every client in this
@@ -491,15 +474,12 @@ with tempfile.TemporaryDirectory() as tmp:
     planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root)
     check("pre/catalog.json" in {u.key for u in planned} and why,
           "--only on a new group adds the root files")
-    planned, why = plan_root_files(group_only, {"aa_2024"}, {}, cfg, root, no_root=True)
-    check({u.key for u in planned} == {"pre/aa/catalog.json", "pre/aa/aa_2024/collection.json"}
-          and why is None,
-          f"--no-root keeps root files out even for a new group, group files still go: {planned}")
-    planned, why = plan_root_files(collect_uploads(cfg, root), None, {}, cfg, root, no_root=True)
-    check(not {"pre/catalog.json", "pre/README.md"} & {u.key for u in planned} and why,
-          "--no-root drops the root files from a full publish too")
+    planned, why = plan_root_files(group_only, {"aa_2024"}, {"pre/aa/catalog.json": (1, "x")},
+                                   cfg, root)
+    check(planned == group_only and why is None,
+          "--only on a group already in the bucket leaves the root files out")
 
-# --- a moved collection is not published before its data is at the new keys -------
+# --- a collection is not published before its data is in the bucket --------------
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
     cfg = {"write_prefix": "s3://bkt/pre", "public_base": "https://x", "publish_dir": "catalog",
@@ -514,14 +494,14 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "catalog/aa/aa_2024/thumbnail.webp", "git owns it")
     up_coll = Upload(coll, "pre/aa/aa_2024/collection.json", "application/json")
     check(missing_data([up_coll], {}, cfg, root) == {"aa_2024": ["aa_2024_chips.parquet", "chips.pmtiles"]},
-          f"data neither staged nor at the new key is missing: {missing_data([up_coll], {}, cfg, root)}")
+          f"data neither staged nor in the bucket is missing: {missing_data([up_coll], {}, cfg, root)}")
     write(root / "staging/aa_2024/aa_2024_chips.parquet", "staged")
-    listing = {"pre/aa/aa_2024/chips.pmtiles": (1, "x"), "pre/aa_2024/chips.pmtiles": (1, "old")}
+    listing = {"pre/aa/aa_2024/chips.pmtiles": (1, "x")}
     check(missing_data([up_coll], listing, cfg, root) == {},
-          "staged data, or data already copied to the new key, is enough")
-    check(missing_data([up_coll], {"pre/aa_2024/chips.pmtiles": (1, "x")}, cfg, root)
+          "staged data, or data already in the bucket, is enough")
+    check(missing_data([up_coll], {"pre/bb/aa_2024/chips.pmtiles": (1, "x")}, cfg, root)
           == {"aa_2024": ["chips.pmtiles"]},
-          "data still only at the old flat key does not count")
+          "data under another group's key does not count")
     uploaded(listing, up_coll)
     (root / "staging/aa_2024/aa_2024_chips.parquet").unlink()
     check(missing_data([up_coll], listing, cfg, root) == {},
@@ -550,12 +530,10 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
-    from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _retry_config, _transfer_config
+    from publish import MULTIPART_CHUNK_BYTES, RETRY_MAX_ATTEMPTS, _client_config, _transfer_config
 
-    _cfg = _retry_config()
+    _cfg = _client_config(retry=True, pool_size=None)
     check(_cfg is not None and _cfg.retries == {"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"}, "S3 clients use the standard retry mode with more attempts")
-    from publish import _client_config
-
     _pc = _client_config(retry=True, pool_size=32)
     check(_pc.max_pool_connections == 32 and _pc.retries["mode"] == "standard", "the listing client gets a pool for every worker and keeps the retries")
     check(_client_config(retry=False, pool_size=None) is None, "a default client gets no Config")
@@ -628,7 +606,7 @@ for tile in ("30SVH", "31TBF"):
         for f in ("image_s2.tif", "mask.tif"):
             _keys.append(f"bd/aa/aa_2024/chips/{tile}/ftw-{tile}{chip}/{f}")
 _keys.append("bd/bb/bb_2025/chips/32ULU/ftw-32ULU0/mask.tif")
-# A dataset still at the old flat key during the move: never walked, never split.
+# A top-level folder that is not a source group: never walked, never split.
 _old = [f"bd/zz_2020/chips/30SVH/ftw-30SVH{c}/mask.tif" for c in range(3)] + ["bd/zz_2020/collection.json"]
 _expected = {k: (len(k), f'"{k}"') for k in _keys if k.startswith("bd/")}
 
@@ -659,7 +637,7 @@ try:
     )
     check(
         not any(p.startswith("bd/zz_2020/") for p, _ in _lister.requests),
-        "a top-level folder that is not a source group (an old flat dataset) is never walked",
+        "a top-level folder that is not a source group is never walked",
     )
 
     _lister = FakeLister(_keys)

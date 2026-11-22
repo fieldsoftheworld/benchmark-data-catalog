@@ -7,9 +7,8 @@ byte for byte; this gate fetches each copy's original at the ftwd pin and
 fails on any difference, so a filter fix lands in ftwd and reaches here by
 moving the pin and re-copying, never by a local edit.
 
-Files with no counterpart in ftwd (written before filters moved
-there) are skipped with a note. Offline, the gate notes and skips rather
-than failing.
+A copy with no counterpart in ftwd fails too. Offline, the gate notes and
+skips rather than failing.
 
 Run: python3 tests/test_filters.py
 """
@@ -36,10 +35,10 @@ for path in sorted((ROOT / "datasets" / "filters").glob("*.yaml")):
         with urllib.request.urlopen(url, timeout=30) as resp:
             upstream = resp.read()
     except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            print(f"note   {path.name}: not in ftwd@{pin.value[:8]}, skipped")
-            continue
-        raise
+        if exc.code != 404:
+            raise
+        errors.append(f"datasets/filters/{path.name} is not in ftwd@{pin.value[:8]}")
+        continue
     except urllib.error.URLError as exc:
         print(f"skip   offline ({exc.reason}); filter drift not checked")
         raise SystemExit(0) from None

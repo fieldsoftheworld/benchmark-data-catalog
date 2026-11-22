@@ -18,10 +18,10 @@ source.coop renders these files where a relative link cannot resolve), and —
 with ``--root`` — regenerates the root catalog's child links and the ``##
 Collections`` tables in the root docs.
 
-    uv run python tools/catalogize.py lu            # one dataset
-    uv run python tools/catalogize.py lu --root      # + regenerate the root
-    uv run python tools/catalogize.py --root         # root only (e.g. after
-                                                      # removing a dataset)
+    uv run python tools/catalogize.py at_2024          # one dataset
+    uv run python tools/catalogize.py at_2024 --root   # + regenerate the root
+    uv run python tools/catalogize.py --root           # root only (e.g. after
+                                                       # removing a dataset)
 
 Item JSON under ``staging/<id>/chips/*/*/`` is read and its ``root`` links
 rewritten in place, but no item directory and no raster is ever copied into
@@ -710,34 +710,6 @@ def _field_count(dataset_dir: Path) -> int | None:
     return _row_count(path) if path else None
 
 
-def ftw1_section(dataset_id: str, spec: dict, *, staging: Path, recipe: dict) -> str:
-    """The '## Compared with Fields of the World 1.0' section, or "" without an ftw1 block.
-
-    Every number for *this* collection is measured, never typed in: chip and
-    split counts come from ``<id>_chips.parquet``, the field count from
-    ``<id>_fields.parquet``, and the edition year from the recipe's own
-    description (``... (edition YYYY)``).
-    """
-    ftw1 = spec.get("ftw1")
-    if not ftw1:
-        return ""
-    counts = _chip_counts(staging / dataset_id / f"{dataset_id}_chips.parquet")
-    n_fields = _row_count(_fields_parquet(staging / dataset_id))
-    description = (recipe.get("metadata") or {}).get("description") or ""
-    match = re.search(r"edition (\d{4})", description)
-    edition_year = match.group(1) if match else "?"
-
-    text = (
-        f"Fields of the World 1.0 published `{spec['ftw1_name']}` with `{ftw1['chips']}` chips "
-        f"(`{ftw1['train']}` train / `{ftw1['val']}` val / `{ftw1['test']}` test) cut from "
-        f"`{ftw1['parcels']}` parcels declared for `{ftw1['year']}`, under `{ftw1['license']}`. "
-        f"This collection has `{counts['total']}` chips "
-        f"(`{counts['train']}`/`{counts['val']}`/`{counts['test']}`) cut from `{n_fields}` fields "
-        f"declared for `{edition_year}`."
-    )
-    return f"\n## Compared with Fields of the World 1.0\n\n{text}\n"
-
-
 def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     """Re-read ``file:size`` for every relative asset that exists in staging.
 
@@ -812,38 +784,6 @@ def strip_local_paths(config, root: Path = ROOT, unresolved: list[str] | None = 
     return config
 
 
-def sanitize_config(
-    dataset_ids: list[str], *, catalog: Path = CATALOG, confirm: bool = False
-) -> list[Path]:
-    """The ``catalog/<source>/<id>/collection.json`` files whose ``ftw:config`` carries local paths.
-
-    With ``confirm``, rewrites just that member in place (``strip_local_paths``, the
-    same code a full catalogize run uses), so collections published before the fix
-    can be cleaned without a rebuild and republished as metadata only. Nothing else
-    in the file changes, ``updated`` included. A file holding a path that cannot be
-    placed in the repository is skipped with a warning, never rewritten to a guess.
-    """
-    changed = []
-    for dataset_id in dataset_ids:
-        path = catalog / dataset_relpath(dataset_id, catalog=catalog) / "collection.json"
-        doc = read_json(path)
-        if "ftw:config" not in doc:
-            continue
-        unresolved: list[str] = []
-        clean = strip_local_paths(doc["ftw:config"], unresolved=unresolved)
-        if unresolved:
-            print(f"warning  {dataset_id}: skipped, {unresolved} is not inside a "
-                  f"{_REPO_NAME} checkout; fix it by hand or rebuild")
-            continue
-        if clean == doc["ftw:config"]:
-            continue
-        if confirm:
-            doc["ftw:config"] = clean
-            write_json(path, doc)
-        changed.append(path)
-    return changed
-
-
 # --- Portolan v0.3 metadata: table:columns and asset descriptions ----------
 #
 # PORTO-FMT-077/078/079 (SHOULD): every table:columns entry should carry a
@@ -854,9 +794,7 @@ def sanitize_config(
 #
 # None of this needs staging/<id>/ — every input is already in catalog/ or
 # committed to the repository (the fiboa field descriptions fetched from each
-# group's harmonized source, below), so these fixups run directly against the
-# published tree via ``reapply_metadata`` and also run inside
-# ``enrich_collection`` for a real build.
+# group's harmonized source, below); they run inside ``enrich_collection``.
 
 # tools/fiboa_field_descriptions.json: {group id: {column name: description}},
 # fetched from each group's harmonized source collection
@@ -1182,38 +1120,6 @@ def fill_local_checksums(doc: dict, dataset_dir: Path) -> int:
     return changed
 
 
-def reapply_metadata(dataset_id: str, *, catalog: Path = CATALOG) -> list[Path]:
-    """Re-apply the Portolan v0.3 metadata fixups directly to a published collection.
-
-    Unlike ``catalogize()``, this needs no ``staging/<id>/``: every input is
-    already in ``catalog/`` or committed to the repository. Canonicalizes the
-    declared Portolan schema URI, fills every missing ``table:columns``
-    description and asset description, and sets ``file:size``/``file:checksum``
-    for the two asset kinds whose bytes are actually committed (thumbnail,
-    styles). Never touches ``updated`` — this is a metadata re-apply, not a
-    sync (PORTO-CORE-057 only binds a sync tool). Idempotent: a second run on
-    an already-fixed collection writes nothing.
-    """
-    dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
-    collection_path = dataset_dir / "collection.json"
-    doc = read_json(collection_path)
-    before = json.dumps(doc, sort_keys=True)
-
-    group = dataset_relpath(dataset_id, catalog=catalog).split("/")[0]
-    canonicalize_portolan_schema(doc)
-    fill_table_column_descriptions(doc, group=group, dataset_dir=dataset_dir)
-    fill_asset_descriptions(doc)
-    fill_local_checksums(doc, dataset_dir)
-
-    if json.dumps(doc, sort_keys=True) == before:
-        written = []
-    else:
-        write_json(collection_path, doc)
-        written = [collection_path]
-
-    return written + reapply_chip_subcatalog_schema(dataset_dir)
-
-
 def reapply_chip_subcatalog_schema(dataset_dir: Path) -> list[Path]:
     """Canonicalize the Portolan schema URI in every ``chips/<square>/catalog.json``.
 
@@ -1251,12 +1157,10 @@ def enrich_collection(
     ensures a ``via`` link (rewritten to a browsable page, PTL-PRO-001) and
     — for an "other" license — a ``license`` link exist, registers a
     ``rel: pmtiles`` link for every PMTiles asset (PTL-VIZ-003), makes the
-    absolute builder paths in ``ftw:config`` repository-relative, and, when
-    the manifest carries an ``ftw1`` block for this dataset, appends the FTW
-    1.0 comparison to README.md. Also applies the Portolan v0.3 metadata
-    fixups (``reapply_metadata``'s own three calls): the schema URI, every
-    missing ``table:columns``/asset description, and ``file:size``/
-    ``file:checksum`` for the committed (non-data) assets.
+    absolute builder paths in ``ftw:config`` repository-relative. Also
+    applies the Portolan v0.3 metadata fixups: the schema URI, every missing
+    ``table:columns``/asset description, and ``file:size``/``file:checksum``
+    for the committed (non-data) assets.
     """
     dataset_dir = catalog / dataset_relpath(dataset_id, catalog=catalog)
     collection_path = dataset_dir / "collection.json"
@@ -1284,19 +1188,7 @@ def enrich_collection(
     fill_local_checksums(doc, dataset_dir)
     doc["updated"] = _now_iso(now)
     write_json(collection_path, doc)
-    written = [collection_path, *reapply_chip_subcatalog_schema(dataset_dir)]
-
-    spec = (manifest.get("datasets") or {}).get(dataset_id) or {}
-    section = ftw1_section(dataset_id, spec, staging=staging, recipe=recipe)
-    if section:
-        readme_path = dataset_dir / "README.md"
-        text = readme_path.read_text()
-        if not text.endswith("\n"):
-            text += "\n"
-        readme_path.write_text(text + section)
-        written.append(readme_path)
-
-    return written
+    return [collection_path, *reapply_chip_subcatalog_schema(dataset_dir)]
 
 
 # --- post-processing the collection's README.md and AGENTS.md --------------
@@ -1319,7 +1211,7 @@ def _absolute_target(target: str, *, base_rel: str, manifest: dict) -> str:
     """One markdown link target, made absolute against the published catalog.
 
     A relative target is resolved against ``base_rel`` (the document's own
-    directory inside the catalog, e.g. ``lu``) and then published: markdown
+    directory inside the catalog, e.g. ``at/at_2024``) and then published: markdown
     goes to the human page on source.coop, everything else to the raw file on
     data.source.coop. Already-absolute targets, fragments and ``mailto:``
     are returned untouched.
@@ -2380,7 +2272,7 @@ def _check_group(dataset_id: str, recipe: dict, catalog: Path) -> None:
     if group and group != published:
         sys.exit(
             f"{dataset_id}: published under catalog/{published}/ but its recipe's source_via "
-            f"names {group}; move it with tools/relayout.py or fix the recipe"
+            f"names {group}; move its catalog folder or fix the recipe"
         )
 
 
@@ -2429,42 +2321,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Copy staging/<id>'s git-owned metadata into catalog/<source>/<id>, published.",
     )
-    parser.add_argument("dataset_id", nargs="?", help="dataset id, e.g. 'lu' (see datasets.yaml)")
+    parser.add_argument("dataset_id", nargs="?", help="dataset id, e.g. 'at_2024' (see datasets.yaml)")
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )
-    parser.add_argument(
-        "--sanitize-config", nargs="*", metavar="ID", default=None,
-        help="only make the local paths in catalog/<source>/<id>/collection.json's ftw:config "
-             "repository-relative (all built collections when no id is given); a dry run "
-             "unless --confirm",
-    )
-    parser.add_argument(
-        "--reapply-metadata", nargs="*", metavar="ID", default=None,
-        help="re-apply the Portolan v0.3 metadata fixups (schema URI, table:columns and "
-             "asset descriptions, thumbnail/style checksums) directly to catalog/<source>/<id>/"
-             "collection.json, no staging/ needed (all built collections when no id is given); "
-             "see reapply_metadata",
-    )
-    parser.add_argument("--confirm", action="store_true", help="write --sanitize-config changes")
     args = parser.parse_args(argv)
-    if args.sanitize_config is not None:
-        ids = args.sanitize_config or sorted(published_collections(CATALOG))
-        changed = sanitize_config(ids, confirm=args.confirm)
-        for path in changed:
-            print(f"{'rewrote' if args.confirm else 'would rewrite'}  {path.relative_to(ROOT)}")
-        print(f"{len(changed)} of {len(ids)} collection(s) carry local paths in ftw:config"
-              + ("" if args.confirm else " (dry run; --confirm to write)"))
-        return 0
-    if args.reapply_metadata is not None:
-        ids = args.reapply_metadata or sorted(published_collections(CATALOG))
-        changed = []
-        for dataset_id in ids:
-            changed += reapply_metadata(dataset_id)
-        for path in changed:
-            print(path.relative_to(ROOT))
-        print(f"{len(changed)} of {len(ids)} collection(s) changed")
-        return 0
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")
 

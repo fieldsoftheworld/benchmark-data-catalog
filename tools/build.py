@@ -122,7 +122,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build one dataset with the pinned ftwd (ftwd run datasets/<id>.yaml).",
     )
-    parser.add_argument("dataset_id", help="dataset id, e.g. 'lu' (see datasets.yaml)")
+    parser.add_argument("dataset_id", help="dataset id, e.g. 'at_2024' (see datasets.yaml)")
     parser.add_argument("--only", default=None, help="run a single ftwd stage only")
     parser.add_argument(
         "--from", dest="from_", default=None, help="run from this ftwd stage onward"

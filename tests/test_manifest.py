@@ -14,7 +14,6 @@ apart from PyYAML.
 Run: python3 tests/test_manifest.py
 """
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -271,26 +270,6 @@ for dataset_id in sorted(declared & recipes):
                 f"(got {mask_types})"
             )
     spec = MANIFEST["datasets"][dataset_id] or {}
-    ftw1_name = spec.get("ftw1_name")
-    if not ftw1_name:
-        err(f"datasets.yaml: {dataset_id} needs ftw1_name (FTW 1.0 folder name, or 'none')")
-    ftw1 = spec.get("ftw1")
-    if ftw1_name == "none":
-        if ftw1:
-            err(f"datasets.yaml: {dataset_id} has ftw1_name: none but also carries an ftw1 block")
-    elif ftw1_name:
-        if not ftw1:
-            err(f"datasets.yaml: {dataset_id} needs an ftw1 block (ftw1_name is {ftw1_name!r})")
-        else:
-            for key in ("year", "parcels", "chips", "train", "val", "test"):
-                if not isinstance(ftw1.get(key), int):
-                    err(f"datasets.yaml: {dataset_id}.ftw1.{key} must be an int, got {ftw1.get(key)!r}")
-            license_ = ftw1.get("license")
-            if not isinstance(license_, str) or not re.match(r"^[\w.\-]+$", license_ or ""):
-                err(
-                    f"datasets.yaml: {dataset_id}.ftw1.license must be an SPDX-looking "
-                    f"string, got {license_!r}"
-                )
     thumb = spec.get("thumbnail") or {}
     if not thumb.get("style"):
         err(f"datasets.yaml: {dataset_id}.thumbnail needs style")

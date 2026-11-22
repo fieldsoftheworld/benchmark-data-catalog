@@ -18,9 +18,7 @@ public bucket, without listing it:
   (``fields_filtered`` when the dataset has a class filter, else ``fields``),
   read from the Parquet footer;
 - countries: chips per country, from the chips file's ``admin0_iso3`` and
-  ``admin0_name`` (ftwd's ``stages.chips.admin_names``, FAO GAUL 2024). For a chips
-  file without them (built before ftwd had the step) the names are looked up the same
-  way ftwd does, from each chip's centre.
+  ``admin0_name`` (ftwd's ``stages.chips.admin_names``, FAO GAUL 2024).
 
 The tracker page (hannah-rae.github.io/ftw-tracker) shows the result.
 """
@@ -98,17 +96,8 @@ def row_count(con, parquet_url: str) -> int:
 
 def chips_by_country(con, chips_url: str) -> dict[str, dict]:
     """Chips per country: {iso3: {"name": ..., "chips": n}}; chips with no country left out."""
-    from ftw_dataset_tools.api import admin_names
-
-    src = f"SELECT * FROM read_parquet({_sql(chips_url)})"
-    columns = [c[0] for c in con.execute(f"{src} LIMIT 0").description]
-    if {"admin0_iso3", "admin0_name"} <= set(columns):
-        table = f"({src})"
-    else:
-        admin_names.name_chips(con, src)
-        table = "_named"
     rows = con.execute(
-        f"SELECT admin0_iso3, any_value(admin0_name), count(*) FROM {table} "
+        f"SELECT admin0_iso3, any_value(admin0_name), count(*) FROM read_parquet({_sql(chips_url)}) "
         "WHERE admin0_iso3 IS NOT NULL GROUP BY 1"
     ).fetchall()
     return {iso: {"name": name, "chips": int(n)} for iso, name, n in rows}

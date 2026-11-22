@@ -552,8 +552,7 @@ every collection from the harmonized field boundary catalog instead of a
 one-off per-country conversion, so a collection can be regenerated when its
 source publishes a new edition; it adds the DECODE boundary and distance masks;
 and it publishes the chips as STAC with a queryable item mirror rather than
-folders of files. Each collection's own README states, in measured numbers, how
-it compares with the 1.0 folder it supersedes.
+folders of files.
 
 Version 2 is still being built out and does not yet cover everything 1.0 does —
 the collections table above is the whole of it. Use 1.0 for anything version 2

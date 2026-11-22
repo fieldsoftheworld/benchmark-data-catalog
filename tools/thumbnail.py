@@ -9,17 +9,17 @@ WebP with Pillow before registering it as the collection's ``thumbnail`` asset.
 Start chiitiler first (``tools/chiitiler.sh``, or by hand — see that script),
 then:
 
-    uv run python tools/thumbnail.py lu             # writes catalog/<source>/lu/thumbnail.webp
-    uv run python tools/thumbnail.py lu --zoom 13   # override the window zoom
-    uv run python tools/thumbnail.py lu --rank 1    # second-densest cluster
-    uv run python tools/thumbnail.py lu --style outline
+    uv run python tools/thumbnail.py at_2024             # writes catalog/at/at_2024/thumbnail.webp
+    uv run python tools/thumbnail.py at_2024 --zoom 13   # override the window zoom
+    uv run python tools/thumbnail.py at_2024 --rank 1    # second-densest cluster
+    uv run python tools/thumbnail.py at_2024 --style outline
 
 Look at the image afterwards (the Read tool, or any viewer). The blank-probe
 gate only proves that some data landed in the frame, not that the picture is
 good.
 
 Chiitiler mechanism (verified against ``.cache/chiitiler/src`` and by
-rendering ``lu`` end to end):
+rendering a collection end to end):
 
 * Rendering: ``POST /clip.{ext}?bbox=minLon,minLat,maxLon,maxLat&size=N`` with
   the style JSON as the request body (``{"style": {...}}``) — the "POST the
@@ -37,7 +37,7 @@ rendering ``lu`` end to end):
   (the form used for the in-browser map, resolved relative to the style
   file) will not resolve here: it must instead be a ``tiles`` array
   templated on an *absolute* local path, e.g.
-  ``{"type": "vector", "tiles": ["pmtiles:///abs/staging/lu/chips.pmtiles/{z}/{x}/{y}"], "minzoom": ..., "maxzoom": ...}``.
+  ``{"type": "vector", "tiles": ["pmtiles:///abs/staging/at_2024/chips.pmtiles/{z}/{x}/{y}"], "minzoom": ..., "maxzoom": ...}``.
   ``rewrite_style()`` below performs exactly that rewrite, reading
   minzoom/maxzoom from the PMTiles header.
 * The catalog's styles reference their PMTiles one directory up from the
@@ -309,7 +309,7 @@ def render(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("datasets", nargs="+", help="dataset ids from datasets.yaml, e.g. lu")
+    parser.add_argument("datasets", nargs="+", help="dataset ids from datasets.yaml, e.g. at_2024")
     parser.add_argument("--style", help="style id override (default: datasets.yaml thumbnail.style)")
     parser.add_argument("--zoom", type=float, help="window zoom override (default: datasets.yaml thumbnail.zoom)")
     parser.add_argument("--rank", type=int, help="densest-cluster rank override (0 = densest)")

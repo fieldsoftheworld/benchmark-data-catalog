@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Build the root chips table: every chip of every published dataset, with its splits.
 
-    uv run python tools/chips_table.py --bootstrap        # first build: frozen splits from the chips files
-    uv run python tools/chips_table.py                    # later builds: frozen splits from the published table
+    uv run python tools/chips_table.py                    # frozen splits from the published table
     uv run python tools/chips_table.py --staged pt_2021   # read pt_2021's chips from staging/
 
 Writes ``staging/chips.parquet`` (``--out`` to change), which ``tools/upload_data.py``
@@ -18,8 +17,7 @@ Columns:
 
   - ``split_legacy``: the split each dataset published before this table existed, by
     whatever scheme its recipe used (seeded ``block3x3`` or ``predefined``). Frozen:
-    ``--bootstrap`` reads it from the published chips files, every later build carries it
-    over from the published table, and chips added later get null.
+    every build carries it over from the published table, and chips added later get null.
   - ``split_predefined``: the source's own split, for datasets whose recipe sets
     ``split_type: predefined``; null elsewhere. Read from the chips file of a
     ``--staged`` dataset; carried over from the previous table for the others.
@@ -37,7 +35,7 @@ Columns:
     every chip's unit and split and each country's kind of unit, gives a new chip of a
     known unit that unit's split, and fills new units into the split furthest below its
     share in their country. It refuses a frozen val or test unit that gains a presence-only
-    chip, and a previous table without the column unless ``--start-admin2-split``.
+    chip, and a previous table without the column.
 
 - ``license`` and ``license_url`` (the collection's license and its own license link, or
   the SPDX page for a standard id),
@@ -50,10 +48,9 @@ Datasets are the collections the root catalog links (``catalog_stats.published_d
 plus any ``--staged`` id that is not published yet.
 
 The frozen columns exist nowhere else once the per-dataset files stop carrying ``split``,
-so the build refuses anything that would lose them: ``--bootstrap`` when a table is
-already published or a published chips file has no (or an incomplete) ``split``, a later
-build that leaves out a dataset of the previous table or chips of one (unless ``--drop``
-names the dataset), and a staged predefined dataset whose chips file has no ``split``.
+so the build refuses anything that would lose them: a build that leaves out a dataset of
+the previous table or chips of one (unless ``--drop`` names the dataset), and a staged
+predefined dataset whose chips file has no ``split``.
 
 The table is written to ``work/`` by default, so a dataset's upload never publishes it;
 copy it to ``staging/`` and upload it on its own (README, "Root chips table").
@@ -63,8 +60,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import urllib.error
-import urllib.request
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -80,7 +75,6 @@ SPLITS = ("train", "val", "test")
 HASH_PERCENTS = (80, 10, 10)
 HASH_SALT = "ftw-split-v1"  # ftwd's SPLIT_HASH_VERSION when v1 was defined; never change it
 ADMIN_COLUMNS = ("admin0_iso3", "admin0_name", "admin1_name", "admin2_name")
-SPLIT_COLUMNS = ("split_legacy", "split_predefined", "split_hash_v1", "split_admin2_v1")
 ADMIN2_SALT = "ftw-split-admin2-v1"  # never change it; a new scheme is split_admin2_v2
 # A country needs this many admin2 units to give each split one; with fewer, blocks are units.
 MIN_ADMIN2_UNITS = 3
@@ -118,7 +112,7 @@ class DatasetInput:
     dataset: str
     group: str
     chips: str  # path or URL of the chips file this build reads
-    published_chips: str | None  # the published chips file, for --bootstrap's frozen splits
+    published_chips: str | None  # the published chips file; None for an unpublished dataset
     split_type: str | None
     km_size: float
     license: str | None = None
@@ -206,37 +200,17 @@ def _columns(con, source: str) -> set[str]:
         f"DESCRIBE SELECT * FROM read_parquet({_sql(source)})").fetchall()}
 
 
-def _read_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
+def _read_dataset(item: DatasetInput, out: Path) -> None:
     """One dataset's rows as a parquet file in the table's column order (no hash yet)."""
     import duckdb
 
     try:
-        _copy_dataset(item, bootstrap, out)
+        _copy_dataset(item, out)
     except duckdb.Error as err:
         raise ChipsTableError(f"{item.dataset}: {err}") from err
 
 
-def _legacy_source(con, item: DatasetInput, cols: set[str]) -> tuple[str, str]:
-    """``(expression, join)`` for --bootstrap's split_legacy: the published file's ``split``."""
-    if not item.published_chips:
-        return "NULL::VARCHAR", ""
-    published_cols = cols if item.published_chips == item.chips else _columns(
-        con, item.published_chips)
-    if "split" not in published_cols:
-        raise ChipsTableError(f"{item.dataset}: --bootstrap, but the published chips file has no "
-                              f"split column, so there is no legacy split to freeze")
-    gaps = con.execute(f"SELECT count(*) - count(split) FROM read_parquet("
-                       f"{_sql(item.published_chips)})").fetchone()[0]
-    if gaps:
-        raise ChipsTableError(f"{item.dataset}: --bootstrap, but {gaps:,} published chips have "
-                              f"no split to freeze")
-    if item.published_chips == item.chips:
-        return "c.split", ""
-    return "p.split", (f" LEFT JOIN (SELECT id, split FROM read_parquet("
-                       f"{_sql(item.published_chips)})) p USING (id)")
-
-
-def _copy_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
+def _copy_dataset(item: DatasetInput, out: Path) -> None:
     from ftw_dataset_tools.api import admin_names
 
     con = admin_names.connect()
@@ -250,8 +224,6 @@ def _copy_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
                           for c in ADMIN_COLUMNS)
         split = "c.split" if "split" in cols else "NULL::VARCHAR"
         predefined = split if item.split_type == "predefined" else "NULL::VARCHAR"
-        legacy, legacy_join = (_legacy_source(con, item, cols) if bootstrap
-                               else ("NULL::VARCHAR", ""))
         lic = ", ".join([
             f"{_sql(item.license) if item.license else 'NULL'}::VARCHAR AS license",
             f"{_sql(item.license_url) if item.license_url else 'NULL'}::VARCHAR AS license_url",
@@ -260,8 +232,8 @@ def _copy_dataset(item: DatasetInput, bootstrap: bool, out: Path) -> None:
         con.execute(f"""
             COPY (SELECT {_sql(item.dataset)} AS dataset, {_sql(item.group)} AS "group",
                          c.id, {admin}, {lic}, c.geometry, c.bbox,
-                         {legacy} AS split_legacy, {predefined} AS split_predefined
-                  FROM read_parquet({_sql(item.chips)}) c{legacy_join})
+                         NULL::VARCHAR AS split_legacy, {predefined} AS split_predefined
+                  FROM read_parquet({_sql(item.chips)}) c)
             TO {_sql(str(out))} (FORMAT parquet)""")
     finally:
         con.close()
@@ -371,7 +343,7 @@ def admin2_splits(locations, previous=None):
     return loc[["id", "unit", "split"]]
 
 
-def _admin2_table(con, previous: str | None, start_admin2: bool = False) -> None:
+def _admin2_table(con, previous: str) -> None:
     """Table ``admin2(id, unit_admin2_v1, split_admin2_v1)`` over the chips in ``rows``."""
     # one row's whole admin tuple (the smallest), so a location's unit is stable across runs
     locations = con.execute("""
@@ -380,15 +352,13 @@ def _admin2_table(con, previous: str | None, start_admin2: bool = False) -> None
                      min(h.block) AS block, bool_or(r.presence_only) AS presence_only
               FROM rows r JOIN sizes s USING (dataset)
               JOIN hashed h ON h.id = r.id AND h.km_size = s.km_size GROUP BY r.id)""").df()
-    prev = None
-    if previous is not None and "split_admin2_v1" not in _columns(con, previous) and not start_admin2:
+    if "split_admin2_v1" not in _columns(con, previous):
         raise ChipsTableError(
             f"the previous table {previous} has no split_admin2_v1, so the split would start "
-            f"from scratch; pass --start-admin2-split only for the first build that adds it")
-    if previous is not None and not start_admin2:
-        prev = con.execute(f"""
-            SELECT id, any_value(unit_admin2_v1) AS unit, any_value(split_admin2_v1) AS split
-            FROM read_parquet({_sql(previous)}) GROUP BY id""").df()
+            f"from scratch")
+    prev = con.execute(f"""
+        SELECT id, any_value(unit_admin2_v1) AS unit, any_value(split_admin2_v1) AS split
+        FROM read_parquet({_sql(previous)}) GROUP BY id""").df()
     out = admin2_splits(locations, prev)
     con.register("admin2_df", out.rename(columns={"unit": "unit_admin2_v1",
                                                   "split": "split_admin2_v1"}))
@@ -493,50 +463,30 @@ def check_rows(con, inputs: list[DatasetInput]) -> None:
                               f"one (stage it from a build whose chips file has split)")
 
 
-def table_exists(location: str) -> bool:
-    """True when ``location`` (a path or an http(s) URL) has a file."""
-    if "://" not in location:
-        return Path(location).is_file()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(location, method="HEAD"), timeout=30):
-            return True
-    except urllib.error.HTTPError as err:
-        if err.code == 404:
-            return False
-        raise ChipsTableError(f"can't tell whether {location} exists: {err}") from err
-    except urllib.error.URLError as err:
-        raise ChipsTableError(f"can't tell whether {location} exists: {err}") from err
-
-
-def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
-          previous: str | None = None, staged: frozenset[str] = frozenset(),
-          drop: frozenset[str] = frozenset(), workers: int = 8,
-          start_admin2: bool = False) -> int:
-    """Write the table to ``out``; the number of rows."""
+def build(inputs: list[DatasetInput], out: Path, *, previous: str,
+          staged: frozenset[str] = frozenset(), drop: frozenset[str] = frozenset(),
+          workers: int = 8) -> int:
+    """Write the table to ``out``, carrying frozen splits from ``previous``; the number of rows."""
     import geoparquet_io as gpio
     from ftw_dataset_tools.api import admin_names
 
-    if not bootstrap and previous is None:
-        raise ChipsTableError("a build without --bootstrap needs the previous table")
     out = out.resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=out.parent) as tmp:
         parts = [Path(tmp) / f"{item.dataset}.parquet" for item in inputs]
         with ThreadPoolExecutor(workers) as pool:
-            list(pool.map(lambda a: _read_dataset(a[0], bootstrap, a[1]), zip(inputs, parts)))
+            list(pool.map(lambda a: _read_dataset(a[0], a[1]), zip(inputs, parts)))
         con = admin_names.connect()
         try:
             files = ", ".join(_sql(str(p)) for p in parts)
             con.execute(f"CREATE TABLE rows AS SELECT * FROM read_parquet([{files}])")
-            if not bootstrap:
-                _carry_frozen(con, previous, inputs, set(staged), set(drop))
+            _carry_frozen(con, previous, inputs, set(staged), set(drop))
             _hash_table(con, inputs)
             check_rows(con, inputs)
-            if not bootstrap:
-                con.execute(f"CREATE TABLE prev_hash AS SELECT dataset, id, block, split_hash_v1 "
-                            f"FROM read_parquet({_sql(previous)})")
-                check_hash_unchanged(con)
-            _admin2_table(con, None if bootstrap else previous, start_admin2)
+            con.execute(f"CREATE TABLE prev_hash AS SELECT dataset, id, block, split_hash_v1 "
+                        f"FROM read_parquet({_sql(previous)})")
+            check_hash_unchanged(con)
+            _admin2_table(con, previous)
             admin = ", ".join(f"r.{c}" for c in ADMIN_COLUMNS)
             joined = Path(tmp) / "joined.parquet"
             con.execute(f"""
@@ -564,8 +514,6 @@ def build(inputs: list[DatasetInput], out: Path, *, bootstrap: bool,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--bootstrap", action="store_true",
-                        help="read split_legacy from the published chips files (first build only)")
     parser.add_argument("--staged", nargs="*", default=[],
                         help="dataset ids to read from staging/ instead of the bucket")
     parser.add_argument("--previous", default=f"{PUBLIC_BASE}/{TABLE_NAME}",
@@ -573,24 +521,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--drop", nargs="*", default=[],
                         help="datasets whose frozen splits may be lost: left out entirely, or "
                              "chips a rebuild no longer has")
-    parser.add_argument("--start-admin2-split", action="store_true",
-                        help="assign split_admin2_v1 from scratch (only the first build that "
-                             "adds it; later builds carry it)")
     parser.add_argument("--out", type=Path, default=ROOT / "work" / TABLE_NAME)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
     staged = set(args.staged)
     try:
-        published = f"{PUBLIC_BASE}/{TABLE_NAME}"
-        for table in dict.fromkeys([args.previous, published]) if args.bootstrap else ():
-            if table_exists(table):
-                raise ChipsTableError(f"--bootstrap, but {table} exists; a later build "
-                                      f"carries its frozen splits instead")
         inputs = resolve_inputs(staged)
-        rows = build(inputs, args.out, bootstrap=args.bootstrap,
-                     previous=None if args.bootstrap else args.previous,
-                     staged=frozenset(staged), drop=frozenset(args.drop),
-                     workers=args.workers, start_admin2=args.start_admin2_split)
+        rows = build(inputs, args.out, previous=args.previous, staged=frozenset(staged),
+                     drop=frozenset(args.drop), workers=args.workers)
     except ChipsTableError as err:
         sys.exit(f"chips table: {err}")
     print(f"wrote {args.out}: {rows:,} chips from {len(inputs)} datasets")

@@ -55,10 +55,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "catalog.publish.yaml"
 
-# Values the template ships with. Publishing while any of these survives would
-# upload to a bucket that is not yours, so it is refused before any AWS call.
-SENTINELS = ("EXAMPLE-BUCKET", "EXAMPLE-PREFIX", "example.invalid")
-
 CONTENT_TYPES = {
     ".json": "application/json",
     ".geojson": "application/geo+json",
@@ -73,7 +69,6 @@ CONTENT_TYPES = {
     ".svg": "image/svg+xml",
     ".tif": "image/tiff; application=geotiff; profile=cloud-optimized",
     ".tiff": "image/tiff; application=geotiff; profile=cloud-optimized",
-    ".laz": "application/vnd.laszip",
     ".xml": "application/xml",
     ".yaml": "application/yaml",
 }
@@ -111,7 +106,7 @@ def load_config(path: Path = CONFIG) -> dict[str, str]:
     """Read the flat scalar map in catalog.publish.yaml.
 
     Deliberately not a YAML parser. The file is a flat map of strings by
-    design, so the template publishes with no dependencies at all. Do not add
+    design, so reading it needs no dependencies at all. Do not add
     nesting to it.
 
     ``write_prefix``, ``public_base`` and ``publish_dir`` are required.
@@ -141,12 +136,6 @@ def split_s3_uri(uri: str) -> tuple[str, str]:
     if not bucket:
         sys.exit(f"write_prefix names no bucket — got {uri!r}")
     return bucket, prefix
-
-
-def unedited_sentinels(config: dict[str, str]) -> list[str]:
-    """Sentinel values still present in the config, if any."""
-    blob = f"{config['write_prefix']} {config['public_base']}"
-    return [s for s in SENTINELS if s in blob]
 
 
 def _is_item_json(parts: tuple[str, ...]) -> bool:
@@ -187,9 +176,7 @@ def is_publishable(rel: Path) -> bool:
     """False for paths the publisher skips inside the published directory.
 
     Dotfiles and dot-directories are skipped, which covers .gitkeep and any
-    .portolan tooling state. A template cannot know whether a downstream user's
-    .portolan/metadata.yaml holds something they want public, so it publishes
-    none of it.
+    .portolan tooling state; none of it is published.
     """
     return not any(part.startswith(".") for part in rel.parts)
 
@@ -246,31 +233,17 @@ def new_groups(
     }
 
 
-def is_root_file(upload: Upload, config: dict[str, str], root: Path = ROOT) -> bool:
-    """True for a file directly under publish_dir (the root catalog.json, README, AGENTS, llms.txt)."""
-    return len(upload.local.relative_to(root / config["publish_dir"]).parts) == 1
-
-
 def plan_root_files(
     uploads: list[Upload],
     only: set[str] | None,
     index: dict[str, tuple[int, str]],
     config: dict[str, str],
     root: Path = ROOT,
-    *,
-    no_root: bool = False,
 ) -> tuple[list[Upload], str | None]:
-    """``uploads`` with the root files added or removed, and a line saying why.
+    """``uploads`` with the root files added, and a line saying why.
 
     ``--only`` adds them when a dataset's group is new, so the root links it.
-    ``no_root`` keeps every root file out, even then (the move into source
-    groups publishes the root once, after every group is in place); the
-    groups' own files still go.
     """
-    if no_root:
-        kept = [u for u in uploads if not is_root_file(u, config, root)]
-        dropped = len(uploads) - len(kept)
-        return kept, (f"--no-root: leaving out {dropped} root file(s)" if dropped else None)
     if only is None:
         return uploads, None
     fresh = new_groups(only, index, config, root)
@@ -287,14 +260,14 @@ def missing_data(
     config: dict[str, str],
     root: Path = ROOT,
 ) -> dict[str, list[str]]:
-    """Data a changed collection links that is neither staged nor in the bucket at its new key.
+    """Data a changed collection links that is neither staged nor in the bucket.
 
     For each dataset with a changed file in this publish, every relative asset
     href and ``rel: pmtiles`` link of its ``collection.json`` must resolve:
     to a file under ``catalog/<source>/<id>/`` (published by this run), under
     ``staging/<id>/`` (``upload_data.py`` carries it), or to an object at
-    ``<prefix>/<source>/<id>/<href>``. Publishing a moved collection before its
-    data is copied to the new keys would put links to missing objects live.
+    ``<prefix>/<source>/<id>/<href>``. Publishing a collection before its data
+    is uploaded would put links to missing objects live.
 
     The root catalog's own data links (``rel: related`` to a root file such as
     ``chips.pmtiles``) are checked when the root catalog or README changes, under
@@ -463,15 +436,6 @@ RETRY_MAX_ATTEMPTS = 8
 MULTIPART_CHUNK_BYTES = 16 * 1024 * 1024
 
 
-def _retry_config():
-    """A botocore Config with the standard retry mode, or None without botocore."""
-    try:
-        from botocore.config import Config
-    except ImportError:
-        return None
-    return Config(retries={"max_attempts": RETRY_MAX_ATTEMPTS, "mode": "standard"})
-
-
 def _transfer_config():
     """A boto3 TransferConfig with large multipart chunks, or None without boto3."""
     try:
@@ -511,9 +475,8 @@ def remote_index(
 
     Every key this tool writes is ``<prefix>/<rel>``. The listing covers the
     root files at ``<prefix>/`` and the source groups ``catalog/`` publishes
-    (``<prefix>/<source>/``, recursively); any other top-level folder, such as
-    a dataset still at the old flat ``<prefix>/<id>/``, is never walked, so it
-    is not split chip by chip. ``only`` narrows that to those datasets'
+    (``<prefix>/<source>/``, recursively); any other top-level folder is never
+    walked, so it is not split chip by chip. ``only`` narrows that to those datasets'
     ``<source>/<id>/`` folders plus their groups' own files and the root files
     (placed by ``common.dataset_relpath`` against ``root``'s publish_dir).
     """
@@ -778,24 +741,10 @@ def main() -> int:
         help="publish only this dataset's folder and its source group's files, listing only "
              "them (repeatable; root files only when the group is new)",
     )
-    parser.add_argument(
-        "--no-root",
-        action="store_true",
-        help="never upload the root files, even for a new source group (the move publishes "
-             "the root once, at the end)",
-    )
     args = parser.parse_args()
     only = set(args.only) if args.only else None
 
     config = load_config()
-
-    stale = unedited_sentinels(config)
-    if stale:
-        print("catalog.publish.yaml still carries template values:")
-        for value in stale:
-            print(f"  {value}")
-        print("\nEdit write_prefix and public_base, then see README.md.")
-        return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
     uploads = collect_uploads(config, only=only)
@@ -805,7 +754,7 @@ def main() -> int:
         return 1
 
     index = {} if args.force else remote_index(bucket, prefix, config, only=only)
-    uploads, why = plan_root_files(uploads, only, index, config, no_root=args.no_root)
+    uploads, why = plan_root_files(uploads, only, index, config)
     if why:
         print(why)
     changed = [u for u in uploads if args.force or not is_unchanged(u, index)]

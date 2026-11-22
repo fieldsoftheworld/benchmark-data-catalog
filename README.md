@@ -93,8 +93,7 @@ Both:
 
 - dry-run by default; `--confirm` to actually upload,
 - never delete — removing a file locally does not unpublish it,
-- retry proxy 5xxs, and refuse to run against the template's example
-  bucket/prefix/host sentinels,
+- retry proxy 5xxs,
 - compare local size+MD5 against the bucket listing to skip unchanged files
   (`upload_data.py` falls back to size-only for multipart-uploaded, i.e.
   large, objects); `--force` re-uploads everything, which is needed after a
@@ -126,8 +125,7 @@ Under `split_admin2_v1`, the countries whose chips are all presence-only (India 
 Africa, from lacuna and in_10k_ml) are train only. A row with no admin2 name joins its
 admin1's unit. Rows without a country or admin1, and countries with fewer than three
 admin2 units to balance, use their block as the unit; a country keeps its kind of unit
-once published. The first build that adds the column needs `--start-admin2-split`; any
-later build refuses a previous table without it.
+once published. A build refuses a previous table without the column.
 
 `license` and `license_url` (the dataset's own license link, not the embeddings'; the SPDX
 page for a standard id) come from each collection, and `license_category` sorts them
@@ -140,7 +138,6 @@ The other columns are `dataset`, `group`, `id`, `block` (the chip's 3x3 grid blo
 admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
 `read_parquet(...) WHERE dataset = 'at_2024'` reads few row groups.
 
-    uv run python tools/chips_table.py --bootstrap        # once: legacy splits from the chips files
     uv run python tools/chips_table.py --staged pt_2021   # after publishing a dataset
     cp work/chips.parquet staging/chips.parquet
     uv run python tools/upload_data.py --only chips.parquet --force --confirm
@@ -161,8 +158,8 @@ tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root 
 Rebuild it after each dataset publish, with `--staged` naming the datasets just rebuilt:
 they are read from `staging/`, and every other dataset's `split_legacy` and
 `split_predefined` are carried from the published table. The build refuses to lose a
-frozen split (a dataset left out, chips that vanish from one, a `--bootstrap` over a
-published table) unless `--drop <id>` allows it for that dataset, and refuses to change a
+frozen split (a dataset left out, or chips that vanish from one) unless `--drop <id>`
+allows it for that dataset, and refuses to change a
 carried chip's `split_hash_v1`, or to put a presence-only chip in a frozen val or test
 admin2 unit. It writes to `work/` so a dataset's upload never
 publishes it, and `upload_data.py` uploads root files only when `--only` names them.
@@ -178,7 +175,7 @@ running chiitiler:
 
     tools/chiitiler.sh &                       # clone/npm install if needed, then run
     curl -s http://localhost:13579/health      # wait for "OK"
-    uv run python tools/thumbnail.py lu        # writes catalog/lu/thumbnail.webp
+    uv run python tools/thumbnail.py at_2024   # writes catalog/at/at_2024/thumbnail.webp
     pkill -f "tile-server --port 13579"        # stop it when done
 
 `datasets.yaml` names each collection's framing under `thumbnail:` — `style`
