@@ -478,7 +478,8 @@ outlined in red where the collections' own splits disagree.
 ## What a chip carries
 
 Every chip is a STAC item on the FTW grid, so a cell id is the same square of
-ground in every collection. Each chip carries:
+ground in every collection. Masks are 2.5 m (800×800 for a 2 km chip), with
+boundary lines 10 m wide; imagery is 10 m on the same footprint. Each chip carries:
 
 - **Instance masks** — one integer label per field polygon, for instance
   segmentation.
@@ -488,16 +489,15 @@ ground in every collection. Each chip carries:
   after [Waldner et al. (2021)](https://doi.org/10.3390/rs13112197). A distance
   surface lets a watershed separate touching fields that a binary extent mask
   merges into one. New in 2.0.
-- **A split assignment** — `train`, `val` or `test`, drawn in 3×3 spatial blocks
-  (80 / 10 / 10) so that neighbouring chips do not straddle two splits and a
-  model cannot learn a test chip from its training neighbour.
+- **Field outlines** — `<item_id>_fields.parquet` (asset `field_boundaries`): the
+  fields cut to the chip, in the masks' CRS, with every column of the fields file.
 - **Field coverage**, the share of the chip's area that is mapped field, and —
   where the harmonized source carries
   [EuroCrops HCAT](https://github.com/maja601/EuroCrops) codes — the crop
   composition of the fields inside it.
 - **Sentinel-2 imagery**, in the collections that have it: the four quarterly
   cloudless mosaics (Q1-Q4) of the collection's own year, each a four-band
-  GeoTIFF (red, green, blue, NIR; 10 m) clipped to the chip's mask grid and
+  GeoTIFF (red, green, blue, NIR; 10 m) clipped to the chip's mask footprint and
   published as a child item alongside the chip. Which collections carry
   imagery, and in what shape, is in the coverage table above.
 
