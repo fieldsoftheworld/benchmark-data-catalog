@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     # The dataset cutter. Pinned by commit while its Portolan conformance PRs
     # are open; switch to "ftw-dataset-tools==X.Y.Z" once released on PyPI.
-    "ftw-dataset-tools @ git+https://github.com/fieldsoftheworld/ftw-dataset-tools@42a9e1d4116eca956126995bb46153c865c5b609",
+    "ftw-dataset-tools @ git+https://github.com/fieldsoftheworld/ftw-dataset-tools@81f74fe754f342bd1384c4061abe51671f3047dc",
     # Validators, pinned to what CI runs (.github/workflows/ci.yml). Portolan
     # v0.3.0 migration: rashid 0.4.0 is the first release that bundles the
     # v0.3.0 profile (`rashid --version` reports "Portolan profiles: v0.1.0,
