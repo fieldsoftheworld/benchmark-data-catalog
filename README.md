@@ -244,7 +244,7 @@ background) before it's written and registered as the collection's
        git commit -am "Add <id>"
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
-       uv run python tools/chips_table.py --staged <id>   # + chips_tiles.py; upload both root files (README, "Root chips table")
+       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 7. If the recipe downloads imagery, that's a second pass once selection is
@@ -256,7 +256,7 @@ background) before it's written and registered as the collection's
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
-       uv run python tools/chips_table.py --staged <id>   # + chips_tiles.py; upload both root files (README, "Root chips table")
+       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 ## Building region-years in batches
