@@ -301,6 +301,12 @@ def main(argv: list[str] | None = None) -> int:
         print("\nreview, commit, then upload with the maintainer's say-so:")
         print(f"  uv run python tools/upload_data.py {only} --confirm")
         print("  uv run python tools/publish.py --confirm")
+        if args.imagery:  # the last pass: staging is now the full build prune compares with
+            # The root chips table first, so it never lists a chip prune has deleted.
+            print(f"  uv run python tools/chips_table.py --staged {' '.join(ok)}"
+                  "   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, \"Root chips table\")")
+            print(f"  uv run python tools/prune_bucket.py {' '.join(ok)} --confirm"
+                  "   # deletes objects that neither catalog/ nor the full staging has")
         print(f"  uv run python tools/run_batch.py {' '.join(ok)} --mark-published")
     return 1 if failed else 0
 

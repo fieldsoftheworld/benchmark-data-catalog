@@ -6,21 +6,35 @@ chip set). ``upload_data.py`` and ``publish.py`` never delete, so the dropped
 chips' files would stay in the bucket, unlinked from the catalog. This lists
 ``<write_prefix>/<source>/<id>/`` and deletes every key that neither the staged data
 (``upload_data.collect_data_uploads``) nor the published catalog
-(``publish.collect_uploads``) would write.
+(``publish.collect_uploads``) would write, and that ``catalog/<source>/<id>/`` does
+not reference (``catalog_refs``).
 
     uv run python tools/prune_bucket.py at_2018 at_2019            # dry run
     uv run python tools/prune_bucket.py at_2018 at_2019 --confirm  # delete
 
-Run it after the dataset's new data is uploaded and its catalog published.
+Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
+published; it refuses when any catalog/ file is not the bucket's
+(``catalog_mismatch``, ``catalog_unpublished``) or a top-level staged data file is
+not uploaded (``data_unuploaded``). It refuses a staging that is not a full build (``staging_gaps``): a
+backfill staging, a rebuild before its imagery pass, or one whose chips parquet does
+not list exactly its staged chip directories lacks published files that pruning
+against it would delete. A chip's files are pruned only when staging has no
+directory for it, the chips parquet does not list it and catalog/ does not link it.
 Source Cooperative's proxy has no DeleteObjects, so keys go one at a time.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import posixpath
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -29,6 +43,7 @@ from publish import (  # noqa: E402
     ROOT,
     aws_session,
     collect_uploads,
+    is_unchanged,
     load_config,
     remote_index,
     s3_client,
@@ -46,13 +61,354 @@ def stale_keys(
     under = f"{prefix}/{rel}/" if prefix else f"{rel}/"
     if not (data_root(config, root) / dataset_id).is_dir():
         sys.exit(f"{dataset_id}: no staging to compare against; refusing to prune")
-    wanted = {u.key for u in collect_data_uploads(config, root, only={dataset_id})}
+    data_uploads = collect_data_uploads(config, root, only={dataset_id})
+    wanted = {u.key for u in data_uploads}
     wanted |= {u.key for u in collect_uploads(config, root, only={dataset_id}) if u.key.startswith(under)}
     if not any(k.endswith("/collection.json") for k in wanted):
         sys.exit(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"
         )
-    return sorted(k for k in remote if k.startswith(under) and k not in wanted)
+    published = root / config["publish_dir"] / rel
+    unpublished = catalog_mismatch(published, remote.get(f"{under}collection.json")) or catalog_unpublished(
+        published, under, remote, collect_uploads(config, root, only={dataset_id}), rel
+    )
+    if unpublished:
+        sys.exit(
+            f"{dataset_id}: {unpublished}; refusing to prune. Prune compares the bucket with "
+            f"the published catalog: publish catalog/{rel}/ first (tools/publish.py)."
+        )
+    not_uploaded = data_unuploaded(under, remote, data_uploads)
+    if not_uploaded:
+        sys.exit(
+            f"{dataset_id}: {not_uploaded}; refusing to prune. The bucket's chips, items and "
+            f"tiles still describe the old build: run tools/upload_data.py --only {dataset_id} first."
+        )
+    staged = data_root(config, root) / dataset_id
+    try:
+        files, chips = catalog_refs(published)
+        stale = sorted(
+            k for k in remote
+            if k.startswith(under) and k not in wanted and not _referenced(k[len(under):], files, chips)
+        )
+        gaps = staging_gaps(staged, [k[len(under):] for k in stale], published)
+    except UnresolvedItemLink as err:
+        sys.exit(f"{dataset_id}: catalog/{rel}/{err}, which prune cannot resolve to a chip; refusing to prune")
+    except (AttributeError, KeyError, OSError, TypeError, ValueError, pa.ArrowException) as err:
+        # Malformed JSON shapes or an unreadable parquet: anything the checks above do not
+        # expect is a reason to keep every object, never to guess.
+        sys.exit(f"{dataset_id}: unexpected staging or catalog content ({type(err).__name__}: {err}); "
+                 "refusing to prune")
+    if gaps:
+        shown = ", ".join(gaps[:5]) + (f" and {len(gaps) - 5:,} more" if len(gaps) > 5 else "")
+        sys.exit(
+            f"{dataset_id}: staging is not a full build ({shown}); refusing to prune. "
+            "A backfill staging or a rebuild before its imagery pass holds only part of "
+            "what is published, and pruning against it would delete the rest."
+        )
+    return stale
+
+
+def catalog_mismatch(published: Path, remote: tuple[int, str] | None) -> str | None:
+    """Why there is no published ``collection.json`` to compare against, or None.
+
+    Prune keeps what ``catalog/<source>/<id>/`` references, so the local catalog must
+    have a ``collection.json`` and the bucket must hold one. Whether the two match
+    is ``catalog_unpublished``'s check, which compares every catalog/ file.
+    """
+    local = published / "collection.json"
+    if not local.is_file():
+        return f"{local} does not exist"
+    if remote is None:
+        return "the bucket has no collection.json for it"
+    return None
+
+
+def data_unuploaded(under: str, remote: dict, uploads: list) -> str | None:
+    """The first top-level staged data file the bucket does not hold unchanged, or None.
+
+    The dataset's own files (``<id>_chips.parquet``, ``items.parquet``, the PMTiles)
+    list its chips. Until they are uploaded the bucket's copies list the old build's,
+    dropped chips included, so pruning those chips would leave them dangling. Chip
+    files are not compared: the top-level files are the cheap sign of an upload.
+    """
+    for upload in uploads:
+        rel = upload.key[len(under):] if upload.key.startswith(under) else None
+        if rel and "/" not in rel and not is_unchanged(upload, remote):
+            return f"the bucket's {rel} is not the staged one"
+    return None
+
+
+def catalog_unpublished(published: Path, under: str, remote: dict, uploads: list, rel: str) -> str | None:
+    """Why ``catalog/<source>/<id>/`` as a whole is not what the bucket holds, or None.
+
+    Every file ``publish.py --only <id>`` would upload must already be in the bucket
+    unchanged, and every sub-catalog ``collection.json`` links as a child must be on
+    disk when the bucket has it: prune keeps what catalog/ references, so a missing or
+    unpublished local file would let it delete published chips.
+    """
+    for upload in uploads:
+        if upload.key.startswith(under) and not is_unchanged(upload, remote):
+            return f"catalog/{rel}/{upload.key[len(under):]} differs from the bucket's copy"
+    for href in sorted(_link_hrefs(published / "collection.json", ".", rels={"child"})):
+        if f"{under}{href}" in remote and not (published / href).is_file():
+            return f"catalog/{rel}/{href} is linked and published but missing locally"
+    return None
+
+
+def _referenced(rel: str, files: set[str], chips: set[tuple[str, str]]) -> bool:
+    """Whether the catalog still references ``rel``: a file it names, or anything in a chip it links."""
+    parts = PurePosixPath(rel).parts
+    return rel in files or (len(parts) >= 4 and parts[0] == "chips" and (parts[1], parts[2]) in chips)
+
+
+def staging_gaps(staged: Path, stale: list[str], published: Path | None = None) -> list[str]:
+    """Why ``staged`` is not a full build to prune against; empty when it is.
+
+    ``stale`` holds the dataset-relative paths prune would delete, ``published`` the
+    dataset's ``catalog/`` folder (a collection asset it holds, the thumbnail, is not
+    staged). A full build shows none of these:
+
+    - a staged ``collection.json`` that is missing or is not a Collection with a
+      non-empty ``assets`` object of objects;
+    - a collection asset whose file is not on disk (a backfill fetches no PMTiles),
+      or whose href is absolute, which cannot be checked, or a staged style that
+      draws from PMTiles that are not staged;
+    - a stale key in the directory of a chip the build still has (``chip_gaps``).
+
+    A chip the rebuild dropped is in neither the staged chips parquet nor staging, so
+    its files are prunable.
+    """
+    doc, gaps = _staged_collection(staged)
+    if doc is None:
+        return gaps
+    for key, asset in sorted(doc["assets"].items()):
+        href = asset.get("href")
+        if not isinstance(href, str) or not href:
+            gaps.append(f"collection asset {key} has no href string")
+        elif urlsplit(href).scheme or href.startswith("/"):
+            gaps.append(f"collection asset {key} has an absolute href ({href}) that cannot be checked")
+        elif not _on_disk(href, staged, published):
+            gaps.append(f"collection asset {key} ({href}) is not staged")
+        elif "style" in (asset.get("roles") or []) or key.startswith("style-"):
+            style = staged / href.removeprefix("./")
+            source = style if style.is_file() or published is None else published / href.removeprefix("./")
+            gaps += _style_gaps(key, source, style.parent)
+    return gaps + chip_gaps(staged, stale, doc["assets"].get("chips"))
+
+
+def _staged_collection(staged: Path) -> tuple[dict | None, list[str]]:
+    """The staged ``collection.json`` if it is a Collection with assets, else why not."""
+    path = staged / "collection.json"
+    if not path.is_file():
+        return None, ["no staged collection.json"]
+    try:
+        doc = json.loads(path.read_text())
+    except ValueError:
+        return None, ["the staged collection.json is not JSON"]
+    assets = doc.get("assets") if isinstance(doc, dict) else None
+    if not isinstance(doc, dict) or doc.get("type") != "Collection":
+        return None, ["the staged collection.json is not a STAC Collection"]
+    if not isinstance(assets, dict) or not assets:
+        return None, ["the staged collection.json has no assets"]
+    if not all(isinstance(asset, dict) for asset in assets.values()):
+        return None, ["the staged collection.json has an asset that is not an object"]
+    return doc, []
+
+
+def _style_gaps(key: str, style: Path, staged_dir: Path) -> list[str]:
+    """The PMTiles the style at ``style`` draws from that are not staged.
+
+    ``staged_dir`` is where the style sits in staging (``styles/``): its relative
+    ``pmtiles://`` URLs resolve against it even when the style itself is read from
+    ``catalog/``.
+    """
+    try:
+        sources = json.loads(style.read_text()).get("sources") or {}
+    except (ValueError, AttributeError):
+        return [f"collection asset {key} is not a style document"]
+    if not isinstance(sources, dict):
+        return [f"collection asset {key} has style sources that are not an object"]
+    gaps = []
+    for source in sources.values():
+        url = source.get("url", "") if isinstance(source, dict) else ""
+        if not isinstance(url, str):
+            gaps.append(f"collection asset {key} has a style source url that is not a string")
+            continue
+        tiles = url.removeprefix("pmtiles://")
+        if url.startswith("pmtiles://") and not urlsplit(tiles).scheme and not Path(posixpath.normpath(staged_dir / tiles)).is_file():
+            gaps.append(f"collection asset {key} draws {tiles}, which is not staged")
+    return gaps
+
+
+def _on_disk(href: str, base: Path, published: Path | None) -> bool:
+    """Whether a relative ``href`` names a file in ``base`` or in ``published``."""
+    rel = href[2:] if href.startswith("./") else href
+    if not rel or rel.startswith("/"):  # an absolute path is not in the dataset, whatever is there
+        return False
+    return (base / rel).is_file() or (published is not None and (published / rel).is_file())
+
+
+def chip_gaps(staged: Path, stale: list[str], chips_asset: dict | None) -> list[str]:
+    """Stale keys of chips the build still has, unless staging holds that chip whole.
+
+    A chip is kept when staging has its directory, ``chips/<square>/<id>[_<year>]/``.
+    The staged chips parquet (the collection's ``chips`` asset) must list exactly
+    those chips: an empty parquet, one without an ``id`` column, a staged directory
+    it does not list or an id with no staged directory means staging and parquet are
+    not the same build, and nothing can be told dropped. A kept chip's stale key is
+    a gap when staging has no item JSON for it, when the key is JSON (an imagery
+    child item before the imagery pass), or when a staged JSON in that directory
+    names an asset that is not on disk (a backfill's masks). What is left — a file
+    the whole staged chip no longer references (a v1 overlay), or any file of a chip
+    with no staged directory, which the rebuild dropped — is prunable.
+    """
+    by_chip: dict[tuple[str, str], list[str]] = {}
+    for rel in stale:
+        parts = PurePosixPath(rel).parts
+        if len(parts) >= 4 and parts[0] == "chips":
+            by_chip.setdefault((parts[1], parts[2]), []).append(rel)
+    chip_dirs = {(d.parent.name, d.name) for d in staged.glob("chips/*/*") if d.is_dir()}
+    if not by_chip and not chip_dirs:
+        return []
+    gaps = _parquet_gaps(staged, chips_asset, {name for _, name in chip_dirs})
+    if gaps:
+        return gaps
+    for (square, chip), rels in sorted(by_chip.items()):
+        if (square, chip) not in chip_dirs:
+            continue
+        chip_dir = staged / "chips" / square / chip
+        if not (chip_dir / f"{chip}.json").is_file():
+            gaps.append(f"chip {square}/{chip} is staged without its item JSON")
+        elif any(rel.endswith(".json") for rel in rels) or _missing_assets(chip_dir):
+            gaps.append(f"chip {square}/{chip} is not staged whole ({rels[0]} would be deleted)")
+    return gaps
+
+
+def _parquet_gaps(staged: Path, chips_asset: dict | None, dir_names: set[str]) -> list[str]:
+    """Why the staged chips parquet and the staged chip directories are not one build."""
+    href = (chips_asset or {}).get("href") or ""
+    if not href or urlsplit(href).scheme or not _on_disk(href, staged, None):
+        return ["no staged chips parquet (the collection's chips asset) to tell kept chips from dropped"]
+    path = staged / href.removeprefix("./")
+    if "id" not in pq.read_schema(path).names:
+        return [f"the staged chips parquet {path.name} has no id column"]
+    ids = set(pq.read_table(path, columns=["id"]).column("id").to_pylist())
+    if not ids:
+        return [f"the staged chips parquet {path.name} lists no chips"]
+    matched = {_chip_id(name, ids) for name in dir_names}
+    unlisted = sorted(name for name in dir_names if _chip_id(name, ids) is None)
+    unstaged = sorted(map(str, ids - matched))
+    gaps = [f"chip directory {name} is not in the chips parquet" for name in unlisted[:3]]
+    gaps += [f"chips parquet id {chip} has no staged directory" for chip in unstaged[:3]]
+    if len(unlisted) + len(unstaged) > len(gaps):
+        gaps.append(f"{len(unlisted):,} staged chip(s) unlisted, {len(unstaged):,} listed chip(s) unstaged in all")
+    return gaps
+
+
+def _chip_id(dir_name: str, ids: set) -> str | None:
+    """The chips parquet id a chip directory ``<id>`` or ``<id>_<year>`` belongs to."""
+    if dir_name in ids:
+        return dir_name
+    base, _, year = dir_name.rpartition("_")
+    return base if year.isdigit() and base in ids else None
+
+
+def _missing_assets(chip_dir: Path) -> bool:
+    """Whether any STAC JSON in ``chip_dir`` is unreadable or names an asset that is not on disk."""
+    for path in chip_dir.glob("*.json"):
+        try:
+            assets = json.loads(path.read_text()).get("assets") or {}
+        except (ValueError, AttributeError):
+            return True
+        if not isinstance(assets, dict):
+            return True
+        for asset in assets.values():
+            href = (asset.get("href") or "") if isinstance(asset, dict) else ""
+            if href and not urlsplit(href).scheme and not _on_disk(href, chip_dir, None):
+                return True
+    return False
+
+
+def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
+    """What ``catalog/<source>/<id>/`` still references, so prune keeps it.
+
+    Returns the dataset-relative files (the collection's assets, the PMTiles its
+    styles draw from, and the non-item links of the collection and its chip
+    sub-catalogs: children, README, AGENTS, llms) and the ``(square, chip directory)``
+    pairs its chip sub-catalogs link. ``catalog_mismatch`` and ``catalog_unpublished``
+    have checked that this is the published catalog.
+    """
+    files: set[str] = set()
+    chips: set[tuple[str, str]] = set()
+    files |= _hrefs(published / "collection.json", "assets")
+    files |= _link_hrefs(published / "collection.json", ".")
+    for style in published.glob("styles/*.json"):
+        for source in (_read(style).get("sources") or {}).values():
+            url = (source.get("url") or "") if isinstance(source, dict) else ""
+            if url.startswith("pmtiles://") and not urlsplit(url.removeprefix("pmtiles://")).scheme:
+                files.add(posixpath.normpath(posixpath.join("styles", url.removeprefix("pmtiles://"))))
+    for sub in published.glob("chips/*/catalog.json"):
+        files |= _link_hrefs(sub, sub.parent.relative_to(published).as_posix())
+        for link in _read(sub).get("links") or []:
+            if not isinstance(link, dict):
+                continue
+            href = link.get("href")
+            if link.get("rel") != "item" or not isinstance(href, str):
+                continue  # junk: it links nothing prune could keep
+            chips.add(_item_chip(sub, href, published))
+    return files, chips
+
+
+class UnresolvedItemLink(Exception):
+    """A sub-catalog item link prune cannot map to a chip directory, so cannot keep."""
+
+
+def _item_chip(sub: Path, href: str, published: Path) -> tuple[str, str]:
+    """The ``(square, chip directory)`` a sub-catalog's item href names.
+
+    Resolved against ``chips/<square>/``, so ``../B/x/x.json`` names chip x of square B.
+    An absolute URL, a root-relative path, percent-encoding, a query or fragment, or a
+    path that does not land on ``chips/<square>/<chip>/<file>`` raises
+    ``UnresolvedItemLink``: skipping it would let prune delete the chip it links.
+    """
+    split = urlsplit(href)
+    if split.scheme or split.netloc or href.startswith("/") or "%" in href or split.query or split.fragment:
+        raise UnresolvedItemLink(f"{sub.relative_to(published).as_posix()} links item {href!r}")
+    parts = PurePosixPath(posixpath.normpath(posixpath.join("chips", sub.parent.name, href))).parts
+    if len(parts) != 4 or parts[0] != "chips":
+        raise UnresolvedItemLink(f"{sub.relative_to(published).as_posix()} links item {href!r}")
+    return parts[1], parts[2]
+
+
+def _link_hrefs(path: Path, base: str, rels: set[str] | None = None) -> set[str]:
+    """The dataset-relative files a document's relative non-item links name (``base`` is its folder)."""
+    out = set()
+    for link in _read(path).get("links") or []:
+        if not isinstance(link, dict) or link.get("rel") == "item" or (rels is not None and link.get("rel") not in rels):
+            continue
+        href = link.get("href")
+        if isinstance(href, str) and href and not urlsplit(href).scheme and not href.startswith("/"):
+            out.add(posixpath.normpath(posixpath.join(base, href)))
+    return out
+
+
+def _read(path: Path) -> dict:
+    try:
+        doc = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _hrefs(path: Path, key: str) -> set[str]:
+    """The relative hrefs of a document's ``key`` objects, normalized and dataset-relative."""
+    values = _read(path).get(key)
+    out = set()
+    for value in values.values() if isinstance(values, dict) else []:
+        href = (value.get("href") or "") if isinstance(value, dict) else ""
+        if href and not urlsplit(href).scheme and not href.startswith("/"):
+            out.add(posixpath.normpath(href))
+    return out
 
 
 def main() -> int:

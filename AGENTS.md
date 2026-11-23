@@ -50,7 +50,8 @@ the full walkthrough; this is the command sequence):
     uv run python tools/upload_data.py --confirm
     uv run python tools/upload_data.py --only at_2024 --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
-    uv run python tools/chips_table.py --staged <id>   # then upload it (README, "Root chips table")
+    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 Imagery is a second pass, once selection is ready:
 
@@ -58,6 +59,9 @@ Imagery is a second pass, once selection is ready:
     uv run python tools/build.py <id> --only docs
     uv run python tools/catalogize.py <id>
     uv run python tools/upload_data.py --confirm
+    uv run python tools/publish.py --confirm
+    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 `tools/build.py` runs `ftwd` from the repository root. Two environment
 gotchas it works around, in case you hit them running ftwd yourself: it gives
@@ -80,7 +84,7 @@ endpoint comes from `catalog.publish.yaml`.
   its removal) before it's added, not after.
 - Never commit `staging/` or any data file (parquet, COGs, imagery, PMTiles,
   item JSON). Those reach the bucket only through `tools/upload_data.py`.
-- Never run `--confirm` on `tools/upload_data.py` or `tools/publish.py`
-  without the maintainer's say-so — it's a real write to the published
-  bucket, and `publish.py` never deletes, so a mistake stays live until
-  someone notices and fixes it by hand.
+- Never run `--confirm` on `tools/upload_data.py`, `tools/publish.py` or
+  `tools/prune_bucket.py` without the maintainer's say-so — it's a real write to
+  the published bucket. The uploaders never delete, so a mistake stays live until
+  someone notices and fixes it by hand, and `prune_bucket.py` deletes for real.

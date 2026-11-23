@@ -108,6 +108,24 @@ Needs `source-coop login` and the `source-coop` AWS profile; the endpoint is
 read from `catalog.publish.yaml`. Only run `--confirm` with the maintainer's
 say-so — it's a real upload to the published bucket.
 
+Neither uploader deletes, so after a rebuild's last pass (the imagery pass, if the
+recipe has one) is uploaded, run `tools/prune_bucket.py`. It removes the dataset's
+bucket objects that neither catalog/ nor the full staging has, such as a v1
+`styles/split.json` or a file a kept chip no longer references. It keeps anything
+`catalog/<source>/<id>/` still references (its assets, the PMTiles its styles draw
+from, the chips its sub-catalogs link). Run it after upload_data and publish: it
+refuses when any `catalog/<source>/<id>/` file differs from the bucket's, or when a
+top-level staged data file (the chips parquet, items, PMTiles) is not uploaded.
+A chip's files go only when the rebuild dropped it: staging has no directory for it,
+the staged chips parquet does not list it, and catalog/ does not link it. Prune
+refuses a staging that is not a full build: a backfill, a rebuild before its imagery
+pass, or one whose chips parquet does not list exactly its staged chip directories.
+It is a dry run by default, and `--confirm` needs the maintainer's say-so, like the
+uploaders:
+
+    uv run python tools/prune_bucket.py <id>             # dry run: lists what it would delete
+    uv run python tools/prune_bucket.py <id> --confirm   # delete
+
 ## Root chips table
 
 `chips.parquet` at the bucket root lists every chip of every published dataset, one row
@@ -164,7 +182,8 @@ tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root 
 `publish.py` refuses a root that links a missing root file. The root
 `catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
 
-Rebuild it after each dataset publish, with `--staged` naming the datasets just rebuilt:
+Rebuild and upload it after each dataset publish and before `prune_bucket.py`, so the
+root table never lists a chip prune has deleted, with `--staged` naming the datasets just rebuilt:
 they are read from `staging/`, and every other dataset's `split_legacy` and
 `split_predefined` are carried from the published table. The build refuses to lose a
 frozen split (a dataset left out, or chips that vanish from one) unless `--drop <id>`
@@ -225,6 +244,8 @@ background) before it's written and registered as the collection's
        git commit -am "Add <id>"
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
+       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+       uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 7. If the recipe downloads imagery, that's a second pass once selection is
    ready — rebuild from `select_images`, regenerate docs and the catalog copy,
@@ -234,6 +255,9 @@ background) before it's written and registered as the collection's
        uv run python tools/build.py <id> --only docs
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
+       uv run python tools/publish.py --confirm
+       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+       uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 ## Building region-years in batches
 
@@ -279,7 +303,8 @@ STAC and conformance gates read only the batch's datasets
 (`BDC_SCOPE_DATASETS`, see `tests/scope.py`): the builder has staging for those
 alone, and the rest of the catalog was checked when it was built. It never
 uploads: it prints the `upload_data.py --only ...` and `publish.py` commands
-to run with the maintainer's say-so, then `--mark-published`.
+(and, after the imagery pass, `prune_bucket.py`) to run with the maintainer's
+say-so, then `--mark-published`.
 
 ### On AWS
 

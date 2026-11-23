@@ -9,9 +9,11 @@ the network or runs ftwd.
 
 Run: python3 tests/test_batch_tools.py
 """
+import io
 import os
 import sys
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 try:
@@ -332,6 +334,19 @@ for gate_failure, expect_built in ((None, True), ("the batch's gates failed", Fa
     check("built" not in updates["b"], "a failed build is never marked built")
     if gate_failure:
         check(updates["a"]["issues"] == gate_failure, "a gate failure is recorded as the issue")
+# The prune command is printed after the imagery pass only: before it, staging lacks
+# the published imagery and prune_bucket would refuse it.
+run_batch.finish_batch = lambda ids: None
+for flags, expect in (([], False), (["--imagery"], True)):
+    out = io.StringIO()
+    with redirect_stdout(out):
+        run_batch.main(["a", *flags])
+    check(("prune_bucket.py a --confirm" in out.getvalue()) == expect,
+          f"the prune line is printed {'only after' if expect else 'not after'} {flags or 'the metadata pass'}")
+    if expect:
+        text = out.getvalue()
+        check(-1 < text.find("chips_table.py --staged a") < text.find("prune_bucket.py"),
+              f"the root chips table is rebuilt before prune: {text!r}")
 try:
     run_batch.main(["--next", "3", "--mark-published"])
     errors.append("--mark-published accepts --next")

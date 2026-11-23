@@ -113,6 +113,28 @@ def is_data_publishable(rel: Path) -> bool:
     return is_publishable(rel) and rel.suffix.lower() in PUBLISHABLE_SUFFIXES
 
 
+def is_staged_style(rel: Path) -> bool:
+    """True for a ``<id>/styles/*`` file in staging.
+
+    Styles are git-owned only: ``catalogize.py`` copies the ones the collection
+    references into ``catalog/`` and deletes the rest. A staged style it left
+    out (v1's ``split.json``, which ftwd never deletes) has no catalog copy to
+    shadow it under ``git_owned``, so without this rule it would be uploaded,
+    and ``prune_bucket.py`` would keep it.
+    """
+    return len(rel.parts) > 2 and rel.parts[1] == "styles"
+
+
+def is_uploadable(rel: Path) -> bool:
+    """True for a ``staging``-relative ``<id>/...`` file this script would consider uploading.
+
+    Both gates of ``is_data_publishable``, minus the git-owned-only styles; the
+    ``git_owned`` check still runs after. ``backfill.check_staging`` uses this
+    too, so the two never disagree on what staging would publish.
+    """
+    return is_data_publishable(rel) and not is_staged_style(rel)
+
+
 def published_rel(rel: Path, places: dict[str, str], root: Path, config: dict[str, str]) -> Path:
     """``staging``-relative ``<id>/...`` as its published ``<source>/<id>/...``.
 
@@ -175,7 +197,7 @@ def collect_data_uploads(
         # --only names it, never as a side effect of a dataset's upload.
         if len(rel.parts) == 1 and (only is None or rel.name not in only):
             continue
-        if not is_data_publishable(rel):
+        if not is_uploadable(rel):
             continue
         rel = published_rel(rel, places, root, config)
         if git_owned(rel, root, config):

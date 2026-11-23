@@ -1094,6 +1094,9 @@ with tempfile.TemporaryDirectory() as tmp:
             "items.parquet" in message and "tools/build.py be_wal_2022" in message,
             f"the exit message names the missing file and the fix, got {message!r}",
         )
+        # A stac-only build has no style assets, so catalogizing it drops every style.
+        check("--through stac" in message and "--only docs" in message,
+              f"the hint names the docs build too, got {message!r}")
 
 
 # --- catalogize.py main(): an unknown dataset id exits with a clear message,
@@ -1246,6 +1249,67 @@ with tempfile.TemporaryDirectory() as tmp:
         f"staging's own thumbnail asset wins over a stale catalog one, "
         f"got {thumb_result['assets'].get('thumbnail')}",
     )
+
+
+# --- copy_committed: the catalog's styles mirror the collection's style assets.
+# ftwd's docs stage never deletes a style file an older ftwd wrote, so a staged
+# styles/split.json from a v1 build lingers next to the current styles with no
+# asset pointing at it. It must not be copied, and the catalog copy of it (and of
+# any other style the collection no longer has) is deleted, so publish.py never
+# syncs it.
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    staging = tmp / "staging"
+    catalog = tmp / "catalog"
+    staged = staging / "be_wal_2022"
+    published = catalog / "be_wal" / "be_wal_2022"
+    style_doc = {"version": 8, "sources": {}, "layers": []}
+
+    def style_asset(name: str) -> dict:
+        return {"href": f"./styles/{name}.json", "roles": ["style"]}
+
+    write_json(
+        staged / "collection.json",
+        {
+            "type": "Collection",
+            "id": "be_wal_2022",
+            "assets": {
+                "style-outline": {**style_asset("outline"), "roles": ["style", "default"]},
+                "style-field-coverage": style_asset("field-coverage"),
+                "chips": {"href": "./be_wal_2022_chips.parquet"},
+            },
+        },
+    )
+    for name in ("outline", "field-coverage", "split"):
+        write_json(staged / "styles" / f"{name}.json", style_doc)
+    for name in ("outline", "split", "dominant-crop"):
+        write_json(published / "styles" / f"{name}.json", {"stale": True})
+    write_json(published / "collection.json", {"type": "Collection", "id": "be_wal_2022", "assets": {}})
+
+    out = io.StringIO()
+    with redirect_stdout(out):
+        written = catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
+    styles_now = sorted(p.name for p in (published / "styles").glob("*"))
+    check(styles_now == ["field-coverage.json", "outline.json"],
+          f"the catalog's styles are exactly the collection's style assets, got {styles_now}")
+    check(json.loads((published / "styles" / "outline.json").read_text()) == style_doc,
+          "a referenced style is overwritten with staging's copy")
+    check(published / "styles" / "split.json" not in written,
+          f"the stale staged split.json is not reported as written: {written}")
+    check((staged / "styles" / "split.json").is_file(), "staging is left alone")
+    check("split.json" in out.getvalue() and "dominant-crop.json" in out.getvalue(),
+          f"the removals and the skipped staged style are named: {out.getvalue()!r}")
+    skipped_note = [line for line in out.getvalue().splitlines() if "skipped unreferenced staged style" in line]
+    check(len(skipped_note) == 1 and skipped_note[0].endswith(": split.json"),
+          f"one note names the unreferenced staged style: {out.getvalue()!r}")
+
+    # A collection with no style assets at all (built --through stac) leaves no styles.
+    write_json(staged / "collection.json", {"type": "Collection", "id": "be_wal_2022", "assets": {}})
+    with redirect_stdout(io.StringIO()):
+        catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
+    check(not list((published / "styles").glob("*.json")),
+          "a collection with no style assets publishes no styles")
 
 
 # --- a failed mirror write leaves no temp file and keeps the original ---------
@@ -1722,6 +1786,20 @@ check("benchmark split it is assigned to" in with_split["assets"]["chips"]["desc
 check("root chips table" in without_split["assets"]["chips"]["description"]
       and "assigned" not in without_split["assets"]["chips"]["description"],
       f"a chips file without split points at the root chips table: {without_split}")
+
+# A styles/<name>.json asset href counts as a style the collection has, relative or
+# absolute (an absolute one must not get its file deleted); other hrefs do not.
+with tempfile.TemporaryDirectory() as tmp:
+    write_json(Path(tmp) / "collection.json", {"type": "Collection", "assets": {
+        "a": {"href": "./styles/nested/x.json"}, "b": {"href": "./styles.json"},
+        "c": {"href": "styles/outline.json"}, "d": {"href": "./styles/crops.json"}, "e": {},
+        "f": {"href": "https://data.source.coop/ftw/benchmark-data/be_wal/be_wal_2022/styles/field-coverage.json"},
+        "g": {"href": "./be_wal_2022_chips.parquet"}, "h": {"href": "./styles/sprite.png"},
+        "i": {"href": "./styles/dominant-crop.json?v=2#top"}}})
+    found = catalogize._referenced_styles(Path(tmp))
+    check(found == {Path("styles/outline.json"), Path("styles/crops.json"), Path("styles/field-coverage.json"),
+                    Path("styles/dominant-crop.json")},
+          f"only styles/<name>.json hrefs count, absolute ones too: {found}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
