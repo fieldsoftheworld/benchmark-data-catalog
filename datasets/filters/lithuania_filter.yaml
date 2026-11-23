@@ -5,7 +5,7 @@
 # ec_lt (2021, EuroCrops, 9 crop categories with no grassland or fallow, so all field).
 #
 # Spellings: lt was republished on 2026-11-20 with correct Lithuanian characters, which ec_lt
-# already used. Earlier lt editions carried an encoding quirk (þ=ž, ð=š, ë=ė, û=ū); those
+# already used. Earlier lt editions carried an encoding quirk (þ/Þ=ž/Ž, ð/Ð=š/Š, ë=ė, û=ū); those
 # spellings stay listed next to the correct ones. Some years differ only by a space
 # ("virš 5m." vs "virš 5 m."); both are listed.
 #
@@ -15,7 +15,7 @@
 # grasses; field since the 2026-11 visual review, see ftw-dataset-tools docs/grassland-review.md).
 #
 # Excluded (background): fallow, landscape elements, ditches, non-supported areas, woods, and
-# wetlands (Šlapynės, mislabelled "Spinach" in the source HCAT mapping).
+# wetlands (Šlapynės).
 
 column: ["crop:name", "crop:code", "crop_name"]
 
@@ -24,11 +24,11 @@ include:
   - "Vasariniai javai"  # Summer cereals
   - "Ankðtiniai javai"  # Grain legumes
   - "Aviþos"  # Oats
-  - "Rapsai"  # Rape
+  - "Rapsai"  # Rapeseed
   - "Darþovës"  # Vegetables
   - "Kita ariama þemë"  # Other arable land
   - "Grikiai"  # Buckwheat
-  - "Kukurûzai"  # Corn
+  - "Kukurûzai"  # Maize
   - "Cukriniai runkeliai"  # Sugar beet
   - "Aromatiniai augalai"  # Aromatic plants
   - "Pluoðtinës kanapës"  # Fiber hemp
@@ -38,7 +38,7 @@ include:
   - "Ankštiniai javai"  # Grain legumes
   - "Avižos"  # Oats
   - "Daržovės"  # Vegetables
-  - "Kukurūzai"  # Corn
+  - "Kukurūzai"  # Maize
   - "Kita ariama žemė"  # Other arable land (lt only)
   - "Pluoštinės kanapės"  # Fiber hemp (lt only)
   # Permanent and tree crops
