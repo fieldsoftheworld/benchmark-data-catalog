@@ -42,6 +42,7 @@ from publish import (  # noqa: E402
     ROOT,
     aws_session,
     collect_uploads,
+    is_unchanged,
     load_config,
     md5,
     remote_index,
@@ -67,7 +68,9 @@ def stale_keys(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"
         )
     published = root / config["publish_dir"] / rel
-    unpublished = catalog_mismatch(published, remote.get(f"{under}collection.json"))
+    unpublished = catalog_mismatch(published, remote.get(f"{under}collection.json")) or catalog_unpublished(
+        published, under, remote, collect_uploads(config, root, only={dataset_id}), rel
+    )
     if unpublished:
         sys.exit(
             f"{dataset_id}: {unpublished}; refusing to prune. Prune compares the bucket with "
@@ -112,6 +115,23 @@ def catalog_mismatch(published: Path, remote: tuple[int, str] | None) -> str | N
     etag = str(etag).strip('"')
     if size != local.stat().st_size or ("-" not in etag and etag != md5(local)):
         return "the bucket's collection.json differs from catalog/'s"
+    return None
+
+
+def catalog_unpublished(published: Path, under: str, remote: dict, uploads: list, rel: str) -> str | None:
+    """Why ``catalog/<source>/<id>/`` as a whole is not what the bucket holds, or None.
+
+    Every file ``publish.py --only <id>`` would upload must already be in the bucket
+    unchanged, and every sub-catalog ``collection.json`` links as a child must be on
+    disk when the bucket has it: prune keeps what catalog/ references, so a missing or
+    unpublished local file would let it delete published chips.
+    """
+    for upload in uploads:
+        if upload.key.startswith(under) and not is_unchanged(upload, remote):
+            return f"catalog/{rel}/{upload.key[len(under):]} differs from the bucket's copy"
+    for href in sorted(_link_hrefs(published / "collection.json", ".", rels={"child"})):
+        if f"{under}{href}" in remote and not (published / href).is_file():
+            return f"catalog/{rel}/{href} is linked and published but missing locally"
     return None
 
 
@@ -292,25 +312,41 @@ def _missing_assets(chip_dir: Path) -> bool:
 def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
     """What ``catalog/<source>/<id>/`` still references, so prune keeps it.
 
-    Returns the dataset-relative files (the collection's assets and the PMTiles its
-    styles draw from) and the ``(square, chip directory)`` pairs its chip
-    sub-catalogs link. ``catalog_mismatch`` has checked that this is the published catalog.
+    Returns the dataset-relative files (the collection's assets, the PMTiles its
+    styles draw from, and the non-item links of the collection and its chip
+    sub-catalogs: children, README, AGENTS, llms) and the ``(square, chip directory)``
+    pairs its chip sub-catalogs link. ``catalog_mismatch`` and ``catalog_unpublished``
+    have checked that this is the published catalog.
     """
     files: set[str] = set()
     chips: set[tuple[str, str]] = set()
     files |= _hrefs(published / "collection.json", "assets")
+    files |= _link_hrefs(published / "collection.json", ".")
     for style in published.glob("styles/*.json"):
         for source in (_read(style).get("sources") or {}).values():
             url = (source.get("url") or "") if isinstance(source, dict) else ""
             if url.startswith("pmtiles://") and not urlsplit(url.removeprefix("pmtiles://")).scheme:
                 files.add(posixpath.normpath(posixpath.join("styles", url.removeprefix("pmtiles://"))))
     for sub in published.glob("chips/*/catalog.json"):
+        files |= _link_hrefs(sub, sub.parent.relative_to(published).as_posix())
         for link in _read(sub).get("links") or []:
             href = (link.get("href") or "") if isinstance(link, dict) else ""
             parts = PurePosixPath(posixpath.normpath(href)).parts
             if link.get("rel") == "item" and not urlsplit(href).scheme and len(parts) == 2:
                 chips.add((sub.parent.name, parts[0]))
     return files, chips
+
+
+def _link_hrefs(path: Path, base: str, rels: set[str] | None = None) -> set[str]:
+    """The dataset-relative files a document's relative non-item links name (``base`` is its folder)."""
+    out = set()
+    for link in _read(path).get("links") or []:
+        if not isinstance(link, dict) or link.get("rel") == "item" or (rels is not None and link.get("rel") not in rels):
+            continue
+        href = link.get("href")
+        if isinstance(href, str) and href and not urlsplit(href).scheme and not href.startswith("/"):
+            out.add(posixpath.normpath(posixpath.join(base, href)))
+    return out
 
 
 def _read(path: Path) -> dict:

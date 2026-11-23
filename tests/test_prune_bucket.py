@@ -43,9 +43,13 @@ def touch(path: Path, text: str = "x") -> None:
 
 
 def as_published(remote: dict, catalog_dir: Path, key: str) -> dict:
-    """``remote`` with ``key`` listed as the bytes of ``catalog_dir/collection.json`` (published)."""
-    local = catalog_dir / "collection.json"
-    return {**remote, key: (local.stat().st_size, f'"{prune_bucket.md5(local)}"')}
+    """``remote`` with every file of ``catalog_dir`` listed as published (``key`` is its collection.json)."""
+    out = dict(remote)
+    base = key.rsplit("/", 1)[0]
+    for local in (p for p in catalog_dir.rglob("*") if p.is_file()):
+        out[f"{base}/{local.relative_to(catalog_dir).as_posix()}"] = (
+            local.stat().st_size, f'"{prune_bucket.md5(local)}"')
+    return out
 
 
 def write_chips(path: Path, ids: list[str]) -> None:
@@ -157,7 +161,7 @@ PUBLISHED = [*TOP, *CHIPS, "collection.json", "chips/A/catalog.json", "chips/B/c
 
 def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTION, ids=("c1", "c2"),
                catalog: dict[str, str] | None = None, chips_table: pa.Table | None = None,
-               publish_catalog: bool = True):
+               publish_catalog: bool = True, after_publish=None):
     """``stale_keys`` (dataset-relative) for dataset d with these staged files, or the refusal.
 
     ``catalog`` adds or replaces files in ``catalog/g/d/``; ``chips_table`` replaces the
@@ -186,6 +190,8 @@ def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTIO
         remote = dict.fromkeys((f"benchmark-data/g/d/{k}" for k in published), (1, "e"))
         if "collection.json" in published and publish_catalog and (root / "catalog/g/d/collection.json").is_file():
             remote = as_published(remote, root / "catalog/g/d", "benchmark-data/g/d/collection.json")
+        if after_publish:  # a local edit to catalog/ after it was published
+            after_publish(root / "catalog/g/d")
         try:
             return [k.removeprefix("benchmark-data/g/d/") for k in prune_bucket.stale_keys("d", CONFIG, remote, root)]
         except SystemExit as err:
@@ -379,6 +385,47 @@ check(prune_bucket._chip_id("c1_ab", {"c1"}) is None, "c1_ab is not chip c1")
 got = prune_case({**FULL, "chips/A/c1_2023/c1_2023_q1_s2.json": json.dumps({"assets": ["./x.tif"]})},
                  published=[*PUBLISHED, "chips/A/c1_2023/c1_2023_overlay.webp"])
 check(refused(got, "chip A/c1_2023 is not staged whole"), f"chip JSON with list assets is refused, got {got}")
+
+# Every catalog/ file must be in the bucket unchanged, and what catalog/ links is kept.
+LINKED = {
+    "collection.json": json.dumps({"links": [
+        {"rel": "child", "href": "./chips/A/catalog.json"}, {"rel": "child", "href": "./chips/B/catalog.json"},
+        {"rel": "describedby", "href": "./README.md"}, {"rel": "llms", "href": "./llms.txt"}]}),
+    "README.md": "# d", "llms.txt": "d",
+    "chips/A/catalog.json": json.dumps({"links": [{"rel": "describedby", "href": "./README.md"},
+                                                  {"rel": "item", "href": "./c1_2023/c1_2023.json"}]}),
+    "chips/A/README.md": "# A",
+    "chips/B/catalog.json": json.dumps({"links": [{"rel": "item", "href": "./c2_2023/c2_2023.json"}]}),
+}
+
+
+def unlink(*names):
+    return lambda catalog: [(catalog / name).unlink() for name in names]
+
+
+def rewrite(name: str, text: str):
+    return lambda catalog: (catalog / name).write_text(text)
+
+
+got = prune_case(FULL, catalog=LINKED)
+check(got == [], f"a published catalog with links prunes nothing, got {got}")
+got = prune_case(FULL, catalog=LINKED, after_publish=unlink("README.md", "llms.txt", "chips/A/README.md"))
+check(got == [], f"files catalog/ links but lacks locally are kept, got {got}")
+got = prune_case(FULL, catalog=LINKED, after_publish=unlink("chips/B/catalog.json"))
+check(isinstance(got, str) and "chips/B/catalog.json is linked and published but missing locally" in got,
+      f"a linked, published sub-catalog missing locally is refused, got {got}")
+got = prune_case(FULL, catalog=LINKED, after_publish=rewrite("chips/B/catalog.json", json.dumps({"links": []})))
+check(isinstance(got, str) and "chips/B/catalog.json differs from the bucket's copy" in got,
+      f"a sub-catalog edited after publish is refused, got {got}")
+got = prune_case(FULL, catalog=LINKED, after_publish=rewrite("chips/A/README.md", "# B"))
+check(isinstance(got, str) and "chips/A/README.md differs from the bucket's copy" in got,
+      f"a same-size edit is caught by its MD5, got {got}")
+got = prune_case(FULL, catalog=LINKED, after_publish=rewrite("AGENTS.md", "new"))
+check(isinstance(got, str) and "AGENTS.md differs from the bucket's copy" in got,
+      f"a catalog/ file the bucket lacks is refused, got {got}")
+collection = LINKED["collection.json"]
+got = prune_case(FULL, catalog=LINKED, after_publish=rewrite("collection.json", collection.replace("A", "Z", 1)))
+check(isinstance(got, str) and "collection.json differs" in got, f"a same-size collection.json edit is refused, got {got}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
