@@ -13,8 +13,9 @@ chips' files would stay in the bucket, unlinked from the catalog. This lists
 
 Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
 published. It refuses a staging that is not a full build (``staging_gaps``): a
-backfill staging or a rebuild before its imagery pass lacks published files that
-pruning against it would delete.
+backfill staging, a rebuild before its imagery pass, or one missing chips its chips
+parquet lists lacks published files that pruning against it would delete. A
+chip's files are pruned only when the chips parquet no longer lists it.
 Source Cooperative's proxy has no DeleteObjects, so keys go one at a time.
 """
 

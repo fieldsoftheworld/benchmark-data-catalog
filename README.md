@@ -110,10 +110,13 @@ say-so — it's a real upload to the published bucket.
 
 Neither uploader deletes, so after a rebuild's last pass (the imagery pass, if the
 recipe has one) is uploaded, run `tools/prune_bucket.py`. It removes the dataset's
-bucket objects that neither catalog/ nor the full staging has (chips a rebuild dropped,
-a v1 `styles/split.json`), and refuses a staging that is not a full build (a backfill,
-or a rebuild before its imagery pass). It is a dry run by default, and `--confirm`
-needs the maintainer's say-so, like the uploaders:
+bucket objects that neither catalog/ nor the full staging has, such as a v1
+`styles/split.json` or a file a kept chip no longer references. A chip's files go
+only when the rebuild dropped it: the staged chips parquet no longer lists it and
+staging has no directory for it. Prune refuses a staging that is not a full build:
+a backfill, a rebuild before its imagery pass, or one missing a chip the chips
+parquet lists. It is a dry run by default, and `--confirm` needs the maintainer's
+say-so, like the uploaders:
 
     uv run python tools/prune_bucket.py <id>             # dry run: lists what it would delete
     uv run python tools/prune_bucket.py <id> --confirm   # delete
