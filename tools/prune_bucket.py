@@ -25,6 +25,9 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit
+
+import pyarrow.parquet as pq
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -58,7 +61,7 @@ def stale_keys(
         )
     stale = sorted(k for k in remote if k.startswith(under) and k not in wanted)
     staged = data_root(config, root) / dataset_id
-    gaps = staging_gaps(staged, [k[len(under):] for k in stale])
+    gaps = staging_gaps(staged, [k[len(under):] for k in stale], root / config["publish_dir"] / rel)
     if gaps:
         shown = ", ".join(gaps[:5]) + (f" and {len(gaps) - 5:,} more" if len(gaps) > 5 else "")
         sys.exit(
@@ -69,37 +72,124 @@ def stale_keys(
     return stale
 
 
-def staging_gaps(staged: Path, stale: list[str]) -> list[str]:
+def staging_gaps(staged: Path, stale: list[str], published: Path | None = None) -> list[str]:
     """Why ``staged`` is not a full build to prune against; empty when it is.
 
-    Two signs, both of which a full build never shows:
+    ``stale`` holds the dataset-relative paths prune would delete, ``published`` the
+    dataset's ``catalog/`` folder (a collection asset it holds, the thumbnail, is not
+    staged). A full build shows none of these:
 
-    - an asset of the staged ``collection.json`` (fields, boundary lines, PMTiles,
-      styles, ...) that is not on disk: a backfill fetches no PMTiles;
-    - a stale key inside a chip directory staging still has
-      (``chips/<square>/<chip>/...``): the chip is kept, so the key is a part of it
-      staging lacks, such as its masks (a backfill) or its imagery (a rebuild
-      before the imagery pass). A chip the rebuild dropped has no directory left.
+    - a staged ``collection.json`` that is missing or is not a Collection with a
+      non-empty ``assets`` object of objects;
+    - a collection asset whose file is not on disk (a backfill fetches no PMTiles),
+      or whose href is absolute, which cannot be checked, or a staged style that
+      draws from PMTiles that are not staged;
+    - a stale key in the directory of a chip the build still has (``chip_gaps``).
 
-    ``stale`` holds dataset-relative paths. A missing ``collection.json`` is a gap too.
+    A chip the rebuild dropped is in neither the staged chips parquet nor staging, so
+    its files are prunable.
     """
-    collection = staged / "collection.json"
-    if not collection.is_file():
-        return ["no staged collection.json"]
-    try:
-        assets = json.loads(collection.read_text()).get("assets") or {}
-    except (ValueError, AttributeError):
-        return ["the staged collection.json is not a STAC collection"]
-    gaps = []
-    for key, asset in sorted(assets.items()):
+    doc, gaps = _staged_collection(staged)
+    if doc is None:
+        return gaps
+    for key, asset in sorted(doc["assets"].items()):
         href = asset.get("href") or ""
-        if href.startswith("./") and not (staged / href[2:]).is_file():
+        if urlsplit(href).scheme or href.startswith("/"):
+            gaps.append(f"collection asset {key} has an absolute href ({href}) that cannot be checked")
+        elif not _on_disk(href, staged, published):
             gaps.append(f"collection asset {key} ({href}) is not staged")
+        elif "style" in (asset.get("roles") or []) or key.startswith("style-"):
+            gaps += _style_gaps(key, staged / href.removeprefix("./"))
+    return gaps + chip_gaps(staged, stale, doc["assets"].get("chips"))
+
+
+def _staged_collection(staged: Path) -> tuple[dict | None, list[str]]:
+    """The staged ``collection.json`` if it is a Collection with assets, else why not."""
+    path = staged / "collection.json"
+    if not path.is_file():
+        return None, ["no staged collection.json"]
+    try:
+        doc = json.loads(path.read_text())
+    except ValueError:
+        return None, ["the staged collection.json is not JSON"]
+    assets = doc.get("assets") if isinstance(doc, dict) else None
+    if not isinstance(doc, dict) or doc.get("type") != "Collection":
+        return None, ["the staged collection.json is not a STAC Collection"]
+    if not isinstance(assets, dict) or not assets:
+        return None, ["the staged collection.json has no assets"]
+    if not all(isinstance(asset, dict) for asset in assets.values()):
+        return None, ["the staged collection.json has an asset that is not an object"]
+    return doc, []
+
+
+def _style_gaps(key: str, style: Path) -> list[str]:
+    """The PMTiles a staged style draws from that are not staged next to it."""
+    try:
+        sources = json.loads(style.read_text()).get("sources") or {}
+    except (ValueError, AttributeError):
+        return [f"collection asset {key} is not a style document"]
+    gaps = []
+    for source in sources.values():
+        url = (source.get("url") or "") if isinstance(source, dict) else ""
+        tiles = url.removeprefix("pmtiles://")
+        if url.startswith("pmtiles://") and not urlsplit(tiles).scheme and not (style.parent / tiles).is_file():
+            gaps.append(f"collection asset {key} draws {tiles}, which is not staged")
+    return gaps
+
+
+def _on_disk(href: str, base: Path, published: Path | None) -> bool:
+    """Whether a relative ``href`` names a file in ``base`` or in ``published``."""
+    rel = href[2:] if href.startswith("./") else href
+    return bool(rel) and ((base / rel).is_file() or (published is not None and (published / rel).is_file()))
+
+
+def chip_gaps(staged: Path, stale: list[str], chips_asset: dict | None) -> list[str]:
+    """Stale keys of chips the build still has, unless staging holds that chip whole.
+
+    A chip is current when the staged chips parquet (the collection's ``chips``
+    asset) lists it; its directory is ``chips/<square>/<id>[_<year>]/``. Its stale
+    key is a gap when staging has no item JSON for it (a missing square or
+    ``chips/``), when the key is JSON (an imagery child item before the imagery
+    pass), or when a staged JSON in that directory names an asset that is not on
+    disk (a backfill's masks). What is left, a file the full staged chip no longer
+    references (a v1 overlay), is prunable.
+    """
+    by_chip: dict[tuple[str, str], list[str]] = {}
     for rel in stale:
         parts = PurePosixPath(rel).parts
-        if len(parts) >= 4 and parts[0] == "chips" and (staged / Path(*parts[:3])).is_dir():
-            gaps.append(f"{rel} is published for a staged chip but not staged")
+        if len(parts) >= 4 and parts[0] == "chips":
+            by_chip.setdefault((parts[1], parts[2]), []).append(rel)
+    if not by_chip:
+        return []
+    href = (chips_asset or {}).get("href") or ""
+    if not href or not _on_disk(href, staged, None):
+        return ["no staged chips parquet (the collection's chips asset) to tell kept chips from dropped"]
+    ids = set(pq.read_table(staged / href.removeprefix("./"), columns=["id"]).column("id").to_pylist())
+    gaps = []
+    for (square, chip), rels in sorted(by_chip.items()):
+        base, _, year = chip.rpartition("_")
+        if chip not in ids and not (year.isdigit() and base in ids):
+            continue
+        chip_dir = staged / "chips" / square / chip
+        if not (chip_dir / f"{chip}.json").is_file():
+            gaps.append(f"chip {square}/{chip} is in the chips parquet but its item is not staged")
+        elif any(rel.endswith(".json") for rel in rels) or _missing_assets(chip_dir):
+            gaps.append(f"chip {square}/{chip} is not staged whole ({rels[0]} would be deleted)")
     return gaps
+
+
+def _missing_assets(chip_dir: Path) -> bool:
+    """Whether any STAC JSON in ``chip_dir`` names a relative asset that is not on disk."""
+    for path in chip_dir.glob("*.json"):
+        try:
+            assets = json.loads(path.read_text()).get("assets") or {}
+        except (ValueError, AttributeError):
+            return True
+        for asset in assets.values():
+            href = asset.get("href") or "" if isinstance(asset, dict) else ""
+            if href and not urlsplit(href).scheme and not _on_disk(href, chip_dir, None):
+                return True
+    return False
 
 
 def main() -> int:

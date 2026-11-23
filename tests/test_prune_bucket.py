@@ -19,6 +19,9 @@ import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import pyarrow as pa
+import pyarrow.parquet as pq
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
@@ -34,9 +37,15 @@ def check(condition: bool, message: str) -> None:
         errors.append(message)
 
 
-def touch(path: Path) -> None:
+def touch(path: Path, text: str = "x") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("x")
+    path.write_text(text)
+
+
+def write_chips(path: Path, ids: list[str]) -> None:
+    """A chips parquet with just the ``id`` column the prune guard reads."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table({"id": ids}), path)
 
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -48,7 +57,9 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     touch(root / "staging/d1/chips/A/c1/c1_semantic_2_class.tif")
     touch(root / "staging/d1/chips/A/c1/c1.json")
-    (root / "staging/d1/collection.json").write_text("{}")
+    write_chips(root / "staging/d1/d1_chips.parquet", ["c1"])
+    (root / "staging/d1/collection.json").write_text(json.dumps(
+        {"type": "Collection", "assets": {"chips": {"href": "./d1_chips.parquet"}}}))
     touch(root / "catalog/g/d1/collection.json")
     touch(root / "catalog/g/d1/chips/A/catalog.json")
     touch(root / "catalog/g/d10/collection.json")
@@ -90,8 +101,8 @@ with tempfile.TemporaryDirectory() as tmp:
     (staged / "collection.json").write_text(json.dumps(
         {"type": "Collection", "id": "d3", "assets": {"style-outline": {"href": "./styles/outline.json"}}}))
     for name in ("outline", "split"):
-        touch(staged / "styles" / f"{name}.json")
-        touch(published / "styles" / f"{name}.json")
+        touch(staged / "styles" / f"{name}.json", "{}")
+        touch(published / "styles" / f"{name}.json", "{}")
     (published / "collection.json").write_text("{}")
 
     with redirect_stdout(io.StringIO()):
@@ -110,61 +121,116 @@ with tempfile.TemporaryDirectory() as tmp:
           f"the bucket's split.json is stale and outline.json is kept, got {stale}")
 
 # A staging that holds only part of the build is refused, not pruned against: the
-# published files it lacks would all look stale.
+# published files it lacks would all look stale. Dataset d: chip c1 in square A
+# (directory c1_2023, an imagery child item beside it), chip c2 in square B.
 CONFIG = {"write_prefix": "s3://ftw/benchmark-data", "publish_dir": "catalog", "data_dir": "staging"}
-FULL = {
-    "collection.json": None,
-    "d_chips.parquet": None, "d_fields.parquet": None, "d_boundary_lines.parquet": None,
-    "items.parquet": None, "d.pmtiles": None, "styles/outline.json": None,
-    "chips/A/c1/c1.json": None, "chips/A/c1/c1_semantic_2_class.tif": None,
-    "chips/A/c1/c1_planting_s2.json": None, "chips/A/c1/c1_planting_image_s2.tif": None,
-}
+TOP = ["d_chips.parquet", "d_fields.parquet", "items.parquet", "fields.pmtiles", "styles/outline.json"]
 COLLECTION = {"type": "Collection", "id": "d", "assets": {
-    name.split(".")[0].replace("/", "-"): {"href": f"./{name}"}
-    for name in ("d_chips.parquet", "d_fields.parquet", "d_boundary_lines.parquet",
-                 "items.parquet", "d.pmtiles", "styles/outline.json")}}
+    "chips": {"href": "./d_chips.parquet"}, "fields": {"href": "./d_fields.parquet"},
+    "items": {"href": "./items.parquet"}, "fields_tiles": {"href": "./fields.pmtiles"},
+    "style-outline": {"href": "./styles/outline.json", "roles": ["style", "default"]}}}
+STYLE = json.dumps({"version": 8, "sources": {"data": {"type": "vector", "url": "pmtiles://../fields.pmtiles"}}})
 
 
-def prune_case(staged: list[str], published: list[str]):
-    """``stale_keys`` for dataset d with these staged files; the refusal message if refused."""
+def chip_files(square: str, chip: str) -> dict[str, str]:
+    """A full chip: its item (with a mask), an imagery child item and the image."""
+    at = f"chips/{square}/{chip}/{chip}"
+    return {
+        f"{at}.json": json.dumps({"type": "Feature", "assets": {"mask": {"href": f"./{chip}_mask.tif"}}}),
+        f"{at}_mask.tif": "x",
+        f"{at}_q1_s2.json": json.dumps({"type": "Feature", "assets": {"image": {"href": f"./{chip}_q1_image.tif"}}}),
+        f"{at}_q1_image.tif": "x",
+    }
+
+
+CHIPS = {**chip_files("A", "c1_2023"), **chip_files("B", "c2_2023")}
+PUBLISHED = [*TOP, *CHIPS, "collection.json", "chips/A/catalog.json", "chips/B/catalog.json"]
+
+
+def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTION, ids=("c1", "c2")):
+    """``stale_keys`` (dataset-relative) for dataset d with these staged files, or the refusal."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for name in staged:
-            touch(root / "staging/d" / name)
-        (root / "staging/d/collection.json").write_text(json.dumps(COLLECTION))
-        (root / "catalog/g/d").mkdir(parents=True)
-        (root / "catalog/g/d/collection.json").write_text("{}")
-        touch(root / "catalog/g/d/styles/outline.json")
+        (root / "staging/d").mkdir(parents=True)
+        for name, text in staged.items():
+            if name == "d_chips.parquet":
+                write_chips(root / "staging/d" / name, list(ids))
+            else:
+                touch(root / "staging/d" / name, text)
+        if collection is not None:
+            text = collection if isinstance(collection, str) else json.dumps(collection)
+            (root / "staging/d/collection.json").write_text(text)
+        for name in ("collection.json", "styles/outline.json", "chips/A/catalog.json", "chips/B/catalog.json"):
+            touch(root / "catalog/g/d" / name, "{}")
         remote = dict.fromkeys((f"benchmark-data/g/d/{k}" for k in published), (1, "e"))
         try:
-            return prune_bucket.stale_keys("d", CONFIG, remote, root)
+            return [k.removeprefix("benchmark-data/g/d/") for k in prune_bucket.stale_keys("d", CONFIG, remote, root)]
         except SystemExit as err:
             return str(err)
 
 
-published = [*FULL, "styles/split.json"]
+def refused(got, *needles: str) -> bool:
+    return isinstance(got, str) and "not a full build" in got and all(n in got for n in needles)
 
-# A full build: only the stale style goes.
-got = prune_case(list(FULL), published)
-check(got == ["benchmark-data/g/d/styles/split.json"], f"a full staging prunes only the stale style, got {got}")
+
+FULL = {**{name: "x" for name in TOP}, "styles/outline.json": STYLE, **CHIPS}
+STALE_STYLE = ["styles/split.json"]
+
+# A full build: only the stale style, a v1 per-chip file nothing references any more,
+# and a chip the rebuild dropped (in no parquet, not staged) go.
+dropped = list(chip_files("C", "c9_2023"))
+got = prune_case(FULL, published=[*PUBLISHED, *STALE_STYLE, "chips/A/c1_2023/c1_2023_overlay.webp", *dropped])
+check(got == sorted(["chips/A/c1_2023/c1_2023_overlay.webp", *dropped, *STALE_STYLE]),
+      f"a full staging prunes the stale style, an unreferenced chip file and a dropped chip, got {got}")
+
+# The staged collection.json: missing, unparsable, or not a Collection with assets.
+for name, collection, needle in (
+    ("no staged collection.json", None, "no staged collection.json"),
+    ("a parse error", "{not json", "not JSON"),
+    ("an empty object", {}, "not a STAC Collection"),
+    ("a list", [], "not a STAC Collection"),
+    ("a Feature", {"type": "Feature", "assets": COLLECTION["assets"]}, "not a STAC Collection"),
+    ("a list of assets", {"type": "Collection", "assets": []}, "has no assets"),
+    ("no assets", {"type": "Collection", "assets": {}}, "has no assets"),
+    ("an asset that is not an object", {"type": "Collection", "assets": {**COLLECTION["assets"], "x": "./x"}},
+     "not an object"),
+):
+    got = prune_case(FULL, collection=collection)
+    check(refused(got, needle), f"a staged collection.json that is {name} is refused, got {got}")
+
+# Collection assets: a bare relative href and an absolute one, neither staged.
+for href, needle in (("chips.pmtiles", "(chips.pmtiles) is not staged"),
+                     ("https://data.source.coop/ftw/benchmark-data/g/d/chips.pmtiles", "absolute href")):
+    collection = {**COLLECTION, "assets": {**COLLECTION["assets"], "chips_tiles": {"href": href}}}
+    got = prune_case(FULL, collection=collection, published=[*PUBLISHED, "chips.pmtiles"])
+    check(refused(got, needle), f"collection asset href {href!r} with no staged file is refused, got {got}")
+
+# A staged style that draws from PMTiles staging lacks (a collection that lists no tiles).
+collection = {**COLLECTION, "assets": {k: v for k, v in COLLECTION["assets"].items() if k != "fields_tiles"}}
+got = prune_case({k: v for k, v in FULL.items() if k != "fields.pmtiles"}, collection=collection)
+check(refused(got, "draws ../fields.pmtiles"), f"a style drawing unstaged PMTiles is refused, got {got}")
 
 # What backfill.fetch leaves: item JSON and the parquets, no rasters or PMTiles.
-backfill_shaped = ["chips/A/c1/c1.json", "chips/A/c1/c1_planting_s2.json", "d_chips.parquet",
-                   "d_fields.parquet", "d_boundary_lines.parquet", "items.parquet"]
-got = prune_case(backfill_shaped, published)
-check(isinstance(got, str) and "not a full build" in got and "d.pmtiles" in got
-      and "c1_semantic_2_class.tif" in got, f"a backfill staging is refused, got {got}")
+backfill_shaped = {k: v for k, v in FULL.items() if not k.endswith((".tif", ".pmtiles"))}
+got = prune_case(backfill_shaped)
+check(refused(got, "fields.pmtiles", "chip A/c1_2023"), f"a backfill staging is refused, got {got}")
 
 # A rebuild before its imagery pass: everything but the imagery, which the bucket has.
-pre_imagery = [k for k in FULL if "planting" not in k]
-got = prune_case(pre_imagery, published)
-check(isinstance(got, str) and "not a full build" in got and "c1_planting_image_s2.tif" in got,
-      f"a pre-imagery staging is refused when the bucket has imagery, got {got}")
+pre_imagery = {k: v for k, v in FULL.items() if "_q1_" not in k}
+got = prune_case(pre_imagery)
+check(refused(got, "chip A/c1_2023", "chip B/c2_2023"), f"a pre-imagery staging is refused when the bucket has imagery, got {got}")
+got = prune_case(pre_imagery, published=[k for k in PUBLISHED if "_q1_" not in k])
+check(got == [], f"a staging without imagery is complete when nothing published has imagery, got {got}")
 
-# The same pre-imagery staging against a bucket with no imagery is a full build.
-got = prune_case(pre_imagery, [k for k in published if "planting" not in k])
-check(got == ["benchmark-data/g/d/styles/split.json"],
-      f"a staging without imagery is complete when nothing published has imagery, got {got}")
+# Chips the chips parquet still lists but staging lacks: all of chips/, or one square.
+got = prune_case({k: v for k, v in FULL.items() if not k.startswith("chips/")})
+check(refused(got, "chip A/c1_2023", "chip B/c2_2023"), f"a staging with no chips/ is refused, got {got}")
+got = prune_case({k: v for k, v in FULL.items() if not k.startswith("chips/B/")})
+check(refused(got, "chip B/c2_2023") and "A/c1_2023" not in got, f"a staging missing one square is refused, got {got}")
+# ... and with no chips parquet, kept chips cannot be told from dropped ones.
+collection = {**COLLECTION, "assets": {k: v for k, v in COLLECTION["assets"].items() if k != "chips"}}
+got = prune_case({k: v for k, v in FULL.items() if not k.startswith("chips/B/")}, collection=collection)
+check(refused(got, "no staged chips parquet"), f"stale chip files with no chips parquet are refused, got {got}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
