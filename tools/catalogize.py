@@ -3,8 +3,8 @@
 
 ``tools/build.py`` writes a self-contained Portolan collection into
 ``staging/<id>/``. This script takes the git-owned slice of that output
-(``collection.json``, ``README.md``, ``AGENTS.md``, ``styles/*.json``,
-``chips/*/catalog.json``) and republishes it under ``catalog/<source>/<id>/`` with
+(``collection.json``, ``README.md``, ``AGENTS.md``, the ``styles/*.json`` it
+has assets for, ``chips/*/catalog.json``) and republishes it under ``catalog/<source>/<id>/`` with
 every ``root`` link pointed at the published root catalog instead of the
 staging copy of ``collection.json``. It also rebuilds ``items.parquet`` (which
 stays in staging; it is data, uploaded by ``upload_data.py``, never
@@ -76,8 +76,8 @@ VERSION_EXTENSION_URI = "https://stac-extensions.github.io/version/v1.2.0/schema
 _WEB_MAP_LINKS_PREFIX = "https://stac-extensions.github.io/web-map-links/"
 WEB_MAP_LINKS_URI = f"{_WEB_MAP_LINKS_PREFIX}v1.3.0/schema.json"
 
-# Files copied verbatim from staging/<id>/ to catalog/<source>/<id>/, plus the two glob
-# patterns below (styles/*.json, chips/*/catalog.json). Everything else under
+# Files copied verbatim from staging/<id>/ to catalog/<source>/<id>/, plus the
+# styles/*.json the collection has assets for and chips/*/catalog.json. Everything else under
 # staging/<id>/ is data: bucket-only, never committed.
 COMMITTED = ("collection.json", "README.md", "AGENTS.md")
 
@@ -191,10 +191,32 @@ def fetch_collection_title(url: str, *, timeout: float = _FETCH_TIMEOUT) -> str 
 # --- copying the git-owned slice of staging into the catalog --------------
 
 
+def _referenced_styles(dataset_root: Path) -> set[Path]:
+    """The ``styles/*.json`` paths that ``dataset_root``'s ``collection.json`` has assets for.
+
+    ftwd's docs stage makes the collection's style assets exactly the styles that
+    run produced (``sync_style_assets``), but never deletes a style file an older
+    ftwd wrote, so ``staging/<id>/styles/`` can hold files nothing references
+    (v1's ``split.json``). The collection's assets are the record of what is
+    current; the directory listing is not.
+    """
+    path = dataset_root / "collection.json"
+    if not path.is_file():
+        return set()
+    rels = set()
+    for asset in (read_json(path).get("assets") or {}).values():
+        href = asset.get("href") or ""
+        rel = PurePosixPath(href[2:] if href.startswith("./") else href)
+        if len(rel.parts) == 2 and rel.parts[0] == "styles" and rel.suffix == ".json":
+            rels.add(Path(rel))
+    return rels
+
+
 def _committed_relpaths(dataset_root: Path) -> list[Path]:
     """Relative paths under ``dataset_root`` that catalogize copies."""
     rels = [Path(name) for name in COMMITTED if (dataset_root / name).is_file()]
-    rels += [p.relative_to(dataset_root) for p in sorted(dataset_root.glob("styles/*.json"))]
+    styles = _referenced_styles(dataset_root)
+    rels += [rel for rel in sorted(styles) if (dataset_root / rel).is_file()]
     rels += [p.relative_to(dataset_root) for p in sorted(dataset_root.glob("chips/*/catalog.json"))]
     return rels
 
@@ -225,13 +247,34 @@ def _copy_collection_preserving_thumbnail(src: Path, dst: Path) -> None:
     write_json(dst, doc)
 
 
+def _remove_unreferenced_styles(src_root: Path, dst_root: Path) -> list[Path]:
+    """Delete ``dst_root/styles/*.json`` files the staged collection has no asset for.
+
+    The catalog's style set mirrors the collection's style assets, so a style
+    ftwd stopped producing (v1's ``split.json``) is not published by
+    ``tools/publish.py``, which syncs ``catalog/`` as it is. Returns the paths
+    removed.
+    """
+    keep = _referenced_styles(src_root)
+    removed = [p for p in sorted(dst_root.glob("styles/*.json")) if p.relative_to(dst_root) not in keep]
+    for path in removed:
+        path.unlink()
+        print(f"removed {path} (no style asset in the staged collection)")
+    stale = sorted(p.name for p in src_root.glob("styles/*.json") if p.relative_to(src_root) not in keep)
+    if stale:
+        print(f"note   skipped unreferenced staged style(s) in {src_root / 'styles'}: {', '.join(stale)}")
+    return removed
+
+
 def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG) -> list[Path]:
     """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<source>/<id>``.
 
-    Returns the catalog-side paths written. Only ``COMMITTED`` and the two
-    glob patterns (``styles/*.json``, ``chips/*/catalog.json``) are copied;
-    item directories and every data file stay in staging. ``collection.json``
-    is special-cased to preserve an existing thumbnail asset — see
+    Returns the catalog-side paths written. Only ``COMMITTED``, the
+    ``styles/*.json`` the staged collection has assets for, and
+    ``chips/*/catalog.json`` are copied; item directories and every data file
+    stay in staging. A catalog-side style with no such asset is deleted (see
+    ``_remove_unreferenced_styles``). ``collection.json`` is special-cased to
+    preserve an existing thumbnail asset — see
     ``_copy_collection_preserving_thumbnail``.
     """
     src_root = staging / dataset_id
@@ -245,6 +288,7 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
         else:
             dst.write_bytes((src_root / rel).read_bytes())
         written.append(dst)
+    _remove_unreferenced_styles(src_root, dst_root)
     return written
 
 
@@ -1113,7 +1157,7 @@ def fill_local_checksums(doc: dict, dataset_dir: Path) -> int:
     """Set ``file:size``/``file:checksum`` for an asset whose bytes are on disk.
 
     Only ``thumbnail.webp`` and ``styles/*.json`` are ever committed to git
-    (``COMMITTED`` plus the glob patterns ``copy_committed`` copies); every
+    (``COMMITTED`` plus the styles and sub-catalogs ``copy_committed`` copies); every
     other asset (every ``*.parquet`` and ``*.pmtiles``) is data, uploaded by
     ``tools/upload_data.py`` and never present in a checkout of this
     repository. PORTO-CORE-028 (SHOULD) asks every asset for both fields;
