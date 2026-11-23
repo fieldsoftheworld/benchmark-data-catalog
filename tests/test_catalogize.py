@@ -1300,6 +1300,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check((staged / "styles" / "split.json").is_file(), "staging is left alone")
     check("split.json" in out.getvalue() and "dominant-crop.json" in out.getvalue(),
           f"the removals and the skipped staged style are named: {out.getvalue()!r}")
+    skipped_note = [line for line in out.getvalue().splitlines() if "skipped unreferenced staged style" in line]
+    check(len(skipped_note) == 1 and skipped_note[0].endswith(": split.json"),
+          f"one note names the unreferenced staged style: {out.getvalue()!r}")
 
     # A collection with no style assets at all (built --through stac) leaves no styles.
     write_json(staged / "collection.json", {"type": "Collection", "id": "be_wal_2022", "assets": {}})
