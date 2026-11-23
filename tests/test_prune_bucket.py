@@ -12,14 +12,19 @@ No network, no AWS, no credentials.
 Run: python3 tests/test_prune_bucket.py
 """
 
+import io
+import json
 import sys
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
+import catalogize  # noqa: E402
 import prune_bucket  # noqa: E402
+from upload_data import collect_data_uploads  # noqa: E402
 
 errors: list[str] = []
 
@@ -68,6 +73,40 @@ with tempfile.TemporaryDirectory() as tmp:
         check(False, "a dataset without staging is refused")
     except SystemExit as err:
         check("no staging" in str(err), f"the refusal says why, got {err}")
+
+# A style the collection no longer references (v1's split.json, still staged because
+# ftwd never deletes it) is neither committed, uploaded nor kept in the bucket.
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    config = {
+        "write_prefix": "s3://ftw/benchmark-data",
+        "publish_dir": "catalog",
+        "data_dir": "staging",
+    }
+    staged = root / "staging/d3"
+    published = root / "catalog/g/d3"
+    staged.mkdir(parents=True)
+    (staged / "collection.json").write_text(json.dumps(
+        {"type": "Collection", "id": "d3", "assets": {"style-outline": {"href": "./styles/outline.json"}}}))
+    for name in ("outline", "split"):
+        touch(staged / "styles" / f"{name}.json")
+        touch(published / "styles" / f"{name}.json")
+    (published / "collection.json").write_text("{}")
+
+    with redirect_stdout(io.StringIO()):
+        catalogize.copy_committed("d3", staging=root / "staging", catalog=root / "catalog")
+    styles = sorted(p.name for p in (published / "styles").iterdir())
+    check(styles == ["outline.json"], f"catalogize leaves only the referenced style, got {styles}")
+
+    uploads = {u.key for u in collect_data_uploads(config, root, only={"d3"})}
+    check(not any("/styles/" in key for key in uploads), f"upload_data uploads no styles, got {sorted(uploads)}")
+
+    remote = dict.fromkeys(
+        ["benchmark-data/g/d3/collection.json", "benchmark-data/g/d3/styles/outline.json",
+         "benchmark-data/g/d3/styles/split.json"], (1, "e"))
+    stale = prune_bucket.stale_keys("d3", config, remote, root)
+    check(stale == ["benchmark-data/g/d3/styles/split.json"],
+          f"the bucket's split.json is stale and outline.json is kept, got {stale}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

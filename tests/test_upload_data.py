@@ -29,6 +29,7 @@ from upload_data import (  # noqa: E402
     data_root,
     git_owned,
     is_data_publishable,
+    is_staged_style,
 )
 
 errors: list[str] = []
@@ -84,6 +85,24 @@ check(
     not is_data_publishable(Path("lu/summary.md")),
     "a summary markdown file is not publishable",
 )
+
+# --- styles are git-owned only: never uploaded from staging ---------------
+check(is_staged_style(Path("lu/styles/split.json")), "a staged dataset style is git-owned only")
+check(not is_staged_style(Path("lu/chips/32UNA/catalog.json")), "a sub-catalog is not a style")
+check(not is_staged_style(Path("styles/x.json")), "a root file is not a dataset style")
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    write(root / "staging/lu/styles/split.json")
+    write(root / "staging/lu/styles/outline.json")
+    write(root / "staging/lu/lu_chips.parquet")
+    write(root / "catalog/g/lu/styles/outline.json")
+    write(root / "catalog/g/lu/collection.json")
+    cfg = {"write_prefix": "s3://ftw/benchmark-data", "publish_dir": "catalog", "data_dir": "staging"}
+    keys = {u.key for u in collect_data_uploads(cfg, root, only={"lu"})}
+    check(keys == {"benchmark-data/g/lu/lu_chips.parquet"},
+          f"a staged style with no catalog copy is not uploaded, got {sorted(keys)}")
+
 
 # --- the path gate and the walk ----------------------------------------
 with tempfile.TemporaryDirectory() as tmp:
