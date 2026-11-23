@@ -1794,9 +1794,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "a": {"href": "./styles/nested/x.json"}, "b": {"href": "./styles.json"},
         "c": {"href": "styles/outline.json"}, "d": {"href": "./styles/crops.json"}, "e": {},
         "f": {"href": "https://data.source.coop/ftw/benchmark-data/be_wal/be_wal_2022/styles/field-coverage.json"},
-        "g": {"href": "./be_wal_2022_chips.parquet"}, "h": {"href": "./styles/sprite.png"}}})
+        "g": {"href": "./be_wal_2022_chips.parquet"}, "h": {"href": "./styles/sprite.png"},
+        "i": {"href": "./styles/dominant-crop.json?v=2#top"}}})
     found = catalogize._referenced_styles(Path(tmp))
-    check(found == {Path("styles/outline.json"), Path("styles/crops.json"), Path("styles/field-coverage.json")},
+    check(found == {Path("styles/outline.json"), Path("styles/crops.json"), Path("styles/field-coverage.json"),
+                    Path("styles/dominant-crop.json")},
           f"only styles/<name>.json hrefs count, absolute ones too: {found}")
 
 if errors:
