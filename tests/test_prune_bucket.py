@@ -48,6 +48,7 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     touch(root / "staging/d1/chips/A/c1/c1_semantic_2_class.tif")
     touch(root / "staging/d1/chips/A/c1/c1.json")
+    (root / "staging/d1/collection.json").write_text("{}")
     touch(root / "catalog/g/d1/collection.json")
     touch(root / "catalog/g/d1/chips/A/catalog.json")
     touch(root / "catalog/g/d10/collection.json")
@@ -107,6 +108,63 @@ with tempfile.TemporaryDirectory() as tmp:
     stale = prune_bucket.stale_keys("d3", config, remote, root)
     check(stale == ["benchmark-data/g/d3/styles/split.json"],
           f"the bucket's split.json is stale and outline.json is kept, got {stale}")
+
+# A staging that holds only part of the build is refused, not pruned against: the
+# published files it lacks would all look stale.
+CONFIG = {"write_prefix": "s3://ftw/benchmark-data", "publish_dir": "catalog", "data_dir": "staging"}
+FULL = {
+    "collection.json": None,
+    "d_chips.parquet": None, "d_fields.parquet": None, "d_boundary_lines.parquet": None,
+    "items.parquet": None, "d.pmtiles": None, "styles/outline.json": None,
+    "chips/A/c1/c1.json": None, "chips/A/c1/c1_semantic_2_class.tif": None,
+    "chips/A/c1/c1_planting_s2.json": None, "chips/A/c1/c1_planting_image_s2.tif": None,
+}
+COLLECTION = {"type": "Collection", "id": "d", "assets": {
+    name.split(".")[0].replace("/", "-"): {"href": f"./{name}"}
+    for name in ("d_chips.parquet", "d_fields.parquet", "d_boundary_lines.parquet",
+                 "items.parquet", "d.pmtiles", "styles/outline.json")}}
+
+
+def prune_case(staged: list[str], published: list[str]):
+    """``stale_keys`` for dataset d with these staged files; the refusal message if refused."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for name in staged:
+            touch(root / "staging/d" / name)
+        (root / "staging/d/collection.json").write_text(json.dumps(COLLECTION))
+        (root / "catalog/g/d").mkdir(parents=True)
+        (root / "catalog/g/d/collection.json").write_text("{}")
+        touch(root / "catalog/g/d/styles/outline.json")
+        remote = dict.fromkeys((f"benchmark-data/g/d/{k}" for k in published), (1, "e"))
+        try:
+            return prune_bucket.stale_keys("d", CONFIG, remote, root)
+        except SystemExit as err:
+            return str(err)
+
+
+published = [*FULL, "styles/split.json"]
+
+# A full build: only the stale style goes.
+got = prune_case(list(FULL), published)
+check(got == ["benchmark-data/g/d/styles/split.json"], f"a full staging prunes only the stale style, got {got}")
+
+# What backfill.fetch leaves: item JSON and the parquets, no rasters or PMTiles.
+backfill_shaped = ["chips/A/c1/c1.json", "chips/A/c1/c1_planting_s2.json", "d_chips.parquet",
+                   "d_fields.parquet", "d_boundary_lines.parquet", "items.parquet"]
+got = prune_case(backfill_shaped, published)
+check(isinstance(got, str) and "not a full build" in got and "d.pmtiles" in got
+      and "c1_semantic_2_class.tif" in got, f"a backfill staging is refused, got {got}")
+
+# A rebuild before its imagery pass: everything but the imagery, which the bucket has.
+pre_imagery = [k for k in FULL if "planting" not in k]
+got = prune_case(pre_imagery, published)
+check(isinstance(got, str) and "not a full build" in got and "c1_planting_image_s2.tif" in got,
+      f"a pre-imagery staging is refused when the bucket has imagery, got {got}")
+
+# The same pre-imagery staging against a bucket with no imagery is a full build.
+got = prune_case(pre_imagery, [k for k in published if "planting" not in k])
+check(got == ["benchmark-data/g/d/styles/split.json"],
+      f"a staging without imagery is complete when nothing published has imagery, got {got}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

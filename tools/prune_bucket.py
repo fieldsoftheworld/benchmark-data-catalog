@@ -11,16 +11,20 @@ chips' files would stay in the bucket, unlinked from the catalog. This lists
     uv run python tools/prune_bucket.py at_2018 at_2019            # dry run
     uv run python tools/prune_bucket.py at_2018 at_2019 --confirm  # delete
 
-Run it after the dataset's new data is uploaded and its catalog published.
+Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
+published. It refuses a staging that is not a full build (``staging_gaps``): a
+backfill staging or a rebuild before its imagery pass lacks published files that
+pruning against it would delete.
 Source Cooperative's proxy has no DeleteObjects, so keys go one at a time.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -52,7 +56,50 @@ def stale_keys(
         sys.exit(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"
         )
-    return sorted(k for k in remote if k.startswith(under) and k not in wanted)
+    stale = sorted(k for k in remote if k.startswith(under) and k not in wanted)
+    staged = data_root(config, root) / dataset_id
+    gaps = staging_gaps(staged, [k[len(under):] for k in stale])
+    if gaps:
+        shown = ", ".join(gaps[:5]) + (f" and {len(gaps) - 5:,} more" if len(gaps) > 5 else "")
+        sys.exit(
+            f"{dataset_id}: staging is not a full build ({shown}); refusing to prune. "
+            "A backfill staging or a rebuild before its imagery pass holds only part of "
+            "what is published, and pruning against it would delete the rest."
+        )
+    return stale
+
+
+def staging_gaps(staged: Path, stale: list[str]) -> list[str]:
+    """Why ``staged`` is not a full build to prune against; empty when it is.
+
+    Two signs, both of which a full build never shows:
+
+    - an asset of the staged ``collection.json`` (fields, boundary lines, PMTiles,
+      styles, ...) that is not on disk: a backfill fetches no PMTiles;
+    - a stale key inside a chip directory staging still has
+      (``chips/<square>/<chip>/...``): the chip is kept, so the key is a part of it
+      staging lacks, such as its masks (a backfill) or its imagery (a rebuild
+      before the imagery pass). A chip the rebuild dropped has no directory left.
+
+    ``stale`` holds dataset-relative paths. A missing ``collection.json`` is a gap too.
+    """
+    collection = staged / "collection.json"
+    if not collection.is_file():
+        return ["no staged collection.json"]
+    try:
+        assets = json.loads(collection.read_text()).get("assets") or {}
+    except (ValueError, AttributeError):
+        return ["the staged collection.json is not a STAC collection"]
+    gaps = []
+    for key, asset in sorted(assets.items()):
+        href = asset.get("href") or ""
+        if href.startswith("./") and not (staged / href[2:]).is_file():
+            gaps.append(f"collection asset {key} ({href}) is not staged")
+    for rel in stale:
+        parts = PurePosixPath(rel).parts
+        if len(parts) >= 4 and parts[0] == "chips" and (staged / Path(*parts[:3])).is_dir():
+            gaps.append(f"{rel} is published for a staged chip but not staged")
+    return gaps
 
 
 def main() -> int:
