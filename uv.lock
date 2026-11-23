@@ -300,7 +300,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35" },
     { name = "certifi", specifier = ">=2024" },
     { name = "duckdb", specifier = ">=1.1" },
-    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=4032c3ad95362c72780264734b15c1d71aa2f7d1" },
+    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=42a9e1d4116eca956126995bb46153c865c5b609" },
     { name = "pillow", specifier = ">=10" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pyflakes", specifier = ">=3.2" },
@@ -868,7 +868,7 @@ wheels = [
 [[package]]
 name = "ftw-dataset-tools"
 version = "0.1.0"
-source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=4032c3ad95362c72780264734b15c1d71aa2f7d1#4032c3ad95362c72780264734b15c1d71aa2f7d1" }
+source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=42a9e1d4116eca956126995bb46153c865c5b609#42a9e1d4116eca956126995bb46153c865c5b609" }
 dependencies = [
     { name = "click" },
     { name = "duckdb" },
