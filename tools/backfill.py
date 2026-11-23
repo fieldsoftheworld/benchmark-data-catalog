@@ -39,11 +39,14 @@ replace the field files only when every join succeeded, so a dataset whose names
 left as fetched (as published): it is reported and skipped, and the run carries on
 with the others and exits 1.
 
-Nothing is uploaded. Publish afterwards the usual way:
+Nothing is uploaded. Publish afterwards the usual way, each --confirm with the
+maintainer's say-so; prune_bucket.py then deletes the bucket objects the catalog
+no longer has (such as a v1 styles/split.json):
 
     uv run python tools/backfill.py rw_rwanda_ml_2021 --workers 32
     uv run python tools/upload_data.py --only rw_rwanda_ml_2021 --confirm
     uv run python tools/publish.py --only rw_rwanda_ml_2021 --confirm
+    uv run python tools/prune_bucket.py rw_rwanda_ml_2021 --confirm
 
 Rasters and PMTiles are never fetched: nothing here changes them.
 """
@@ -240,7 +243,7 @@ def check_staging(
     bucket lacks, and ones the fetch leaves alone whose size differs from the bucket's
     (the ones it reads are replaced with the published copy when they differ).
     """
-    from upload_data import is_data_publishable
+    from upload_data import is_uploadable
 
     dataset_id = root.name
     outputs = {name.format(id=dataset_id) for name in _OUTPUTS}
@@ -250,7 +253,7 @@ def check_staging(
         rel = path.relative_to(root)
         if not path.is_file() or rel.parts[0] in output_dirs or rel.as_posix() in outputs:
             continue
-        if not is_data_publishable(rel) or (catalog_dir / rel).exists():
+        if not is_uploadable(Path(dataset_id, *rel.parts)) or (catalog_dir / rel).exists():
             continue
         remote = listing.get(rel.as_posix())
         if remote is None:

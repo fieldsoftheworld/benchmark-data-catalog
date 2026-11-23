@@ -301,6 +301,8 @@ def main(argv: list[str] | None = None) -> int:
         print("\nreview, commit, then upload with the maintainer's say-so:")
         print(f"  uv run python tools/upload_data.py {only} --confirm")
         print("  uv run python tools/publish.py --confirm")
+        print(f"  uv run python tools/prune_bucket.py {' '.join(ok)} --confirm"
+              "   # deletes bucket objects the catalog no longer has")
         print(f"  uv run python tools/run_batch.py {' '.join(ok)} --mark-published")
     return 1 if failed else 0
 

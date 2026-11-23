@@ -215,6 +215,9 @@ with tempfile.TemporaryDirectory() as tmp:
     put("ds_field_embeddings.parquet.partial/part-000000.parquet")
     put("ftwd-config.resolved.yaml")
     put("chips/S/c/c_overlay.md")
+    # A v1 style ftwd never deletes: git-owned only, so upload_data skips it and
+    # prune_bucket removed it from the bucket.
+    put("styles/split.json", b"{}")
     check_ok()
     for rel, body, why in (("chips/S/c/c_mask.tif", b"rebuilt mask", "a raster that differs"),
                            ("chips/S/d/d.json", b"{}", "an item the bucket lacks"),

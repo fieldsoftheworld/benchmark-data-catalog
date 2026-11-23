@@ -108,6 +108,14 @@ Needs `source-coop login` and the `source-coop` AWS profile; the endpoint is
 read from `catalog.publish.yaml`. Only run `--confirm` with the maintainer's
 say-so — it's a real upload to the published bucket.
 
+Neither uploader deletes, so after a rebuild run `tools/prune_bucket.py` once both
+have finished. It removes the dataset's bucket objects that the catalog and staging no
+longer have (chips a rebuild dropped, a v1 `styles/split.json`). It is a dry run by
+default, and `--confirm` needs the maintainer's say-so, like the uploaders:
+
+    uv run python tools/prune_bucket.py <id>             # dry run: lists what it would delete
+    uv run python tools/prune_bucket.py <id> --confirm   # delete
+
 ## Root chips table
 
 `chips.parquet` at the bucket root lists every chip of every published dataset, one row
@@ -225,6 +233,7 @@ background) before it's written and registered as the collection's
        git commit -am "Add <id>"
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
+       uv run python tools/prune_bucket.py <id> --confirm   # after a rebuild
 
 7. If the recipe downloads imagery, that's a second pass once selection is
    ready — rebuild from `select_images`, regenerate docs and the catalog copy,
@@ -278,8 +287,9 @@ gates once for the batch, and records the outcome in `tracking.csv`. The links,
 STAC and conformance gates read only the batch's datasets
 (`BDC_SCOPE_DATASETS`, see `tests/scope.py`): the builder has staging for those
 alone, and the rest of the catalog was checked when it was built. It never
-uploads: it prints the `upload_data.py --only ...` and `publish.py` commands
-to run with the maintainer's say-so, then `--mark-published`.
+uploads: it prints the `upload_data.py --only ...`, `publish.py` and
+`prune_bucket.py` commands to run with the maintainer's say-so, then
+`--mark-published`.
 
 ### On AWS
 
