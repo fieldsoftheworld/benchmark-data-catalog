@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import catalogize  # noqa: E402
 import prune_bucket  # noqa: E402
+from publish import md5  # noqa: E402
 from upload_data import collect_data_uploads  # noqa: E402
 
 errors: list[str] = []
@@ -42,13 +43,18 @@ def touch(path: Path, text: str = "x") -> None:
     path.write_text(text)
 
 
-def as_published(remote: dict, catalog_dir: Path, key: str) -> dict:
-    """``remote`` with every file of ``catalog_dir`` listed as published (``key`` is its collection.json)."""
+def as_published(remote: dict, catalog_dir: Path, key: str, staged_dir: Path | None = None) -> dict:
+    """``remote`` with every file of ``catalog_dir`` listed as published (``key`` is its collection.json).
+
+    With ``staged_dir``, its top-level data files are listed as uploaded too (catalog/ wins).
+    """
     out = dict(remote)
     base = key.rsplit("/", 1)[0]
-    for local in (p for p in catalog_dir.rglob("*") if p.is_file()):
-        out[f"{base}/{local.relative_to(catalog_dir).as_posix()}"] = (
-            local.stat().st_size, f'"{prune_bucket.md5(local)}"')
+    staged = [p for p in staged_dir.iterdir() if p.is_file() and not (catalog_dir / p.name).exists()] if staged_dir else []
+    for local in [*(p for p in catalog_dir.rglob("*") if p.is_file()), *staged]:
+        rel = local.name if local in staged else local.relative_to(catalog_dir).as_posix()
+        out[f"{base}/{rel}"] = (
+            local.stat().st_size, f'"{md5(local)}"')
     return out
 
 
@@ -86,7 +92,7 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     others = {"benchmark-data/g/d10/collection.json", "benchmark-data/d1/collection.json"}
     remote = dict.fromkeys(keep | drop | others, (1, "e"))
-    remote = as_published(remote, root / "catalog/g/d1", "benchmark-data/g/d1/collection.json")
+    remote = as_published(remote, root / "catalog/g/d1", "benchmark-data/g/d1/collection.json", root / "staging/d1")
     stale = set(prune_bucket.stale_keys("d1", config, remote, root))
     check(stale == drop, f"only the dropped chip's files are stale, got {sorted(stale)}")
 
@@ -127,7 +133,7 @@ with tempfile.TemporaryDirectory() as tmp:
     remote = dict.fromkeys(
         ["benchmark-data/g/d3/collection.json", "benchmark-data/g/d3/styles/outline.json",
          "benchmark-data/g/d3/styles/split.json"], (1, "e"))
-    remote = as_published(remote, published, "benchmark-data/g/d3/collection.json")
+    remote = as_published(remote, published, "benchmark-data/g/d3/collection.json", staged)
     stale = prune_bucket.stale_keys("d3", config, remote, root)
     check(stale == ["benchmark-data/g/d3/styles/split.json"],
           f"the bucket's split.json is stale and outline.json is kept, got {stale}")
@@ -161,7 +167,7 @@ PUBLISHED = [*TOP, *CHIPS, "collection.json", "chips/A/catalog.json", "chips/B/c
 
 def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTION, ids=("c1", "c2"),
                catalog: dict[str, str] | None = None, chips_table: pa.Table | None = None,
-               publish_catalog: bool = True, after_publish=None):
+               publish_catalog: bool = True, after_publish=None, uploaded: bool = True):
     """``stale_keys`` (dataset-relative) for dataset d with these staged files, or the refusal.
 
     ``catalog`` adds or replaces files in ``catalog/g/d/``; ``chips_table`` replaces the
@@ -189,7 +195,8 @@ def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTIO
                 touch(root / "catalog/g/d" / name, text)
         remote = dict.fromkeys((f"benchmark-data/g/d/{k}" for k in published), (1, "e"))
         if "collection.json" in published and publish_catalog and (root / "catalog/g/d/collection.json").is_file():
-            remote = as_published(remote, root / "catalog/g/d", "benchmark-data/g/d/collection.json")
+            remote = as_published(remote, root / "catalog/g/d", "benchmark-data/g/d/collection.json",
+                                  root / "staging/d" if uploaded else None)
         if after_publish:  # a local edit to catalog/ after it was published
             after_publish(root / "catalog/g/d")
         try:
@@ -327,17 +334,11 @@ check(isinstance(got, str) and "catalog/g/d/collection.json does not exist" in g
 got = prune_case(FULL, published=[k for k in PUBLISHED if k != "collection.json"])
 check(isinstance(got, str) and "the bucket has no collection.json" in got, f"an unpublished catalog is refused, got {got}")
 got = prune_case(FULL, publish_catalog=False)
-check(isinstance(got, str) and "differs from catalog/'s" in got, f"a catalog/ behind the bucket is refused, got {got}")
+check(isinstance(got, str) and "differs from the bucket's copy" in got, f"a catalog/ behind the bucket is refused, got {got}")
 got = prune_case(FULL, collection=None, catalog={"collection.json": None})
 check(isinstance(got, str) and "publishes no collection.json" in got,
       f"a build that publishes no collection.json is refused, got {got}")
 
-# A multipart ETag is compared by size alone.
-with tempfile.TemporaryDirectory() as tmp:
-    local = Path(tmp) / "collection.json"
-    local.write_text("{}")
-    check(prune_bucket.catalog_mismatch(Path(tmp), (2, '"abc-3"')) is None, "a multipart ETag of the same size matches")
-    check(prune_bucket.catalog_mismatch(Path(tmp), (3, '"abc-3"')) is not None, "a multipart ETag of another size does not")
 
 # Malformed input is refused, never crashes and never deletes.
 bad_href = {**COLLECTION, "assets": {**COLLECTION["assets"], "items": {"href": 5}}}
@@ -346,8 +347,6 @@ for name, kwargs in (
     ("an int href", {"collection": bad_href}),
     ("a list href", {"collection": list_href}),
     ("a catalog href that is a list", {"catalog": {"collection.json": json.dumps(list_href)}}),
-    ("a sub-catalog link that is a string or has a None href", {"catalog": {"chips/A/catalog.json": json.dumps(
-        {"links": ["x", {"rel": "item", "href": None}]})}}),
     ("a style url that is an int", {"staged": {**FULL, "styles/outline.json": json.dumps({"sources": {"a": {"url": 3}}})}}),
     ("style sources that are a list", {"staged": {**FULL, "styles/outline.json": json.dumps({"sources": [1]})}}),
     ("a catalog style url that is an int", {"catalog": {"styles/outline.json": json.dumps({"sources": {"a": {"url": 3}}})}}),
@@ -361,6 +360,10 @@ for name, kwargs in (
         kwargs["collection"] = {**COLLECTION, "assets": {**COLLECTION["assets"], "chips": {"href": "./d_chips.parquet.raw"}}}
     got = prune_case(staged, **kwargs)
     check(isinstance(got, str) and "refusing to prune" in got, f"{name} is refused, got {got}")
+
+# Sub-catalog links that are not objects, or have no href string, are skipped: they link nothing.
+got = prune_case(FULL, catalog={"chips/A/catalog.json": json.dumps({"links": ["x", {"rel": "item", "href": None}]})})
+check(got == [], f"malformed sub-catalog links are skipped without a crash, got {got}")
 
 got = prune_case(FULL, collection=bad_href)
 check(refused(got, "collection asset items has no href string"), f"an int href is named, got {got}")
@@ -426,6 +429,20 @@ check(isinstance(got, str) and "AGENTS.md differs from the bucket's copy" in got
 collection = LINKED["collection.json"]
 got = prune_case(FULL, catalog=LINKED, after_publish=rewrite("collection.json", collection.replace("A", "Z", 1)))
 check(isinstance(got, str) and "collection.json differs" in got, f"a same-size collection.json edit is refused, got {got}")
+
+# The staged top-level data must be uploaded first: until then the bucket's chips parquet,
+# items and tiles still list the chips prune would delete.
+got = prune_case(FULL, published=[*PUBLISHED, *dropped], uploaded=False)
+check(isinstance(got, str) and "run tools/upload_data.py --only d first" in got,
+      f"a dropped chip is not pruned before upload_data has run, got {got}")
+got = prune_case(FULL, published=[*PUBLISHED, *dropped])
+check(got == sorted(dropped), f"after upload_data the dropped chip is pruned, got {got}")
+
+# An item link resolves against its sub-catalog's folder: ../C/c9_2023/c9_2023.json from
+# square A links chip c9 of square C, so its files are kept.
+got = prune_case(FULL, published=[*PUBLISHED, *dropped], catalog={"chips/A/catalog.json": json.dumps(
+    {"links": [{"rel": "item", "href": "../C/c9_2023/c9_2023.json"}]})})
+check(got == [], f"an item linked from another square's sub-catalog is kept, got {got}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

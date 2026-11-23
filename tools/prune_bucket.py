@@ -13,8 +13,9 @@ not reference (``catalog_refs``).
     uv run python tools/prune_bucket.py at_2018 at_2019 --confirm  # delete
 
 Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
-published; it refuses when the bucket's ``collection.json`` is not catalog/'s
-(``catalog_mismatch``). It refuses a staging that is not a full build (``staging_gaps``): a
+published; it refuses when any catalog/ file is not the bucket's
+(``catalog_mismatch``, ``catalog_unpublished``) or a top-level staged data file is
+not uploaded (``data_unuploaded``). It refuses a staging that is not a full build (``staging_gaps``): a
 backfill staging, a rebuild before its imagery pass, or one whose chips parquet does
 not list exactly its staged chip directories lacks published files that pruning
 against it would delete. A chip's files are pruned only when staging has no
@@ -44,7 +45,6 @@ from publish import (  # noqa: E402
     collect_uploads,
     is_unchanged,
     load_config,
-    md5,
     remote_index,
     s3_client,
     split_s3_uri,
@@ -61,7 +61,8 @@ def stale_keys(
     under = f"{prefix}/{rel}/" if prefix else f"{rel}/"
     if not (data_root(config, root) / dataset_id).is_dir():
         sys.exit(f"{dataset_id}: no staging to compare against; refusing to prune")
-    wanted = {u.key for u in collect_data_uploads(config, root, only={dataset_id})}
+    data_uploads = collect_data_uploads(config, root, only={dataset_id})
+    wanted = {u.key for u in data_uploads}
     wanted |= {u.key for u in collect_uploads(config, root, only={dataset_id}) if u.key.startswith(under)}
     if not any(k.endswith("/collection.json") for k in wanted):
         sys.exit(
@@ -75,6 +76,12 @@ def stale_keys(
         sys.exit(
             f"{dataset_id}: {unpublished}; refusing to prune. Prune compares the bucket with "
             f"the published catalog: publish catalog/{rel}/ first (tools/publish.py)."
+        )
+    not_uploaded = data_unuploaded(under, remote, data_uploads)
+    if not_uploaded:
+        sys.exit(
+            f"{dataset_id}: {not_uploaded}; refusing to prune. The bucket's chips, items and "
+            f"tiles still describe the old build: run tools/upload_data.py --only {dataset_id} first."
         )
     staged = data_root(config, root) / dataset_id
     try:
@@ -100,21 +107,32 @@ def stale_keys(
 
 
 def catalog_mismatch(published: Path, remote: tuple[int, str] | None) -> str | None:
-    """Why the bucket's ``collection.json`` is not the local catalog's, or None when it is.
+    """Why there is no published ``collection.json`` to compare against, or None.
 
-    Prune keeps what ``catalog/<source>/<id>/`` references and publishes, so the local
-    catalog must be the published one: it must exist, and the bucket's copy of its
-    ``collection.json`` must match by size and MD5 (by size alone for a multipart ETag).
+    Prune keeps what ``catalog/<source>/<id>/`` references, so the local catalog must
+    have a ``collection.json`` and the bucket must hold one. Whether the two match
+    is ``catalog_unpublished``'s check, which compares every catalog/ file.
     """
     local = published / "collection.json"
     if not local.is_file():
         return f"{local} does not exist"
     if remote is None:
         return "the bucket has no collection.json for it"
-    size, etag = remote
-    etag = str(etag).strip('"')
-    if size != local.stat().st_size or ("-" not in etag and etag != md5(local)):
-        return "the bucket's collection.json differs from catalog/'s"
+    return None
+
+
+def data_unuploaded(under: str, remote: dict, uploads: list) -> str | None:
+    """The first top-level staged data file the bucket does not hold unchanged, or None.
+
+    The dataset's own files (``<id>_chips.parquet``, ``items.parquet``, the PMTiles)
+    list its chips. Until they are uploaded the bucket's copies list the old build's,
+    dropped chips included, so pruning those chips would leave them dangling. Chip
+    files are not compared: the top-level files are the cheap sign of an upload.
+    """
+    for upload in uploads:
+        rel = upload.key[len(under):] if upload.key.startswith(under) else None
+        if rel and "/" not in rel and not is_unchanged(upload, remote):
+            return f"the bucket's {rel} is not the staged one"
     return None
 
 
@@ -330,10 +348,15 @@ def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
     for sub in published.glob("chips/*/catalog.json"):
         files |= _link_hrefs(sub, sub.parent.relative_to(published).as_posix())
         for link in _read(sub).get("links") or []:
-            href = (link.get("href") or "") if isinstance(link, dict) else ""
-            parts = PurePosixPath(posixpath.normpath(href)).parts
-            if link.get("rel") == "item" and not urlsplit(href).scheme and len(parts) == 2:
-                chips.add((sub.parent.name, parts[0]))
+            if not isinstance(link, dict):
+                continue
+            href = link.get("href")
+            if link.get("rel") != "item" or not isinstance(href, str) or urlsplit(href).scheme or href.startswith("/"):
+                continue
+            # Resolved against chips/<square>/, so ../B/x/x.json names chip x of square B.
+            parts = PurePosixPath(posixpath.normpath(posixpath.join("chips", sub.parent.name, href))).parts
+            if len(parts) == 4 and parts[0] == "chips":
+                chips.add((parts[1], parts[2]))
     return files, chips
 
 

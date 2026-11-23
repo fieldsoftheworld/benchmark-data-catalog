@@ -113,8 +113,9 @@ recipe has one) is uploaded, run `tools/prune_bucket.py`. It removes the dataset
 bucket objects that neither catalog/ nor the full staging has, such as a v1
 `styles/split.json` or a file a kept chip no longer references. It keeps anything
 `catalog/<source>/<id>/` still references (its assets, the PMTiles its styles draw
-from, the chips its sub-catalogs link). Run it after publish: it refuses when
-`catalog/<source>/<id>/collection.json` is missing or differs from the bucket's.
+from, the chips its sub-catalogs link). Run it after upload_data and publish: it
+refuses when any `catalog/<source>/<id>/` file differs from the bucket's, or when a
+top-level staged data file (the chips parquet, items, PMTiles) is not uploaded.
 A chip's files go only when the rebuild dropped it: staging has no directory for it,
 the staged chips parquet does not list it, and catalog/ does not link it. Prune
 refuses a staging that is not a full build: a backfill, a rebuild before its imagery
