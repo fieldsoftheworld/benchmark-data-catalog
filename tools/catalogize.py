@@ -38,6 +38,7 @@ import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 import duckdb
@@ -199,16 +200,21 @@ def _referenced_styles(dataset_root: Path) -> set[Path]:
     ftwd wrote, so ``staging/<id>/styles/`` can hold files nothing references
     (v1's ``split.json``). The collection's assets are the record of what is
     current; the directory listing is not.
+
+    An href that is not plain relative (an absolute URL, ``../``) counts by its
+    last two path segments, so ``https://.../styles/outline.json`` keeps
+    ``styles/outline.json``: a misread keeps a stale file rather than deleting a
+    live one.
     """
     path = dataset_root / "collection.json"
     if not path.is_file():
         return set()
     rels = set()
     for asset in (read_json(path).get("assets") or {}).values():
-        href = asset.get("href") or ""
-        rel = PurePosixPath(href[2:] if href.startswith("./") else href)
-        if len(rel.parts) == 2 and rel.parts[0] == "styles" and rel.suffix == ".json":
-            rels.add(Path(rel))
+        href = urlsplit(asset.get("href") or "").path
+        parts = PurePosixPath(href).parts[-2:]
+        if len(parts) == 2 and parts[0] == "styles" and parts[1].endswith(".json"):
+            rels.add(Path(*parts))
     return rels
 
 
@@ -550,8 +556,7 @@ def rewrite_items_parquet(
     )
     if not items:
         sys.exit(
-            f"no item JSON found under {staging / dataset_id / 'chips'}; run: "
-            f"uv run python tools/build.py {dataset_id} --through stac"
+            f"no item JSON found under {staging / dataset_id / 'chips'}; run: {_build_hint(dataset_id)}"
         )
 
     tmp_path = path.with_name(path.name + ".tmp")
@@ -2317,6 +2322,15 @@ def regenerate_root(
 # --- the full pipeline for one dataset --------------------------------------
 
 
+def _build_hint(dataset_id: str) -> str:
+    """The builds catalogize needs first: ``stac`` for the items, ``docs`` for the styles."""
+    return (
+        f"uv run python tools/build.py {dataset_id} --through stac, then "
+        f"uv run python tools/build.py {dataset_id} --only docs (without docs the collection "
+        "has no style assets and catalogize removes every published style)"
+    )
+
+
 def _check_staged(dataset_id: str, staging: Path) -> None:
     """Exit with a clear message naming the missing file when a build hasn't reached ``stac`` yet.
 
@@ -2329,7 +2343,7 @@ def _check_staged(dataset_id: str, staging: Path) -> None:
     for name in ("items.parquet", "collection.json"):
         path = staging / dataset_id / name
         if not path.is_file():
-            sys.exit(f"{path} not found; run: uv run python tools/build.py {dataset_id} --through stac")
+            sys.exit(f"{path} not found; run: {_build_hint(dataset_id)}")
 
 
 def _check_group(dataset_id: str, recipe: dict, catalog: Path) -> None:

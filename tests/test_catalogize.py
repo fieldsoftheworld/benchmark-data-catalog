@@ -1094,6 +1094,9 @@ with tempfile.TemporaryDirectory() as tmp:
             "items.parquet" in message and "tools/build.py be_wal_2022" in message,
             f"the exit message names the missing file and the fix, got {message!r}",
         )
+        # A stac-only build has no style assets, so catalogizing it drops every style.
+        check("--through stac" in message and "--only docs" in message,
+              f"the hint names the docs build too, got {message!r}")
 
 
 # --- catalogize.py main(): an unknown dataset id exits with a clear message,
@@ -1781,14 +1784,17 @@ check("root chips table" in without_split["assets"]["chips"]["description"]
       and "assigned" not in without_split["assets"]["chips"]["description"],
       f"a chips file without split points at the root chips table: {without_split}")
 
-# Only a top-level styles/*.json asset href counts as a style the collection has.
+# A styles/<name>.json asset href counts as a style the collection has, relative or
+# absolute (an absolute one must not get its file deleted); other hrefs do not.
 with tempfile.TemporaryDirectory() as tmp:
     write_json(Path(tmp) / "collection.json", {"type": "Collection", "assets": {
         "a": {"href": "./styles/nested/x.json"}, "b": {"href": "./styles.json"},
-        "c": {"href": "styles/outline.json"}, "d": {"href": "./styles/crops.json"}, "e": {}}})
+        "c": {"href": "styles/outline.json"}, "d": {"href": "./styles/crops.json"}, "e": {},
+        "f": {"href": "https://data.source.coop/ftw/benchmark-data/be_wal/be_wal_2022/styles/field-coverage.json"},
+        "g": {"href": "./be_wal_2022_chips.parquet"}}})
     found = catalogize._referenced_styles(Path(tmp))
-    check(found == {Path("styles/outline.json"), Path("styles/crops.json")},
-          f"only top-level styles/*.json hrefs count: {found}")
+    check(found == {Path("styles/outline.json"), Path("styles/crops.json"), Path("styles/field-coverage.json")},
+          f"only styles/<name>.json hrefs count, absolute ones too: {found}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
