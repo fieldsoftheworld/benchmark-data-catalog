@@ -42,6 +42,12 @@ def touch(path: Path, text: str = "x") -> None:
     path.write_text(text)
 
 
+def as_published(remote: dict, catalog_dir: Path, key: str) -> dict:
+    """``remote`` with ``key`` listed as the bytes of ``catalog_dir/collection.json`` (published)."""
+    local = catalog_dir / "collection.json"
+    return {**remote, key: (local.stat().st_size, f'"{prune_bucket.md5(local)}"')}
+
+
 def write_chips(path: Path, ids: list[str]) -> None:
     """A chips parquet with just the ``id`` column the prune guard reads."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -76,6 +82,7 @@ with tempfile.TemporaryDirectory() as tmp:
     }
     others = {"benchmark-data/g/d10/collection.json", "benchmark-data/d1/collection.json"}
     remote = dict.fromkeys(keep | drop | others, (1, "e"))
+    remote = as_published(remote, root / "catalog/g/d1", "benchmark-data/g/d1/collection.json")
     stale = set(prune_bucket.stale_keys("d1", config, remote, root))
     check(stale == drop, f"only the dropped chip's files are stale, got {sorted(stale)}")
 
@@ -116,6 +123,7 @@ with tempfile.TemporaryDirectory() as tmp:
     remote = dict.fromkeys(
         ["benchmark-data/g/d3/collection.json", "benchmark-data/g/d3/styles/outline.json",
          "benchmark-data/g/d3/styles/split.json"], (1, "e"))
+    remote = as_published(remote, published, "benchmark-data/g/d3/collection.json")
     stale = prune_bucket.stale_keys("d3", config, remote, root)
     check(stale == ["benchmark-data/g/d3/styles/split.json"],
           f"the bucket's split.json is stale and outline.json is kept, got {stale}")
@@ -148,7 +156,8 @@ PUBLISHED = [*TOP, *CHIPS, "collection.json", "chips/A/catalog.json", "chips/B/c
 
 
 def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTION, ids=("c1", "c2"),
-               catalog: dict[str, str] | None = None, chips_table: pa.Table | None = None):
+               catalog: dict[str, str] | None = None, chips_table: pa.Table | None = None,
+               publish_catalog: bool = True):
     """``stale_keys`` (dataset-relative) for dataset d with these staged files, or the refusal.
 
     ``catalog`` adds or replaces files in ``catalog/g/d/``; ``chips_table`` replaces the
@@ -157,6 +166,8 @@ def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTIO
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         (root / "staging/d").mkdir(parents=True)
+        # Places d under group g even when catalog/ has no collection.json for it.
+        touch(root / "datasets/d.yaml", "source_via: https://data.source.coop/o/r/g/collection.json\n")
         for name, text in staged.items():
             if name == "d_chips.parquet" and chips_table is not None:
                 pq.write_table(chips_table, root / "staging/d" / name)
@@ -170,8 +181,11 @@ def prune_case(staged: dict[str, str], published=PUBLISHED, collection=COLLECTIO
         files = dict.fromkeys(("collection.json", "styles/outline.json", "chips/A/catalog.json",
                                "chips/B/catalog.json"), "{}")
         for name, text in {**files, **(catalog or {})}.items():
-            touch(root / "catalog/g/d" / name, text)
+            if text is not None:
+                touch(root / "catalog/g/d" / name, text)
         remote = dict.fromkeys((f"benchmark-data/g/d/{k}" for k in published), (1, "e"))
+        if "collection.json" in published and publish_catalog and (root / "catalog/g/d/collection.json").is_file():
+            remote = as_published(remote, root / "catalog/g/d", "benchmark-data/g/d/collection.json")
         try:
             return [k.removeprefix("benchmark-data/g/d/") for k in prune_bucket.stale_keys("d", CONFIG, remote, root)]
         except SystemExit as err:
@@ -299,6 +313,72 @@ check(refused(got, "not a style document"), f"a style that is not JSON is refuse
 got = prune_case({**FULL, "chips/A/c1_2023/c1_2023_q1_s2.json": "{bad"},
                  published=[*PUBLISHED, "chips/A/c1_2023/c1_2023_overlay.webp"])
 check(refused(got, "chip A/c1_2023 is not staged whole"), f"an unreadable staged chip JSON is refused, got {got}")
+
+# The local catalog must be the published one: prune keeps what it references.
+got = prune_case(FULL, catalog={"collection.json": None})
+check(isinstance(got, str) and "catalog/g/d/collection.json does not exist" in got,
+      f"a dataset with no catalog/ copy is refused, got {got}")
+got = prune_case(FULL, published=[k for k in PUBLISHED if k != "collection.json"])
+check(isinstance(got, str) and "the bucket has no collection.json" in got, f"an unpublished catalog is refused, got {got}")
+got = prune_case(FULL, publish_catalog=False)
+check(isinstance(got, str) and "differs from catalog/'s" in got, f"a catalog/ behind the bucket is refused, got {got}")
+got = prune_case(FULL, collection=None, catalog={"collection.json": None})
+check(isinstance(got, str) and "publishes no collection.json" in got,
+      f"a build that publishes no collection.json is refused, got {got}")
+
+# A multipart ETag is compared by size alone.
+with tempfile.TemporaryDirectory() as tmp:
+    local = Path(tmp) / "collection.json"
+    local.write_text("{}")
+    check(prune_bucket.catalog_mismatch(Path(tmp), (2, '"abc-3"')) is None, "a multipart ETag of the same size matches")
+    check(prune_bucket.catalog_mismatch(Path(tmp), (3, '"abc-3"')) is not None, "a multipart ETag of another size does not")
+
+# Malformed input is refused, never crashes and never deletes.
+bad_href = {**COLLECTION, "assets": {**COLLECTION["assets"], "items": {"href": 5}}}
+list_href = {**COLLECTION, "assets": {**COLLECTION["assets"], "items": {"href": ["./items.parquet"]}}}
+for name, kwargs in (
+    ("an int href", {"collection": bad_href}),
+    ("a list href", {"collection": list_href}),
+    ("a catalog href that is a list", {"catalog": {"collection.json": json.dumps(list_href)}}),
+    ("a sub-catalog link that is a string or has a None href", {"catalog": {"chips/A/catalog.json": json.dumps(
+        {"links": ["x", {"rel": "item", "href": None}]})}}),
+    ("a style url that is an int", {"staged": {**FULL, "styles/outline.json": json.dumps({"sources": {"a": {"url": 3}}})}}),
+    ("style sources that are a list", {"staged": {**FULL, "styles/outline.json": json.dumps({"sources": [1]})}}),
+    ("a catalog style url that is an int", {"catalog": {"styles/outline.json": json.dumps({"sources": {"a": {"url": 3}}})}}),
+    ("a corrupt chips parquet", {"chips_table": None, "staged": {**FULL, "d_chips.parquet": "x"}, "raw_parquet": True}),
+    ("a struct id column", {"chips_table": pa.table({"id": pa.array([{"a": 1}], pa.struct([("a", pa.int64())]))})}),
+):
+    staged = kwargs.pop("staged", FULL)
+    if kwargs.pop("raw_parquet", False):
+        staged = {k: v for k, v in staged.items() if k != "d_chips.parquet"}
+        staged["d_chips.parquet.raw"] = "not a parquet"
+        kwargs["collection"] = {**COLLECTION, "assets": {**COLLECTION["assets"], "chips": {"href": "./d_chips.parquet.raw"}}}
+    got = prune_case(staged, **kwargs)
+    check(isinstance(got, str) and "refusing to prune" in got, f"{name} is refused, got {got}")
+
+got = prune_case(FULL, collection=bad_href)
+check(refused(got, "collection asset items has no href string"), f"an int href is named, got {got}")
+
+# A style only catalog/ holds is read from there; its PMTiles are looked for in staging.
+got = prune_case({k: v for k, v in FULL.items() if k != "styles/outline.json"}, catalog={"styles/outline.json": STYLE})
+check(got == [], f"a style asset only catalog/ holds is checked from there, got {got}")
+
+# An absolute path is never on disk for the dataset, whatever is at that path.
+for href in ("/etc/hosts", __file__):
+    collection = {**COLLECTION, "assets": {**COLLECTION["assets"], "x": {"href": href}}}
+    got = prune_case(FULL, collection=collection)
+    check(refused(got, "absolute href"), f"collection asset href {href} is refused, got {got}")
+check(not prune_bucket._on_disk(__file__, Path("/"), None), "_on_disk never counts an absolute path")
+
+# A chip directory maps to its parquet id with or without a numeric year suffix only.
+check(prune_bucket._chip_id("c1_2023", {"c1"}) == "c1", "c1_2023 is chip c1")
+check(prune_bucket._chip_id("c1", {"c1"}) == "c1", "c1 is chip c1")
+check(prune_bucket._chip_id("c1_ab", {"c1"}) is None, "c1_ab is not chip c1")
+
+# Staged chip JSON whose assets are not an object is not a whole chip.
+got = prune_case({**FULL, "chips/A/c1_2023/c1_2023_q1_s2.json": json.dumps({"assets": ["./x.tif"]})},
+                 published=[*PUBLISHED, "chips/A/c1_2023/c1_2023_overlay.webp"])
+check(refused(got, "chip A/c1_2023 is not staged whole"), f"chip JSON with list assets is refused, got {got}")
 
 if errors:
     print("\n".join(f"error  {e}" for e in errors))

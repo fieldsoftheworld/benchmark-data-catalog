@@ -13,7 +13,8 @@ not reference (``catalog_refs``).
     uv run python tools/prune_bucket.py at_2018 at_2019 --confirm  # delete
 
 Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
-published. It refuses a staging that is not a full build (``staging_gaps``): a
+published; it refuses when the bucket's ``collection.json`` is not catalog/'s
+(``catalog_mismatch``). It refuses a staging that is not a full build (``staging_gaps``): a
 backfill staging, a rebuild before its imagery pass, or one whose chips parquet does
 not list exactly its staged chip directories lacks published files that pruning
 against it would delete. A chip's files are pruned only when staging has no
@@ -31,6 +32,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -41,6 +43,7 @@ from publish import (  # noqa: E402
     aws_session,
     collect_uploads,
     load_config,
+    md5,
     remote_index,
     s3_client,
     split_s3_uri,
@@ -64,13 +67,25 @@ def stale_keys(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"
         )
     published = root / config["publish_dir"] / rel
-    files, chips = catalog_refs(published)
-    stale = sorted(
-        k for k in remote
-        if k.startswith(under) and k not in wanted and not _referenced(k[len(under):], files, chips)
-    )
+    unpublished = catalog_mismatch(published, remote.get(f"{under}collection.json"))
+    if unpublished:
+        sys.exit(
+            f"{dataset_id}: {unpublished}; refusing to prune. Prune compares the bucket with "
+            f"the published catalog: publish catalog/{rel}/ first (tools/publish.py)."
+        )
     staged = data_root(config, root) / dataset_id
-    gaps = staging_gaps(staged, [k[len(under):] for k in stale], published)
+    try:
+        files, chips = catalog_refs(published)
+        stale = sorted(
+            k for k in remote
+            if k.startswith(under) and k not in wanted and not _referenced(k[len(under):], files, chips)
+        )
+        gaps = staging_gaps(staged, [k[len(under):] for k in stale], published)
+    except (AttributeError, KeyError, OSError, TypeError, ValueError, pa.ArrowException) as err:
+        # Malformed JSON shapes or an unreadable parquet: anything the checks above do not
+        # expect is a reason to keep every object, never to guess.
+        sys.exit(f"{dataset_id}: unexpected staging or catalog content ({type(err).__name__}: {err}); "
+                 "refusing to prune")
     if gaps:
         shown = ", ".join(gaps[:5]) + (f" and {len(gaps) - 5:,} more" if len(gaps) > 5 else "")
         sys.exit(
@@ -79,6 +94,25 @@ def stale_keys(
             "what is published, and pruning against it would delete the rest."
         )
     return stale
+
+
+def catalog_mismatch(published: Path, remote: tuple[int, str] | None) -> str | None:
+    """Why the bucket's ``collection.json`` is not the local catalog's, or None when it is.
+
+    Prune keeps what ``catalog/<source>/<id>/`` references and publishes, so the local
+    catalog must be the published one: it must exist, and the bucket's copy of its
+    ``collection.json`` must match by size and MD5 (by size alone for a multipart ETag).
+    """
+    local = published / "collection.json"
+    if not local.is_file():
+        return f"{local} does not exist"
+    if remote is None:
+        return "the bucket has no collection.json for it"
+    size, etag = remote
+    etag = str(etag).strip('"')
+    if size != local.stat().st_size or ("-" not in etag and etag != md5(local)):
+        return "the bucket's collection.json differs from catalog/'s"
+    return None
 
 
 def _referenced(rel: str, files: set[str], chips: set[tuple[str, str]]) -> bool:
@@ -108,13 +142,17 @@ def staging_gaps(staged: Path, stale: list[str], published: Path | None = None) 
     if doc is None:
         return gaps
     for key, asset in sorted(doc["assets"].items()):
-        href = asset.get("href") or ""
-        if urlsplit(href).scheme or href.startswith("/"):
+        href = asset.get("href")
+        if not isinstance(href, str) or not href:
+            gaps.append(f"collection asset {key} has no href string")
+        elif urlsplit(href).scheme or href.startswith("/"):
             gaps.append(f"collection asset {key} has an absolute href ({href}) that cannot be checked")
         elif not _on_disk(href, staged, published):
             gaps.append(f"collection asset {key} ({href}) is not staged")
         elif "style" in (asset.get("roles") or []) or key.startswith("style-"):
-            gaps += _style_gaps(key, staged / href.removeprefix("./"))
+            style = staged / href.removeprefix("./")
+            source = style if style.is_file() or published is None else published / href.removeprefix("./")
+            gaps += _style_gaps(key, source, style.parent)
     return gaps + chip_gaps(staged, stale, doc["assets"].get("chips"))
 
 
@@ -137,17 +175,27 @@ def _staged_collection(staged: Path) -> tuple[dict | None, list[str]]:
     return doc, []
 
 
-def _style_gaps(key: str, style: Path) -> list[str]:
-    """The PMTiles a staged style draws from that are not staged next to it."""
+def _style_gaps(key: str, style: Path, staged_dir: Path) -> list[str]:
+    """The PMTiles the style at ``style`` draws from that are not staged.
+
+    ``staged_dir`` is where the style sits in staging (``styles/``): its relative
+    ``pmtiles://`` URLs resolve against it even when the style itself is read from
+    ``catalog/``.
+    """
     try:
         sources = json.loads(style.read_text()).get("sources") or {}
     except (ValueError, AttributeError):
         return [f"collection asset {key} is not a style document"]
+    if not isinstance(sources, dict):
+        return [f"collection asset {key} has style sources that are not an object"]
     gaps = []
     for source in sources.values():
-        url = (source.get("url") or "") if isinstance(source, dict) else ""
+        url = source.get("url", "") if isinstance(source, dict) else ""
+        if not isinstance(url, str):
+            gaps.append(f"collection asset {key} has a style source url that is not a string")
+            continue
         tiles = url.removeprefix("pmtiles://")
-        if url.startswith("pmtiles://") and not urlsplit(tiles).scheme and not (style.parent / tiles).is_file():
+        if url.startswith("pmtiles://") and not urlsplit(tiles).scheme and not Path(posixpath.normpath(staged_dir / tiles)).is_file():
             gaps.append(f"collection asset {key} draws {tiles}, which is not staged")
     return gaps
 
@@ -155,7 +203,9 @@ def _style_gaps(key: str, style: Path) -> list[str]:
 def _on_disk(href: str, base: Path, published: Path | None) -> bool:
     """Whether a relative ``href`` names a file in ``base`` or in ``published``."""
     rel = href[2:] if href.startswith("./") else href
-    return bool(rel) and ((base / rel).is_file() or (published is not None and (published / rel).is_file()))
+    if not rel or rel.startswith("/"):  # an absolute path is not in the dataset, whatever is there
+        return False
+    return (base / rel).is_file() or (published is not None and (published / rel).is_file())
 
 
 def chip_gaps(staged: Path, stale: list[str], chips_asset: dict | None) -> list[str]:
@@ -244,7 +294,7 @@ def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
 
     Returns the dataset-relative files (the collection's assets and the PMTiles its
     styles draw from) and the ``(square, chip directory)`` pairs its chip
-    sub-catalogs link. Prune then stays safe when run before catalogize or publish.
+    sub-catalogs link. ``catalog_mismatch`` has checked that this is the published catalog.
     """
     files: set[str] = set()
     chips: set[tuple[str, str]] = set()
