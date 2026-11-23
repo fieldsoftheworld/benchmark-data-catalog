@@ -343,6 +343,10 @@ for flags, expect in (([], False), (["--imagery"], True)):
         run_batch.main(["a", *flags])
     check(("prune_bucket.py a --confirm" in out.getvalue()) == expect,
           f"the prune line is printed {'only after' if expect else 'not after'} {flags or 'the metadata pass'}")
+    if expect:
+        text = out.getvalue()
+        check(-1 < text.find("chips_table.py --staged a") < text.find("prune_bucket.py"),
+              f"the root chips table is rebuilt before prune: {text!r}")
 try:
     run_batch.main(["--next", "3", "--mark-published"])
     errors.append("--mark-published accepts --next")

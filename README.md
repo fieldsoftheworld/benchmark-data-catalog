@@ -182,7 +182,8 @@ tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root 
 `publish.py` refuses a root that links a missing root file. The root
 `catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
 
-Rebuild it after each dataset publish, with `--staged` naming the datasets just rebuilt:
+Rebuild and upload it after each dataset publish and before `prune_bucket.py`, so the
+root table never lists a chip prune has deleted, with `--staged` naming the datasets just rebuilt:
 they are read from `staging/`, and every other dataset's `split_legacy` and
 `split_predefined` are carried from the published table. The build refuses to lose a
 frozen split (a dataset left out, or chips that vanish from one) unless `--drop <id>`
@@ -243,6 +244,7 @@ background) before it's written and registered as the collection's
        git commit -am "Add <id>"
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
+       uv run python tools/chips_table.py --staged <id>   # + chips_tiles.py; upload both root files (README, "Root chips table")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 7. If the recipe downloads imagery, that's a second pass once selection is
@@ -254,6 +256,7 @@ background) before it's written and registered as the collection's
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
+       uv run python tools/chips_table.py --staged <id>   # + chips_tiles.py; upload both root files (README, "Root chips table")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 ## Building region-years in batches
