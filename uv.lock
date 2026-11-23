@@ -300,7 +300,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35" },
     { name = "certifi", specifier = ">=2024" },
     { name = "duckdb", specifier = ">=1.1" },
-    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=ddff9dfac67bb4e62aaba7af943dc7ae2cb48bb4" },
+    { name = "ftw-dataset-tools", git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=072db15c31d0a4e5ccc375fccb6be954240600ab" },
     { name = "pillow", specifier = ">=10" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pyflakes", specifier = ">=3.2" },
@@ -868,10 +868,11 @@ wheels = [
 [[package]]
 name = "ftw-dataset-tools"
 version = "0.1.0"
-source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=ddff9dfac67bb4e62aaba7af943dc7ae2cb48bb4#ddff9dfac67bb4e62aaba7af943dc7ae2cb48bb4" }
+source = { git = "https://github.com/fieldsoftheworld/ftw-dataset-tools?rev=072db15c31d0a4e5ccc375fccb6be954240600ab#072db15c31d0a4e5ccc375fccb6be954240600ab" }
 dependencies = [
     { name = "click" },
     { name = "duckdb" },
+    { name = "geoarrow-pyarrow" },
     { name = "geopandas" },
     { name = "geoparquet-io" },
     { name = "matplotlib" },
