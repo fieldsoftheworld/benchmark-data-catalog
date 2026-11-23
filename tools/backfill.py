@@ -40,13 +40,14 @@ left as fetched (as published): it is reported and skipped, and the run carries 
 with the others and exits 1.
 
 Nothing is uploaded. Publish afterwards the usual way, each --confirm with the
-maintainer's say-so; prune_bucket.py then deletes the bucket objects the catalog
-no longer has (such as a v1 styles/split.json):
+maintainer's say-so:
 
     uv run python tools/backfill.py rw_rwanda_ml_2021 --workers 32
     uv run python tools/upload_data.py --only rw_rwanda_ml_2021 --confirm
     uv run python tools/publish.py --only rw_rwanda_ml_2021 --confirm
-    uv run python tools/prune_bucket.py rw_rwanda_ml_2021 --confirm
+
+prune_bucket.py refuses a backfill staging: it holds no rasters or PMTiles, so
+pruning against it would delete the published ones.
 
 Rasters and PMTiles are never fetched: nothing here changes them.
 """

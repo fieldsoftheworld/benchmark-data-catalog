@@ -50,7 +50,7 @@ the full walkthrough; this is the command sequence):
     uv run python tools/upload_data.py --confirm
     uv run python tools/upload_data.py --only at_2024 --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
-    uv run python tools/prune_bucket.py <id> --confirm   # deletes bucket objects the catalog no longer has
+    uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
     uv run python tools/chips_table.py --staged <id>   # then upload it (README, "Root chips table")
 
 Imagery is a second pass, once selection is ready:
@@ -59,6 +59,8 @@ Imagery is a second pass, once selection is ready:
     uv run python tools/build.py <id> --only docs
     uv run python tools/catalogize.py <id>
     uv run python tools/upload_data.py --confirm
+    uv run python tools/publish.py --confirm
+    uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 `tools/build.py` runs `ftwd` from the repository root. Two environment
 gotchas it works around, in case you hit them running ftwd yourself: it gives
