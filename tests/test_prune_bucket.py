@@ -444,6 +444,18 @@ got = prune_case(FULL, published=[*PUBLISHED, *dropped], catalog={"chips/A/catal
     {"links": [{"rel": "item", "href": "../C/c9_2023/c9_2023.json"}]})})
 check(got == [], f"an item linked from another square's sub-catalog is kept, got {got}")
 
+# An item link prune cannot resolve to a chip is refused, not skipped: skipping it would
+# let prune delete the chip it links (here the dropped c9, linked from square A).
+for href in ("https://data.source.coop/ftw/benchmark-data/g/d/chips/C/c9_2023/c9_2023.json",
+             "/ftw/benchmark-data/g/d/chips/C/c9_2023/c9_2023.json",
+             "../C/c9%5F2023/c9_2023.json",
+             "../C/c9_2023/c9_2023.json?v=1",
+             "./c9_2023.json"):
+    got = prune_case(FULL, published=[*PUBLISHED, *dropped], catalog={"chips/A/catalog.json": json.dumps(
+        {"links": [{"rel": "item", "href": href}]})})
+    check(isinstance(got, str) and "prune cannot resolve to a chip" in got and href in got,
+          f"item link {href!r} is refused, got {got}")
+
 if errors:
     print("\n".join(f"error  {e}" for e in errors))
     raise SystemExit(1)

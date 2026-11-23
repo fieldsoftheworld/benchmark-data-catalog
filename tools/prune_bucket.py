@@ -91,6 +91,8 @@ def stale_keys(
             if k.startswith(under) and k not in wanted and not _referenced(k[len(under):], files, chips)
         )
         gaps = staging_gaps(staged, [k[len(under):] for k in stale], published)
+    except UnresolvedItemLink as err:
+        sys.exit(f"{dataset_id}: catalog/{rel}/{err}, which prune cannot resolve to a chip; refusing to prune")
     except (AttributeError, KeyError, OSError, TypeError, ValueError, pa.ArrowException) as err:
         # Malformed JSON shapes or an unreadable parquet: anything the checks above do not
         # expect is a reason to keep every object, never to guess.
@@ -351,13 +353,31 @@ def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
             if not isinstance(link, dict):
                 continue
             href = link.get("href")
-            if link.get("rel") != "item" or not isinstance(href, str) or urlsplit(href).scheme or href.startswith("/"):
-                continue
-            # Resolved against chips/<square>/, so ../B/x/x.json names chip x of square B.
-            parts = PurePosixPath(posixpath.normpath(posixpath.join("chips", sub.parent.name, href))).parts
-            if len(parts) == 4 and parts[0] == "chips":
-                chips.add((parts[1], parts[2]))
+            if link.get("rel") != "item" or not isinstance(href, str):
+                continue  # junk: it links nothing prune could keep
+            chips.add(_item_chip(sub, href, published))
     return files, chips
+
+
+class UnresolvedItemLink(Exception):
+    """A sub-catalog item link prune cannot map to a chip directory, so cannot keep."""
+
+
+def _item_chip(sub: Path, href: str, published: Path) -> tuple[str, str]:
+    """The ``(square, chip directory)`` a sub-catalog's item href names.
+
+    Resolved against ``chips/<square>/``, so ``../B/x/x.json`` names chip x of square B.
+    An absolute URL, a root-relative path, percent-encoding, a query or fragment, or a
+    path that does not land on ``chips/<square>/<chip>/<file>`` raises
+    ``UnresolvedItemLink``: skipping it would let prune delete the chip it links.
+    """
+    split = urlsplit(href)
+    if split.scheme or split.netloc or href.startswith("/") or "%" in href or split.query or split.fragment:
+        raise UnresolvedItemLink(f"{sub.relative_to(published).as_posix()} links item {href!r}")
+    parts = PurePosixPath(posixpath.normpath(posixpath.join("chips", sub.parent.name, href))).parts
+    if len(parts) != 4 or parts[0] != "chips":
+        raise UnresolvedItemLink(f"{sub.relative_to(published).as_posix()} links item {href!r}")
+    return parts[1], parts[2]
 
 
 def _link_hrefs(path: Path, base: str, rels: set[str] | None = None) -> set[str]:
