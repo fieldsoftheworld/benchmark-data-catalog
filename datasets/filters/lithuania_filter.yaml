@@ -38,6 +38,9 @@ include:
   - "Aromatiniai augalai"  # Aromatic plants
   - "Pluoðtinës kanapës"  # Fiber hemp
   - "Linai"  # Linen
+  # The harmonized lt editions (republished 2026-11-20) use correct Lithuanian characters
+  - "Kita ariama žemė"  # Other arable land
+  - "Pluoštinės kanapės"  # Fiber hemp
   # ec_lt 2021 spells the same categories with correct Lithuanian characters
   - "Žieminiai javai"  # Winter cereals
   - "Ankštiniai javai"  # Grain legumes
@@ -55,6 +58,9 @@ include:
   - "Ganyklos-pievos iki 5m."  # Pastures-meadows up to 5m.
   - "Ganyklos-pievos iki 5 m."  # Pastures-meadows up to 5m.
   - "Daugiametës þolës"  # Perennial grasses
+  - "Ganyklos-pievos virš 5m."  # Pastures-meadows over 5m.
+  - "Ganyklos-pievos virš 5 m."  # Pastures-meadows over 5m.
+  - "Daugiametės žolės"  # Perennial grasses
 
 exclude:
   - "Kraðtovaizdþio elementai"  # Landscape elements
@@ -63,3 +69,8 @@ exclude:
   - "Miðkai"  # Woods
   - "Ðlapynës"  # wetlands (labelled 'Spinach' in source)
   - "Grioviai"  # Ditches
+  # Correct-character spellings in the harmonized lt editions
+  - "Kraštovaizdžio elementai"  # Landscape elements
+  - "Pūdymas"  # Fallow
+  - "Miškai"  # Woods
+  - "Šlapynės"  # wetlands
