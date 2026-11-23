@@ -6,16 +6,18 @@ chip set). ``upload_data.py`` and ``publish.py`` never delete, so the dropped
 chips' files would stay in the bucket, unlinked from the catalog. This lists
 ``<write_prefix>/<source>/<id>/`` and deletes every key that neither the staged data
 (``upload_data.collect_data_uploads``) nor the published catalog
-(``publish.collect_uploads``) would write.
+(``publish.collect_uploads``) would write, and that ``catalog/<source>/<id>/`` does
+not reference (``catalog_refs``).
 
     uv run python tools/prune_bucket.py at_2018 at_2019            # dry run
     uv run python tools/prune_bucket.py at_2018 at_2019 --confirm  # delete
 
 Run it after the dataset's last pass (imagery, if any) is uploaded and its catalog
 published. It refuses a staging that is not a full build (``staging_gaps``): a
-backfill staging, a rebuild before its imagery pass, or one missing chips its chips
-parquet lists lacks published files that pruning against it would delete. A
-chip's files are pruned only when the chips parquet no longer lists it.
+backfill staging, a rebuild before its imagery pass, or one whose chips parquet does
+not list exactly its staged chip directories lacks published files that pruning
+against it would delete. A chip's files are pruned only when staging has no
+directory for it, the chips parquet does not list it and catalog/ does not link it.
 Source Cooperative's proxy has no DeleteObjects, so keys go one at a time.
 """
 
@@ -23,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import posixpath
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
@@ -60,9 +63,14 @@ def stale_keys(
         sys.exit(
             f"{dataset_id}: the build publishes no collection.json; refusing to prune"
         )
-    stale = sorted(k for k in remote if k.startswith(under) and k not in wanted)
+    published = root / config["publish_dir"] / rel
+    files, chips = catalog_refs(published)
+    stale = sorted(
+        k for k in remote
+        if k.startswith(under) and k not in wanted and not _referenced(k[len(under):], files, chips)
+    )
     staged = data_root(config, root) / dataset_id
-    gaps = staging_gaps(staged, [k[len(under):] for k in stale], root / config["publish_dir"] / rel)
+    gaps = staging_gaps(staged, [k[len(under):] for k in stale], published)
     if gaps:
         shown = ", ".join(gaps[:5]) + (f" and {len(gaps) - 5:,} more" if len(gaps) > 5 else "")
         sys.exit(
@@ -71,6 +79,12 @@ def stale_keys(
             "what is published, and pruning against it would delete the rest."
         )
     return stale
+
+
+def _referenced(rel: str, files: set[str], chips: set[tuple[str, str]]) -> bool:
+    """Whether the catalog still references ``rel``: a file it names, or anything in a chip it links."""
+    parts = PurePosixPath(rel).parts
+    return rel in files or (len(parts) >= 4 and parts[0] == "chips" and (parts[1], parts[2]) in chips)
 
 
 def staging_gaps(staged: Path, stale: list[str], published: Path | None = None) -> list[str]:
@@ -147,50 +161,125 @@ def _on_disk(href: str, base: Path, published: Path | None) -> bool:
 def chip_gaps(staged: Path, stale: list[str], chips_asset: dict | None) -> list[str]:
     """Stale keys of chips the build still has, unless staging holds that chip whole.
 
-    A chip is current when the staged chips parquet (the collection's ``chips``
-    asset) lists it; its directory is ``chips/<square>/<id>[_<year>]/``. Its stale
-    key is a gap when staging has no item JSON for it (a missing square or
-    ``chips/``), when the key is JSON (an imagery child item before the imagery
-    pass), or when a staged JSON in that directory names an asset that is not on
-    disk (a backfill's masks). What is left, a file the full staged chip no longer
-    references (a v1 overlay), is prunable.
+    A chip is kept when staging has its directory, ``chips/<square>/<id>[_<year>]/``.
+    The staged chips parquet (the collection's ``chips`` asset) must list exactly
+    those chips: an empty parquet, one without an ``id`` column, a staged directory
+    it does not list or an id with no staged directory means staging and parquet are
+    not the same build, and nothing can be told dropped. A kept chip's stale key is
+    a gap when staging has no item JSON for it, when the key is JSON (an imagery
+    child item before the imagery pass), or when a staged JSON in that directory
+    names an asset that is not on disk (a backfill's masks). What is left — a file
+    the whole staged chip no longer references (a v1 overlay), or any file of a chip
+    with no staged directory, which the rebuild dropped — is prunable.
     """
     by_chip: dict[tuple[str, str], list[str]] = {}
     for rel in stale:
         parts = PurePosixPath(rel).parts
         if len(parts) >= 4 and parts[0] == "chips":
             by_chip.setdefault((parts[1], parts[2]), []).append(rel)
-    if not by_chip:
+    chip_dirs = {(d.parent.name, d.name) for d in staged.glob("chips/*/*") if d.is_dir()}
+    if not by_chip and not chip_dirs:
         return []
-    href = (chips_asset or {}).get("href") or ""
-    if not href or not _on_disk(href, staged, None):
-        return ["no staged chips parquet (the collection's chips asset) to tell kept chips from dropped"]
-    ids = set(pq.read_table(staged / href.removeprefix("./"), columns=["id"]).column("id").to_pylist())
-    gaps = []
+    gaps = _parquet_gaps(staged, chips_asset, {name for _, name in chip_dirs})
+    if gaps:
+        return gaps
     for (square, chip), rels in sorted(by_chip.items()):
-        base, _, year = chip.rpartition("_")
-        if chip not in ids and not (year.isdigit() and base in ids):
+        if (square, chip) not in chip_dirs:
             continue
         chip_dir = staged / "chips" / square / chip
         if not (chip_dir / f"{chip}.json").is_file():
-            gaps.append(f"chip {square}/{chip} is in the chips parquet but its item is not staged")
+            gaps.append(f"chip {square}/{chip} is staged without its item JSON")
         elif any(rel.endswith(".json") for rel in rels) or _missing_assets(chip_dir):
             gaps.append(f"chip {square}/{chip} is not staged whole ({rels[0]} would be deleted)")
     return gaps
 
 
+def _parquet_gaps(staged: Path, chips_asset: dict | None, dir_names: set[str]) -> list[str]:
+    """Why the staged chips parquet and the staged chip directories are not one build."""
+    href = (chips_asset or {}).get("href") or ""
+    if not href or urlsplit(href).scheme or not _on_disk(href, staged, None):
+        return ["no staged chips parquet (the collection's chips asset) to tell kept chips from dropped"]
+    path = staged / href.removeprefix("./")
+    if "id" not in pq.read_schema(path).names:
+        return [f"the staged chips parquet {path.name} has no id column"]
+    ids = set(pq.read_table(path, columns=["id"]).column("id").to_pylist())
+    if not ids:
+        return [f"the staged chips parquet {path.name} lists no chips"]
+    matched = {_chip_id(name, ids) for name in dir_names}
+    unlisted = sorted(name for name in dir_names if _chip_id(name, ids) is None)
+    unstaged = sorted(map(str, ids - matched))
+    gaps = [f"chip directory {name} is not in the chips parquet" for name in unlisted[:3]]
+    gaps += [f"chips parquet id {chip} has no staged directory" for chip in unstaged[:3]]
+    if len(unlisted) + len(unstaged) > len(gaps):
+        gaps.append(f"{len(unlisted):,} staged chip(s) unlisted, {len(unstaged):,} listed chip(s) unstaged in all")
+    return gaps
+
+
+def _chip_id(dir_name: str, ids: set) -> str | None:
+    """The chips parquet id a chip directory ``<id>`` or ``<id>_<year>`` belongs to."""
+    if dir_name in ids:
+        return dir_name
+    base, _, year = dir_name.rpartition("_")
+    return base if year.isdigit() and base in ids else None
+
+
 def _missing_assets(chip_dir: Path) -> bool:
-    """Whether any STAC JSON in ``chip_dir`` names a relative asset that is not on disk."""
+    """Whether any STAC JSON in ``chip_dir`` is unreadable or names an asset that is not on disk."""
     for path in chip_dir.glob("*.json"):
         try:
             assets = json.loads(path.read_text()).get("assets") or {}
         except (ValueError, AttributeError):
             return True
+        if not isinstance(assets, dict):
+            return True
         for asset in assets.values():
-            href = asset.get("href") or "" if isinstance(asset, dict) else ""
+            href = (asset.get("href") or "") if isinstance(asset, dict) else ""
             if href and not urlsplit(href).scheme and not _on_disk(href, chip_dir, None):
                 return True
     return False
+
+
+def catalog_refs(published: Path) -> tuple[set[str], set[tuple[str, str]]]:
+    """What ``catalog/<source>/<id>/`` still references, so prune keeps it.
+
+    Returns the dataset-relative files (the collection's assets and the PMTiles its
+    styles draw from) and the ``(square, chip directory)`` pairs its chip
+    sub-catalogs link. Prune then stays safe when run before catalogize or publish.
+    """
+    files: set[str] = set()
+    chips: set[tuple[str, str]] = set()
+    files |= _hrefs(published / "collection.json", "assets")
+    for style in published.glob("styles/*.json"):
+        for source in (_read(style).get("sources") or {}).values():
+            url = (source.get("url") or "") if isinstance(source, dict) else ""
+            if url.startswith("pmtiles://") and not urlsplit(url.removeprefix("pmtiles://")).scheme:
+                files.add(posixpath.normpath(posixpath.join("styles", url.removeprefix("pmtiles://"))))
+    for sub in published.glob("chips/*/catalog.json"):
+        for link in _read(sub).get("links") or []:
+            href = (link.get("href") or "") if isinstance(link, dict) else ""
+            parts = PurePosixPath(posixpath.normpath(href)).parts
+            if link.get("rel") == "item" and not urlsplit(href).scheme and len(parts) == 2:
+                chips.add((sub.parent.name, parts[0]))
+    return files, chips
+
+
+def _read(path: Path) -> dict:
+    try:
+        doc = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _hrefs(path: Path, key: str) -> set[str]:
+    """The relative hrefs of a document's ``key`` objects, normalized and dataset-relative."""
+    values = _read(path).get(key)
+    out = set()
+    for value in values.values() if isinstance(values, dict) else []:
+        href = (value.get("href") or "") if isinstance(value, dict) else ""
+        if href and not urlsplit(href).scheme and not href.startswith("/"):
+            out.add(posixpath.normpath(href))
+    return out
 
 
 def main() -> int:
