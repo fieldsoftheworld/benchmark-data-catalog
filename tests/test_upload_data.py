@@ -119,9 +119,12 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "catalog/g/lu/chips/32UNA/catalog.json")
     write(root / "catalog/g/lu/collection.json")
     cfg = {"write_prefix": "s3://ftw/benchmark-data", "publish_dir": "catalog", "data_dir": "staging"}
-    keys = {u.key for u in collect_data_uploads(cfg, root, only={"lu"})}
+    skipped: list[Path] = []
+    keys = {u.key for u in collect_data_uploads(cfg, root, only={"lu"}, skipped=skipped)}
     check(not any(k.endswith("/catalog.json") for k in keys),
           f"no staged chip sub-catalog is uploaded, got {sorted(keys)}")
+    check([p.as_posix() for p in skipped] == ["g/lu/chips/32UNA/catalog.json"],
+          f"the linked sub-catalog is reported as skipped and the stale one is not, got {skipped}")
 
 
 # --- the path gate and the walk ----------------------------------------
