@@ -151,8 +151,8 @@ check(recipe["stages"]["chips"]["drop_border_chips"] is True, "wall-to-wall drop
 check("splits" not in recipe["stages"], "no per-chip splits stage: the root chips table holds the splits")
 check(
     (recipe["stages"]["masks"].get("resolution"), recipe["stages"]["masks"].get("boundary_width_m"))
-    == (2.5, 10),
-    "masks at 2.5 m with 10 m boundary lines",
+    == (2.5, None),
+    "masks at 2.5 m with one-pixel boundary lines",
 )
 
 # A derived dataset reads the script's output; a Presence-only row gets presence-only masks.

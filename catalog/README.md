@@ -479,7 +479,8 @@ outlined in red where the collections' own splits disagree.
 
 Every chip is a STAC item on the FTW grid, so a cell id is the same square of
 ground in every collection. Masks are 2.5 m (800×800 for a 2 km chip), with
-boundary lines 10 m wide; imagery is 10 m on the same footprint. Each chip carries:
+boundary lines one to two pixels (2.5–5 m) wide, so you can dilate them to taste;
+imagery is 10 m on the same footprint. Each chip carries:
 
 - **Instance masks** — one integer label per field polygon, for instance
   segmentation.
