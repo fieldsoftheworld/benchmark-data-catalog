@@ -30,6 +30,7 @@ from upload_data import (  # noqa: E402
     git_owned,
     is_data_publishable,
     is_staged_style,
+    is_staged_subcatalog,
 )
 
 errors: list[str] = []
@@ -102,6 +103,28 @@ with tempfile.TemporaryDirectory() as tmp:
     keys = {u.key for u in collect_data_uploads(cfg, root, only={"lu"})}
     check(keys == {"benchmark-data/g/lu/lu_chips.parquet"},
           f"a staged style with no catalog copy is not uploaded, got {sorted(keys)}")
+
+
+# --- chip sub-catalogs are git-owned only: never uploaded from staging -----
+check(is_staged_subcatalog(Path("lu/chips/32UNA/catalog.json")), "a staged chip sub-catalog is git-owned only")
+check(not is_staged_subcatalog(Path("lu/chips/32UNA/ftw-32UNA0000_2024/ftw-32UNA0000_2024.json")),
+      "an item JSON is not a sub-catalog")
+check(not is_staged_subcatalog(Path("lu/collection.json")), "a collection is not a sub-catalog")
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    write(root / "staging/lu/chips/32UNA/catalog.json")  # linked: catalog has it
+    write(root / "staging/lu/chips/30QWD/catalog.json")  # stale: catalogize left it out
+    write(root / "staging/lu/chips/30QWD/ftw-30QWD0000_2024/ftw-30QWD0000_2024_instance.tif")
+    write(root / "catalog/g/lu/chips/32UNA/catalog.json")
+    write(root / "catalog/g/lu/collection.json")
+    cfg = {"write_prefix": "s3://ftw/benchmark-data", "publish_dir": "catalog", "data_dir": "staging"}
+    skipped: list[Path] = []
+    keys = {u.key for u in collect_data_uploads(cfg, root, only={"lu"}, skipped=skipped)}
+    check(not any(k.endswith("/catalog.json") for k in keys),
+          f"no staged chip sub-catalog is uploaded, got {sorted(keys)}")
+    check([p.as_posix() for p in skipped] == ["g/lu/chips/32UNA/catalog.json"],
+          f"the linked sub-catalog is reported as skipped and the stale one is not, got {skipped}")
 
 
 # --- the path gate and the walk ----------------------------------------

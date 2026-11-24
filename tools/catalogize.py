@@ -223,8 +223,30 @@ def _committed_relpaths(dataset_root: Path) -> list[Path]:
     rels = [Path(name) for name in COMMITTED if (dataset_root / name).is_file()]
     styles = _referenced_styles(dataset_root)
     rels += [rel for rel in sorted(styles) if (dataset_root / rel).is_file()]
-    rels += [p.relative_to(dataset_root) for p in sorted(dataset_root.glob("chips/*/catalog.json"))]
+    linked = _linked_squares(dataset_root)
+    rels += [
+        p.relative_to(dataset_root)
+        for p in sorted(dataset_root.glob("chips/*/catalog.json"))
+        if not linked or p.parent.name in linked
+    ]
     return rels
+
+
+def _linked_squares(dataset_root: Path) -> set[str]:
+    """The ``chips/<square>`` sub-catalogs the staged ``collection.json`` links as children.
+
+    The collection is the record of the current chips: a sub-catalog file left in
+    staging by an earlier build, or fetched back by a backfill, is not linked.
+    """
+    path = dataset_root / "collection.json"
+    if not path.is_file():
+        return set()
+    squares = set()
+    for link in read_json(path).get("links") or []:
+        parts = PurePosixPath(urlsplit(link.get("href") or "").path).parts[-3:]
+        if link.get("rel") == "child" and len(parts) == 3 and parts[0] == "chips" and parts[2] == "catalog.json":
+            squares.add(parts[1])
+    return squares
 
 
 def _thumbnail_asset(doc: dict) -> tuple[str, dict] | None:
@@ -272,14 +294,46 @@ def _remove_unreferenced_styles(src_root: Path, dst_root: Path) -> list[Path]:
     return removed
 
 
+#: The files catalogize and enrich_subcatalogs write in ``catalog/<source>/<id>/chips/<square>/``.
+_SUBCATALOG_FILES = ("catalog.json", "README.md", "AGENTS.md")
+
+
+def _remove_stale_subcatalogs(src_root: Path, dst_root: Path) -> list[Path]:
+    """Delete ``dst_root/chips/<square>/`` sub-catalogs the staged collection doesn't link.
+
+    A rebuild that drops every chip of a 100 km square leaves the square's catalog
+    copy behind, unlinked from the collection, and ``tools/publish.py`` syncs
+    ``catalog/`` as it is. Only the files catalogize writes are removed, then the
+    directory if that empties it. A staged collection with no chip sub-catalog links
+    (or none at all) removes nothing. Returns the paths removed.
+    """
+    linked = _linked_squares(src_root)
+    if not linked:
+        return []
+    removed = []
+    for square in sorted(p for p in dst_root.glob("chips/*") if p.is_dir() and p.name not in linked):
+        gone = [square / name for name in _SUBCATALOG_FILES if (square / name).is_file()]
+        for path in gone:
+            path.unlink()
+        removed += gone
+        if not any(square.iterdir()):
+            square.rmdir()
+            print(f"removed {square} (the staged collection doesn't link it)")
+        elif gone:
+            print(f"removed the sub-catalog files in {square}; kept the directory for its other files")
+    return removed
+
+
 def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG) -> list[Path]:
     """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<source>/<id>``.
 
     Returns the catalog-side paths written. Only ``COMMITTED``, the
     ``styles/*.json`` the staged collection has assets for, and
-    ``chips/*/catalog.json`` are copied; item directories and every data file
+    the linked ``chips/*/catalog.json`` are copied; item directories and every data file
     stay in staging. A catalog-side style with no such asset is deleted (see
-    ``_remove_unreferenced_styles``). ``collection.json`` is special-cased to
+    ``_remove_unreferenced_styles``). Only the chip sub-catalogs the staged collection
+    links are copied, and a catalog-side one it doesn't link is deleted
+    (``_remove_stale_subcatalogs``). ``collection.json`` is special-cased to
     preserve an existing thumbnail asset — see
     ``_copy_collection_preserving_thumbnail``.
     """
@@ -295,6 +349,7 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
             dst.write_bytes((src_root / rel).read_bytes())
         written.append(dst)
     _remove_unreferenced_styles(src_root, dst_root)
+    _remove_stale_subcatalogs(src_root, dst_root)
     return written
 
 

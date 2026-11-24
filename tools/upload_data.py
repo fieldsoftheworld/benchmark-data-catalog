@@ -125,6 +125,20 @@ def is_staged_style(rel: Path) -> bool:
     return len(rel.parts) > 2 and rel.parts[1] == "styles"
 
 
+def is_staged_subcatalog(rel: Path) -> bool:
+    """True for a ``<id>/chips/<square>/catalog.json`` file in staging.
+
+    Chip sub-catalogs are git-owned only: ``catalogize.py`` copies the ones the
+    staged collection links into ``catalog/`` and deletes the rest. A staged one
+    it left out (a square an earlier build had, which ftwd never deletes, or one a
+    backfill fetched back) has no catalog copy to shadow it under ``git_owned``,
+    so without this rule it would be uploaded, and ``prune_bucket.py`` would keep it.
+    ``collect_data_uploads`` checks it after ``git_owned``, so a linked one is still
+    reported as skipped.
+    """
+    return len(rel.parts) == 4 and rel.parts[1] == "chips" and rel.parts[3] == "catalog.json"
+
+
 def is_uploadable(rel: Path) -> bool:
     """True for a ``staging``-relative ``<id>/...`` file this script would consider uploading.
 
@@ -199,10 +213,13 @@ def collect_data_uploads(
             continue
         if not is_uploadable(rel):
             continue
+        staged_subcatalog = is_staged_subcatalog(rel)
         rel = published_rel(rel, places, root, config)
         if git_owned(rel, root, config):
             if skipped is not None:
                 skipped.append(rel)
+            continue
+        if staged_subcatalog:  # one catalogize left out: the collection doesn't link it
             continue
         key = f"{prefix}/{rel.as_posix()}" if prefix else rel.as_posix()
         uploads.append(Upload(path, key, content_type_for(path, rel=rel)))
