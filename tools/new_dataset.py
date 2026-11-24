@@ -362,8 +362,6 @@ stages:
   masks:
     mask_types: {mask_types(presence_only, extent)}
     resolution: 2.5
-    # Lines stay 10 m wide on the 2.5 m grid, as in v1.
-    boundary_width_m: 10
     workers: null
     presence_only: {"true" if presence_only else "false"}
     # Reuse non-empty mask files on rerun so a repeated masks stage only fills gaps.

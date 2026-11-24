@@ -221,14 +221,14 @@ for dataset_id in sorted(recipes):
         err(f"datasets/{dataset_id}.yaml: stages.splits is only for split_type: predefined "
             f"(the root chips table holds every other split), got {splits!r}")
 
-# v2 masks: 2.5 m pixels with v1's 10 m boundary lines, in every recipe.
+# v2 masks: 2.5 m pixels with one-pixel boundary lines (no boundary_width_m), in every recipe.
 for dataset_id in sorted(recipes):
     masks_cfg = ((yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {})
                  .get("stages") or {}).get("masks") or {}
     got = (masks_cfg.get("resolution"), masks_cfg.get("boundary_width_m"))
-    if got != (2.5, 10):
-        err(f"datasets/{dataset_id}.yaml: stages.masks needs resolution: 2.5 and "
-            f"boundary_width_m: 10, got {got}")
+    if got != (2.5, None):
+        err(f"datasets/{dataset_id}.yaml: stages.masks needs resolution: 2.5 and no "
+            f"boundary_width_m (one-pixel lines), got {got}")
 
 for dataset_id in sorted(declared & recipes):
     recipe = yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {}
