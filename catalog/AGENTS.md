@@ -9,7 +9,7 @@ collection per country or region. Each collection holds chip items on the FTW
 grid (a fixed, MGRS-derived grid, so a cell id means the same square of ground
 in every collection). Each chip item carries label masks — instance, semantic
 2-class, semantic 3-class, and the DECODE boundary and distance layers, at 2.5 m
-(800×800 for a 2 km chip) with 10 m boundary lines — its field outlines
+(800×800 for a 2 km chip) with boundary lines one to two pixels wide — its field outlines
 (`field_boundaries`, `<item_id>_fields.parquet`: the fields cut to the chip, in
 the masks' CRS), and,
 where the collection has imagery, the four Sentinel-2 quarterly cloudless
