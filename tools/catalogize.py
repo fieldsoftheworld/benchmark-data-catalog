@@ -272,6 +272,35 @@ def _remove_unreferenced_styles(src_root: Path, dst_root: Path) -> list[Path]:
     return removed
 
 
+#: The files catalogize and enrich_subcatalogs write in ``catalog/<source>/<id>/chips/<square>/``.
+_SUBCATALOG_FILES = ("catalog.json", "README.md", "AGENTS.md")
+
+
+def _remove_stale_subcatalogs(src_root: Path, dst_root: Path) -> list[Path]:
+    """Delete ``dst_root/chips/<square>/`` sub-catalogs staging no longer has.
+
+    A rebuild that drops every chip of a 100 km square leaves the square's catalog
+    copy behind, unlinked from the collection, and ``tools/publish.py`` syncs
+    ``catalog/`` as it is. Only the files catalogize writes are removed, then the
+    directory if that empties it. A staging tree with no ``chips/*/catalog.json``
+    at all (a run that stopped before the stac stage) removes nothing. Returns the
+    paths removed.
+    """
+    staged = {p.parent.name for p in src_root.glob("chips/*/catalog.json")}
+    if not staged:
+        return []
+    removed = []
+    for square in sorted(p for p in dst_root.glob("chips/*") if p.is_dir() and p.name not in staged):
+        for name in _SUBCATALOG_FILES:
+            if (square / name).is_file():
+                (square / name).unlink()
+                removed.append(square / name)
+        if not any(square.iterdir()):
+            square.rmdir()
+        print(f"removed {square} (no such sub-catalog in staging)")
+    return removed
+
+
 def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG) -> list[Path]:
     """Copy the git-owned metadata files from ``staging/<id>`` to ``catalog/<source>/<id>``.
 
@@ -279,7 +308,8 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
     ``styles/*.json`` the staged collection has assets for, and
     ``chips/*/catalog.json`` are copied; item directories and every data file
     stay in staging. A catalog-side style with no such asset is deleted (see
-    ``_remove_unreferenced_styles``). ``collection.json`` is special-cased to
+    ``_remove_unreferenced_styles``), and so is a chip sub-catalog staging no
+    longer has (``_remove_stale_subcatalogs``). ``collection.json`` is special-cased to
     preserve an existing thumbnail asset — see
     ``_copy_collection_preserving_thumbnail``.
     """
@@ -295,6 +325,7 @@ def copy_committed(dataset_id: str, *, staging: Path = STAGING, catalog: Path = 
             dst.write_bytes((src_root / rel).read_bytes())
         written.append(dst)
     _remove_unreferenced_styles(src_root, dst_root)
+    _remove_stale_subcatalogs(src_root, dst_root)
     return written
 
 

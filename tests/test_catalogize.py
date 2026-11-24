@@ -31,6 +31,7 @@ are temporary.
 Run: python3 tests/test_catalogize.py
 """
 import io
+import shutil
 import json
 import struct
 import sys
@@ -1310,6 +1311,43 @@ with tempfile.TemporaryDirectory() as tmp:
         catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
     check(not list((published / "styles").glob("*.json")),
           "a collection with no style assets publishes no styles")
+
+
+# --- copy_committed: a chip sub-catalog staging no longer has is deleted.
+# A rebuild that drops every chip of a 100 km square (lacuna_2021's 30QWD) left the
+# square's catalog copy behind, unlinked, and publish.py syncs catalog/ as it is.
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    staging = tmp / "staging"
+    catalog = tmp / "catalog"
+    staged = staging / "be_wal_2022"
+    published = catalog / "be_wal" / "be_wal_2022"
+    write_json(staged / "collection.json", {"type": "Collection", "id": "be_wal_2022", "assets": {}})
+    write_json(staged / "chips" / "31UFR" / "catalog.json", {"type": "Catalog", "id": "31UFR"})
+    for square in ("31UFR", "30QWD", "31UGR"):
+        write_json(published / "chips" / square / "catalog.json", {"type": "Catalog", "id": square})
+        (published / "chips" / square / "README.md").write_text("x")
+        (published / "chips" / square / "AGENTS.md").write_text("x")
+    (published / "chips" / "31UGR" / "notes.txt").write_text("not catalogize's")
+
+    out = io.StringIO()
+    with redirect_stdout(out):
+        catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
+    squares = sorted(p.name for p in (published / "chips").iterdir())
+    check(squares == ["31UFR", "31UGR"], f"the stale square's directory is gone, got {squares}")
+    check(sorted(p.name for p in (published / "chips" / "31UFR").iterdir()) == ["AGENTS.md", "README.md", "catalog.json"],
+          "a square staging still has keeps its sub-catalog and docs")
+    check(sorted(p.name for p in (published / "chips" / "31UGR").iterdir()) == ["notes.txt"],
+          "only catalogize's own files are removed from a stale square")
+    check("30QWD" in out.getvalue() and "31UGR" in out.getvalue(), f"the removals are named: {out.getvalue()!r}")
+
+    # A staging tree without any sub-catalog (stopped before stac) removes nothing.
+    shutil.rmtree(staged / "chips")
+    with redirect_stdout(io.StringIO()):
+        catalogize.copy_committed("be_wal_2022", staging=staging, catalog=catalog)
+    check((published / "chips" / "31UFR" / "catalog.json").is_file(),
+          "a staging tree with no sub-catalogs leaves the catalog's alone")
 
 
 # --- a failed mirror write leaves no temp file and keeps the original ---------
