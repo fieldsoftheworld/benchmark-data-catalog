@@ -174,6 +174,28 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
     uv run python tools/chips_collection.py               # file sizes and row count into catalog/chips/
     git commit -am "Rebuild the chips table"
     uv run python tools/publish.py --only chips --confirm
+    uv run python tools/chips_tiles.py --thumbnail        # optional (needs chiitiler), then:
+    uv run python tools/chips_collection.py               # records the new thumbnail's size
+
+Only `chips_collection.py` measures `staging/chips/`; `catalogize.py --root` carries the
+committed measurements, so a table left in staging from an earlier build changes nothing.
+When `publish.py` reports staged all-chips data that differs from the bucket, upload it
+only if it is the newer table; otherwise remove `staging/chips/`.
+
+One-time migration: the table and tiles used to sit at the bucket root. Before the first
+publish of `catalog/chips/` (and before `chips_table.py` and `chips_tiles.py` can read the
+published table, which 404s at `chips/` until then), seed `chips/` with the current files
+and publish:
+
+    mkdir -p staging/chips
+    curl -fo staging/chips/chips.parquet https://data.source.coop/ftw/benchmark-data/chips.parquet
+    curl -fo staging/chips/chips.pmtiles https://data.source.coop/ftw/benchmark-data/chips.pmtiles
+    uv run python tools/upload_data.py --only chips --confirm   # --force if a partial upload exists
+    uv run python tools/publish.py --confirm
+
+The old root objects (`chips.parquet`, `chips.pmtiles`, `chips.style.json`,
+`thumbnail.webp`) stay in the bucket, since nothing deletes them; remove them by hand once
+nothing links them.
 
 `chips.pmtiles` shows every chip location at every zoom: `chips` (zoom 7-12, one polygon
 per location with `id`, `block`, `split_hash_v1`, `split_admin2_v1`, `datasets`,
@@ -184,18 +206,19 @@ their own where they crowd, each summing `chips`, `conflicts` and `datasets`). T
 Both files are the data of one collection, `catalog/chips/` (bucket `chips/`), which the
 root catalog links as a child: the Portolan data browser maps collections only, and a
 Portolan catalog carries no assets. `tools/chips_collection.py` writes its
-`collection.json`, `README.md` and `AGENTS.md` (`catalogize.py --root` runs it too):
-the table and tiles as assets, with `file:size`, `file:checksum`, `table:columns`,
-`table:row_count` and the table's bbox measured from `staging/chips/` (or carried from
-the committed `collection.json` when nothing is staged there), a `rel: pmtiles` link
-naming the tiles' layers, the time span of every published collection, and license
-`other`, since each row carries its own collection's license. `catalog/chips/styles/split-admin2.json` styles the tiles, by
-hand (its source points at the published `chips/chips.pmtiles`); it is the default
-style. `chips_tiles.py --thumbnail` renders `catalog/chips/thumbnail.webp` from it over
-the published tiles (needs chiitiler, see "Thumbnails"). Upload the data before
-publishing the collection: `publish.py` refuses a `catalog/chips/` (or a root catalog)
-whose table or tiles are not in the bucket at `chips/`, and one whose staged copies differ
-from the bucket's.
+`collection.json`, `README.md` and `AGENTS.md` (`catalogize.py --root` rewrites them
+too, without measuring): the table and tiles as assets, with `file:size`,
+`file:checksum`, `table:columns`, `table:row_count` and the table's bbox measured from
+`staging/chips/` by `chips_collection.py` (or carried from the committed
+`collection.json`), a `rel: pmtiles` link naming the tiles' layers, the time span of
+every published collection, and license `other`, since each row carries its own
+collection's license. `catalog/chips/styles/split-admin2.json` styles the tiles, by hand
+(its source points at the published `chips/chips.pmtiles`); it is the default style.
+`chips_tiles.py --thumbnail` renders `catalog/chips/thumbnail.webp` from it over the
+published tiles (needs chiitiler, see "Thumbnails"). Upload the data before publishing
+the collection: `publish.py` refuses a `catalog/chips/` (or a root catalog) whose table
+or tiles are not in the bucket at `chips/`, and one whose staged copies differ from the
+bucket's.
 
 Rebuild and upload it after each dataset publish and before `prune_bucket.py`, so the
 table never lists a chip prune has deleted, with `--staged` naming the datasets just rebuilt:

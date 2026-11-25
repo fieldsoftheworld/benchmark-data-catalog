@@ -148,7 +148,7 @@ check(recipe["stages"]["download_images"]["mode"] == "clip", "imagery is clipped
 check(recipe["fields_file"] == urls["parquet"], "an ordinary dataset reads the harmonized parquet")
 check(recipe["stages"]["masks"]["presence_only"] is False, "wall-to-wall by default")
 check(recipe["stages"]["chips"]["drop_border_chips"] is True, "wall-to-wall drops border chips")
-check("splits" not in recipe["stages"], "no per-chip splits stage: the root chips table holds the splits")
+check("splits" not in recipe["stages"], "no per-chip splits stage: the all-chips table holds the splits")
 check(
     (recipe["stages"]["masks"].get("resolution"), recipe["stages"]["masks"].get("boundary_width_m"))
     == (2.5, None),
@@ -346,7 +346,7 @@ for flags, expect in (([], False), (["--imagery"], True)):
     if expect:
         text = out.getvalue()
         check(-1 < text.find("chips_table.py --staged a") < text.find("prune_bucket.py"),
-              f"the root chips table is rebuilt before prune: {text!r}")
+              f"the all-chips table is rebuilt before prune: {text!r}")
 try:
     run_batch.main(["--next", "3", "--mark-published"])
     errors.append("--mark-published accepts --next")
