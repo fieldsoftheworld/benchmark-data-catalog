@@ -955,6 +955,9 @@ with tempfile.TemporaryDirectory() as tmp:
           == {"root": "../catalog.json", "parent": "../catalog.json"},
           f"the all-chips collection links the root as root and parent: {chips_doc['links']}")
     check(chips_doc["updated"] == "2026-01-03T00:00:00Z", "the all-chips collection is stamped from `now`")
+    check(root_doc["description"] == catalogize.ROOT_DESCRIPTION
+          and "all-chips collection" in root_doc["description"],
+          f"the root description is the tool's and points at the all-chips collection: {root_doc['description']}")
     group_doc = json.loads((catalog / "be_wal" / "catalog.json").read_text())
     check(
         group_doc["type"] == "Catalog" and group_doc["id"] == "be_wal"
@@ -1079,7 +1082,7 @@ with tempfile.TemporaryDirectory() as tmp:
     dataset_warnings = [l for l in printed.splitlines()
                         if l.startswith("warning") and not l.startswith("warning  chips:")]
     check(len(dataset_warnings) == 1, f"exactly one dataset warning is printed, for hr_2024 only (be_wal_2022's parquet exists): {printed!r}")
-    check(printed.count("warning  chips:") == 2 and "chips.pmtiles is not staged" in printed,
+    check(printed.count("warning  chips:") == 2 and "chips.pmtiles was never measured" in printed,
           f"the all-chips collection warns once per unmeasured data file: {printed!r}")
 
     root_readme = (catalog / "README.md").read_text()

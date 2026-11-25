@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import chips_collection  # noqa: E402
-from common import CATALOG, PUBLIC_BASE, STAGING, load_manifest, read_json  # noqa: E402
+from common import CATALOG, PUBLIC_BASE, load_manifest, read_json  # noqa: E402
 
 errors: list[str] = []
 MANIFEST = load_manifest()
@@ -137,6 +137,13 @@ with tempfile.TemporaryDirectory() as tmp:
           and again["extent"] == doc["extent"],
           "with nothing staged, the measurements and the table's bbox carry over")
 
+    # catalogize --root (no staging given) never measures, even with a different table staged
+    (staging / "chips" / "chips.pmtiles").write_bytes(b"y" * 99)
+    chips_collection.write_chips_collection(MANIFEST, catalog=catalog, now=now)
+    carried = read_json(catalog / "chips" / "collection.json")
+    check(carried["assets"]["chips_tiles"]["file:size"] == 10,
+          "without staging, a different staged file changes nothing: the committed values carry")
+
     # never measured, nothing staged: no size, and the bbox of every collection
     fresh = tmp / "fresh"
     write_collection(fresh / "aa" / "aa_2021" / "collection.json", [1, 2, 3, 4],
@@ -161,8 +168,8 @@ check(children[0] == {"rel": "child", "href": "./chips/collection.json", "type":
       f"the root links the all-chips collection first, with its title: {children[0]}")
 check(not any(l.get("href") in ("./chips.parquet", "./chips.pmtiles") for l in root["links"]),
       "the root no longer links the table and tiles itself")
-rebuilt = chips_collection.build_collection(CATALOG, STAGING, MANIFEST, committed["updated"])
-check(rebuilt == committed, "catalog/chips/collection.json is what the tool writes "
+rebuilt = chips_collection.build_collection(CATALOG, None, MANIFEST, committed["updated"])
+check(rebuilt == committed, "catalog/chips/collection.json is what catalogize --root writes "
                             "(rerun tools/chips_collection.py)")
 check((CATALOG / "chips" / "README.md").read_text() == chips_collection.readme(committed, MANIFEST)
       and (CATALOG / "chips" / "AGENTS.md").read_text() == chips_collection.agents(committed, MANIFEST),

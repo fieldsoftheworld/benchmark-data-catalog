@@ -2297,6 +2297,15 @@ def _replace_between_markers(path: Path, content: str) -> None:
     path.write_text(f"{before}{_MARK_START}{middle}{_MARK_END}{after}")
 
 
+# The root catalog's description.
+ROOT_DESCRIPTION = (
+    "Training and evaluation chips for field boundary delineation models: Sentinel-2 imagery "
+    "paired with instance and semantic label masks, cut from harmonized (fiboa) field boundary "
+    "data by Fields of the World. Collections are grouped by source; each collection is one "
+    "country or region in one year. Train, validation and test splits for every chip are in "
+    "the all-chips collection. Start with the [agent guide](AGENTS.md)."
+)
+
 # The links the root once had to the chips table and tiles at the bucket root, before
 # they moved into the all-chips collection (``tools/chips_collection.py``): dropped on a rerun.
 _RETIRED_ROOT_HREFS = {"./chips.parquet", "./chips.pmtiles"}
@@ -2325,13 +2334,14 @@ def regenerate_root(
     ``add_root_self_link`` there. Sets ``stac_extensions`` to the Portolan
     schema URI plus the version extension (PTL-CNF-003: required wherever a
     document carries a top-level ``version``), ``version`` from the
-    manifest, and stamps ``updated`` (PTL-PRO-003, and on every group too,
-    via ``write_group``). Fills the marker-delimited ``## Collections``
+    manifest, the description (``ROOT_DESCRIPTION``), and stamps ``updated``
+    (PTL-PRO-003, and on every group too, via ``write_group``, with the same stamp). Fills the marker-delimited ``## Collections``
     block in ``catalog/README.md`` and ``catalog/AGENTS.md`` — headline
     totals, the collections table, and the coverage table that says what
     each collection actually carries (``_collections_block``) — and the
     collection list in ``catalog/llms.txt``.
     """
+    now = now or datetime.now(UTC)  # one stamp for the groups, the chips collection and the root
     root_path = catalog / "catalog.json"
     doc = read_json(root_path)
     collections = _built_collections(catalog)
@@ -2346,12 +2356,13 @@ def regenerate_root(
         written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title, now=now)
         groups.append((f"./{group}/catalog.json", read_json(catalog / group / "catalog.json")["title"]))
 
-    written += write_chips_collection(manifest, catalog=catalog, staging=staging, now=now)
+    written += write_chips_collection(manifest, catalog=catalog, now=now)  # carries, never measures
     doc["links"] = [
         link for link in doc["links"]
         if link.get("rel") not in ("child", "self") and link.get("href") not in _RETIRED_ROOT_HREFS
     ] + _child_links([(f"./{ALL_CHIPS}/collection.json", ALL_CHIPS_TITLE), *groups])
     doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI]
+    doc["description"] = ROOT_DESCRIPTION
     doc["version"] = manifest["catalog"]["version"]
     doc["updated"] = _now_iso(now)
     write_json(root_path, doc)

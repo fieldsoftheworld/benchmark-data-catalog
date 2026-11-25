@@ -13,9 +13,11 @@ Writes ``collection.json``, ``README.md`` and ``AGENTS.md``. The style
 ``chips_tiles.py --thumbnail``; this registers both as assets. The data files stay in
 ``staging/chips/``, uploaded by ``upload_data.py --only chips``: their ``file:size``,
 ``file:checksum``, ``table:columns`` and ``table:row_count``, and the table's bbox (the
-spatial extent), are measured there, or carried from the committed ``collection.json``
-when nothing is staged. The time span is the published collections'.
-``catalogize.py --root`` runs this too.
+spatial extent), are measured there by this tool's own run, right after a new table and
+tiles are staged, or carried from the committed ``collection.json`` when nothing is
+staged. ``catalogize.py --root`` rewrites the collection too but never measures: it
+carries the committed values, so a stale table left in staging cannot change them. The
+time span is the published collections'.
 """
 from __future__ import annotations
 
@@ -169,20 +171,26 @@ def _measure(path: Path, kind: str) -> dict:
     return out
 
 
-def data_assets(staged: Path, previous: dict) -> dict:
-    """The table and tiles assets, measured from ``staged`` or carried from ``previous``."""
+def data_assets(staged: Path | None, previous: dict) -> dict:
+    """The table and tiles assets, measured from ``staged`` or carried from ``previous``.
+
+    ``staged`` None (``catalogize.py --root``) never measures: a table left in
+    ``staging/chips/`` may be older than the published one.
+    """
     assets = {}
     for key, base in DATA_ASSETS.items():
         asset = dict(base)
-        path = staged / base["href"].removeprefix("./")
-        if path.is_file():
+        name = base["href"].removeprefix("./")
+        path = staged / name if staged is not None else None
+        if path is not None and path.is_file():
             asset.update(_measure(path, base["type"]))
         else:
             old = (previous.get("assets") or {}).get(key) or {}
             asset.update({k: old[k] for k in MEASURED if k in old})
             if "file:size" not in asset:
-                print(f"warning  {ALL_CHIPS}: {path} is not staged and was never measured; "
-                      f"its asset carries no file:size")
+                print(f"warning  {ALL_CHIPS}: {name} was never measured, so its asset carries "
+                      f"no file:size; stage it in staging/{ALL_CHIPS}/ and run "
+                      f"tools/chips_collection.py")
         assets[key] = asset
     return assets
 
@@ -210,13 +218,13 @@ def file_assets(folder: Path) -> dict:
     return assets
 
 
-def extent(catalog: Path, staged_table: Path, previous: dict) -> dict:
+def extent(catalog: Path, staged_table: Path | None, previous: dict) -> dict:
     """The table's own bbox (staged, else as last measured) and the collections' time span.
 
     Without either measurement, the bbox is the union of the collections' bboxes.
     """
     union = union_extent(catalog)
-    bbox = table_bbox(staged_table) if staged_table.is_file() else None
+    bbox = table_bbox(staged_table) if staged_table and staged_table.is_file() else None
     if bbox:
         union["spatial"] = {"bbox": [bbox]}
     elif (previous.get("extent") or {}).get("spatial"):
@@ -261,14 +269,15 @@ def _links(doc_title: str, manifest: dict) -> list[dict]:
     ]
 
 
-def build_collection(catalog: Path, staging: Path, manifest: dict, updated: str) -> dict:
-    """The collection.json of ``catalog/chips/``."""
+def build_collection(catalog: Path, staging: Path | None, manifest: dict, updated: str) -> dict:
+    """The collection.json of ``catalog/chips/``, measured from ``staging`` unless None."""
     from catalogize import VERSION_EXTENSION_URI, WEB_MAP_LINKS_URI
 
     folder = catalog / ALL_CHIPS
     path = folder / "collection.json"
     previous = read_json(path) if path.is_file() else {}
-    assets = {**data_assets(staging / ALL_CHIPS, previous), **file_assets(folder)}
+    staged = staging / ALL_CHIPS if staging is not None else None
+    assets = {**data_assets(staged, previous), **file_assets(folder)}
     host = manifest["host"]
     return {
         "type": "Collection",
@@ -293,7 +302,7 @@ def build_collection(catalog: Path, staging: Path, manifest: dict, updated: str)
              "url": "https://fieldsofthe.world"},
             {"name": host["name"], "roles": list(host["roles"]), "url": host["url"]},
         ],
-        "extent": extent(catalog, staging / ALL_CHIPS / TABLE_NAME, previous),
+        "extent": extent(catalog, staged / TABLE_NAME if staged else None, previous),
         "links": _links(DATA_ASSETS["chips_tiles"]["title"], manifest),
         "assets": assets,
     }
@@ -446,10 +455,14 @@ def agents(doc: dict, manifest: dict) -> str:
 
 
 def write_chips_collection(
-    manifest: dict, *, catalog: Path = CATALOG, staging: Path = STAGING,
+    manifest: dict, *, catalog: Path = CATALOG, staging: Path | None = None,
     now: datetime | None = None,
 ) -> list[Path]:
-    """Write ``catalog/chips/``'s collection.json, README.md and AGENTS.md; the paths."""
+    """Write ``catalog/chips/``'s collection.json, README.md and AGENTS.md; the paths.
+
+    Measures the table and tiles in ``staging/chips/`` only when ``staging`` is given
+    (this tool's own run); otherwise carries the committed measurements.
+    """
     from catalogize import _now_iso
 
     folder = catalog / ALL_CHIPS
@@ -466,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
     argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(argv)
     from common import load_manifest
 
-    for path in write_chips_collection(load_manifest()):
+    for path in write_chips_collection(load_manifest(), staging=STAGING):
         print(path.relative_to(ROOT))
     return 0
 
