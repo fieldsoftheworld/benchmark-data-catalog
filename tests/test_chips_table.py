@@ -5,10 +5,12 @@ The table itself (splits, carried columns, refusals, licenses) is tested in ftwd
 
 - ``staged_inputs`` reads each staged id from ``staging/<id>`` and gives ftwd a group
   (from the recipe's ``source_via``) only for an id the catalog doesn't publish yet;
-- ``main`` hands ftwd this catalog's root, ``PUBLIC_BASE``, the published table as
-  ``--previous`` and ``work/chips.parquet`` as ``--out`` by default, passes ``--drop``,
-  ``--out`` and ``--workers`` through, and turns an ftwd refusal into a one-line exit;
-- ftwd's ``resolve_inputs`` accepts what ``staged_inputs`` gives it.
+- ``main`` hands ftwd a copy of this catalog's root without the all-chips collection,
+  ``PUBLIC_BASE``, the published table (``chips/chips.parquet``) as ``--previous`` and
+  ``work/chips.parquet`` as ``--out`` by default, passes ``--drop``, ``--out`` and
+  ``--workers`` through, and turns an ftwd refusal into a one-line exit;
+- ftwd's ``resolve_inputs`` accepts what ``staged_inputs`` gives it, and through
+  ``datasets_catalog`` never takes the all-chips collection for a dataset.
 
 Run: python3 tests/test_chips_table.py
 """
@@ -68,7 +70,9 @@ def stand_in(tmp: Path) -> tuple[Path, Path, Path]:
     catalog, staging, root = tmp / "catalog", tmp / "staging", tmp / "repo"
     (catalog / "catalog.json").parent.mkdir(parents=True)
     (catalog / "catalog.json").write_text(json.dumps({"links": [
+        {"rel": "child", "href": "./chips/collection.json"},
         {"rel": "child", "href": "./aa/catalog.json"}]}))
+    write_collection(catalog / "chips", "chips")  # the all-chips collection: not a dataset
     (catalog / "aa" / "catalog.json").parent.mkdir()
     (catalog / "aa" / "catalog.json").write_text(json.dumps({"links": [
         {"rel": "child", "href": "./aa_2021/collection.json"}]}))
@@ -101,16 +105,33 @@ with tempfile.TemporaryDirectory() as tmp:
         check("cc_2023" in str(err), f"the refusal names the id: {err}")
 
     # ftwd accepts them: the published id keeps its catalog group, the new one gets its own
-    inputs = ftwd_table.resolve_inputs(catalog / "catalog.json", None, local_dirs, groups)
+    before = sorted(p.name for p in catalog.iterdir())
+    with chips_table.datasets_catalog(catalog) as root_catalog:
+        check(catalog not in root_catalog.parents and sorted(p.name for p in catalog.iterdir()) == before,
+              f"the copy sits outside catalog/ and adds nothing there: {root_catalog}")
+        inputs = ftwd_table.resolve_inputs(root_catalog, None, local_dirs, groups)
+    check(not root_catalog.parent.exists(), "the copy is deleted afterwards")
+    hint = chips_table.with_seed_hint(RuntimeError("HTTP 404 Not Found"), "https://x/chips/chips.parquet")
+    check(chips_table.SEED_HINT in hint and "one-time migration" in hint,
+          f"a missing published table points at the seeding step: {hint}")
+    check(chips_table.with_seed_hint(RuntimeError("bad column"), "https://x") == "bad column",
+          "another error gets no hint")
     check([(i.dataset, i.group, i.local) for i in inputs]
           == [("aa_2021", "aa", True), ("bb_2022", "bb", True)],
-          f"ftwd takes the staged dirs and groups: {inputs}")
+          f"ftwd takes the staged dirs and groups, and not the all-chips collection: {inputs}")
+    check("chips" in ftwd_table.published_datasets(str(catalog / "catalog.json")),
+          "without the copy, ftwd would take the all-chips collection for a dataset")
 
     # main: the defaults and pass-through, with ftwd stubbed
     seen: dict = {}
 
     def fake_resolve(catalog_json, data_base_url, local_dirs, groups):
-        seen["resolve"] = (catalog_json, data_base_url, list(local_dirs), dict(groups))
+        group = seen["group"] = next(p for p in catalog_json.parent.iterdir() if p.is_dir())
+        root_dir = CATALOG if (group.resolve() == (CATALOG / group.name).resolve()
+                               and CATALOG not in catalog_json.parents) else catalog_json.parent
+        seen["resolve"] = (root_dir, data_base_url, list(local_dirs), dict(groups))
+        seen["children"] = [l["href"] for l in json.loads(catalog_json.read_text())["links"]
+                            if l["rel"] == "child"]
         return ["x"]
 
     def fake_build(inputs, out, previous, drop, workers):
@@ -123,12 +144,13 @@ with tempfile.TemporaryDirectory() as tmp:
         published_id = chips_table.published_datasets(CATALOG / "catalog.json")[0].rpartition("/")[2]
         with contextlib.redirect_stdout(io.StringIO()):
             chips_table.main(["--staged", published_id])
-        check(seen["resolve"] == (CATALOG / "catalog.json", PUBLIC_BASE,
-                                  [STAGING / published_id], {}),
+        check(seen["resolve"] == (CATALOG, PUBLIC_BASE, [STAGING / published_id], {}),
               f"ftwd gets the catalog, PUBLIC_BASE and the staged dir, no group for a "
               f"published id: {seen['resolve']}")
+        check("./chips/collection.json" not in seen["children"] and seen["children"],
+              f"ftwd's root has the groups but not the all-chips collection: {seen['children']}")
         check(seen["build"] == (["x"], ROOT / "work" / "chips.parquet",
-                                f"{PUBLIC_BASE}/chips.parquet", [], 8),
+                                f"{PUBLIC_BASE}/chips/chips.parquet", [], 8),
               f"the defaults: work/chips.parquet from the published table: {seen['build']}")
         with contextlib.redirect_stdout(io.StringIO()):
             chips_table.main(["--drop", "aa_2021", "bb_2022", "--out", str(tmp / "t.parquet"),

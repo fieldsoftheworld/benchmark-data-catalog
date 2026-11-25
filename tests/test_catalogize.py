@@ -345,6 +345,9 @@ def build_catalog_root(catalog: Path) -> None:
                 {"rel": "vcs", "href": "https://example.invalid/repo"},
                 # a stray self link: regenerate_root must strip it.
                 {"rel": "self", "href": "https://example.invalid/catalog.json"},
+                # the retired root links to the chips table and tiles: dropped too.
+                {"rel": "related", "href": "./chips.parquet", "type": "application/vnd.apache.parquet"},
+                {"rel": "related", "href": "./chips.pmtiles", "type": "application/vnd.pmtiles"},
             ],
         },
     )
@@ -933,15 +936,28 @@ with tempfile.TemporaryDirectory() as tmp:
         root_manifest, catalog=catalog, staging=staging, now=root_now, fetch_title=lambda _url: None
     )
     group_files = [catalog / "be_wal" / name for name in ("catalog.json", "README.md", "AGENTS.md")]
-    check(written_root[:3] == group_files and len(written_root) == 7,
-          f"regenerate_root reports the group's 3 files and the root's 4, got {written_root}")
+    chips_files = [catalog / "chips" / name for name in ("collection.json", "README.md", "AGENTS.md")]
+    check(written_root[:6] == group_files + chips_files and len(written_root) == 10,
+          f"regenerate_root reports the group's 3 files, the all-chips collection's 3 and the "
+          f"root's 4, got {written_root}")
 
     root_doc = json.loads((catalog / "catalog.json").read_text())
     child_links = [l for l in root_doc["links"] if l["rel"] == "child"]
     check(
-        [(l["href"], l["type"]) for l in child_links] == [("./be_wal/catalog.json", "application/json")],
-        f"root catalog gets exactly one child link, for be_wal_2022's source group, got {child_links}",
+        [(l["href"], l["type"]) for l in child_links]
+        == [("./chips/collection.json", "application/json"), ("./be_wal/catalog.json", "application/json")],
+        f"root catalog links the all-chips collection, then be_wal_2022's source group, got {child_links}",
     )
+    chips_doc = json.loads((catalog / "chips" / "collection.json").read_text())
+    check(child_links[0]["title"] == chips_doc["title"],
+          "the root's child link carries the all-chips collection's title")
+    check({l["rel"]: l["href"] for l in chips_doc["links"] if l["rel"] in ("root", "parent")}
+          == {"root": "../catalog.json", "parent": "../catalog.json"},
+          f"the all-chips collection links the root as root and parent: {chips_doc['links']}")
+    check(chips_doc["updated"] == "2026-01-03T00:00:00Z", "the all-chips collection is stamped from `now`")
+    check(root_doc["description"] == catalogize.ROOT_DESCRIPTION
+          and "all-chips collection" in root_doc["description"],
+          f"the root description is the tool's and points at the all-chips collection: {root_doc['description']}")
     group_doc = json.loads((catalog / "be_wal" / "catalog.json").read_text())
     check(
         group_doc["type"] == "Catalog" and group_doc["id"] == "be_wal"
@@ -952,7 +968,7 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the group catalog links the root and lists its collection, got {group_doc}",
     )
     check(
-        child_links[0]["title"] == group_doc["title"],
+        child_links[1]["title"] == group_doc["title"],
         "the root's child link carries the group's title",
     )
     check(
@@ -963,13 +979,11 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     check(root_doc["version"] == "2.0.0-test", "root catalog version set from the manifest")
     check(root_doc.get("updated") == "2026-01-03T00:00:00Z", "root catalog updated stamped from `now`")
-    fixed_rels = {l["rel"] for l in root_doc["links"]
-                  if l["rel"] != "child" and l["href"] not in ("./chips.parquet", "./chips.pmtiles")}
+    fixed_rels = {l["rel"] for l in root_doc["links"] if l["rel"] != "child"}
     check(fixed_rels == {"root", "describedby", "agents", "llms", "vcs"}, "fixed root links are kept as they were")
     check(not any(l["rel"] == "self" for l in root_doc["links"]), "regenerate_root strips a stray self link")
-    data = [l for l in root_doc["links"] if l["href"] in ("./chips.parquet", "./chips.pmtiles")]
-    check(data == catalogize.ROOT_DATA_LINKS,
-          f"regenerate_root links the chips table and tiles once: {data}")
+    check(not any(l["href"] in ("./chips.parquet", "./chips.pmtiles") for l in root_doc["links"]),
+          "regenerate_root drops the retired root links to the chips table and tiles")
 
     root_readme = (catalog / "README.md").read_text()
     check(
@@ -996,10 +1010,12 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     # --- regenerate_root is idempotent too (same `now`, so `updated` doesn't move) ---
-    before = (catalog / "catalog.json").read_text()
+    before = [(catalog / rel).read_text() for rel in
+              ("catalog.json", "chips/collection.json", "chips/README.md", "chips/AGENTS.md")]
     catalogize.regenerate_root(root_manifest, catalog=catalog, staging=staging, now=root_now)
-    after = (catalog / "catalog.json").read_text()
-    check(before == after, "regenerate_root is idempotent")
+    after = [(catalog / rel).read_text() for rel in
+             ("catalog.json", "chips/collection.json", "chips/README.md", "chips/AGENTS.md")]
+    check(before == after, "regenerate_root is idempotent, the all-chips collection too")
 
     # --- a thumbnail asset added directly to the catalog copy survives a rerun ---
     # tools/thumbnail.py (a concurrent task) adds a role: thumbnail asset
@@ -1054,7 +1070,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (staging / "be_wal_2022").mkdir(parents=True, exist_ok=True)
     build_chips_parquet(staging / "be_wal_2022" / "be_wal_2022_chips.parquet")
 
-    two_manifest = {"catalog": {"version": "2.0.0-test"}}
+    two_manifest = {"catalog": {"version": "2.0.0-test"}, "host": MANIFEST["host"]}
     out = io.StringIO()
     with redirect_stdout(out):
         catalogize.regenerate_root(two_manifest, catalog=catalog, staging=staging, now=datetime(2026, 1, 1, tzinfo=UTC))
@@ -1063,7 +1079,11 @@ with tempfile.TemporaryDirectory() as tmp:
         "warning" in printed and "hr_2024" in printed and str(staging / "hr_2024" / "hr_2024_chips.parquet") in printed,
         f"a warning names the dataset (hr_2024) and the missing chips parquet path, got {printed!r}",
     )
-    check(printed.count("warning") == 1, f"exactly one warning is printed, for hr_2024 only (be_wal_2022's parquet exists): {printed!r}")
+    dataset_warnings = [l for l in printed.splitlines()
+                        if l.startswith("warning") and not l.startswith("warning  chips:")]
+    check(len(dataset_warnings) == 1, f"exactly one dataset warning is printed, for hr_2024 only (be_wal_2022's parquet exists): {printed!r}")
+    check(printed.count("warning  chips:") == 2 and "chips.pmtiles was never measured" in printed,
+          f"the all-chips collection warns once per unmeasured data file: {printed!r}")
 
     root_readme = (catalog / "README.md").read_text()
     check(
@@ -1776,7 +1796,8 @@ with tempfile.TemporaryDirectory() as tmp:
         "ftw:config": {"config": {"year": 2022, "source_via": via}},
     })
     fetched: list[str] = []
-    group_manifest = {"catalog": {"version": "2.0.0-test", "human_base": "https://source.coop/ftw/benchmark-data"}}
+    group_manifest = {"catalog": {"version": "2.0.0-test", "human_base": "https://source.coop/ftw/benchmark-data"},
+                      "host": MANIFEST["host"]}
 
     def fetch_once(url: str) -> str:
         fetched.append(url)
@@ -1817,7 +1838,8 @@ with tempfile.TemporaryDirectory() as tmp:
           f"an emptied group's files are deleted, and it says so: {out.getvalue()!r}")
     root_children = [l["href"] for l in json.loads((catalog / "catalog.json").read_text())["links"]
                      if l["rel"] == "child"]
-    check(root_children == ["./be_wal/catalog.json"], f"the root no longer links it: {root_children}")
+    check(root_children == ["./chips/collection.json", "./be_wal/catalog.json"],
+          f"the root no longer links it: {root_children}")
 
     # A recipe whose source_via names another group than catalog/ has it under.
     write_json(catalog / "lv" / "be_wal_2022" / "collection.json", {})
@@ -1836,9 +1858,9 @@ catalogize.fill_asset_descriptions(with_split)
 catalogize.fill_asset_descriptions(without_split)
 check("benchmark split it is assigned to" in with_split["assets"]["chips"]["description"],
       f"a chips file with split says so: {with_split}")
-check("root chips table" in without_split["assets"]["chips"]["description"]
+check("all-chips collection" in without_split["assets"]["chips"]["description"]
       and "assigned" not in without_split["assets"]["chips"]["description"],
-      f"a chips file without split points at the root chips table: {without_split}")
+      f"a chips file without split points at the all-chips collection: {without_split}")
 
 # A styles/<name>.json asset href counts as a style the collection has, relative or
 # absolute (an absolute one must not get its file deleted); other hrefs do not.

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""tools/chips_tiles.py and catalog/chips.style.json against ftwd's chip tiles.
+"""tools/chips_tiles.py and catalog/chips/styles/split-admin2.json against ftwd's chip tiles.
 
 The tiling itself (layers, attributes, clustering, the drop check, the thumbnail render)
 is tested in ftwd. Here:
 
-- ``main`` tiles the published table into ``work/chips.pmtiles`` by default, passes
-  ``--table`` and ``--out`` through, renders ``--thumbnail`` into
-  ``catalog/thumbnail.webp`` with ``catalog/chips.style.json`` over the published tiles,
-  and turns an ftwd refusal into a one-line exit;
+- ``main`` tiles the published table (``chips/chips.parquet``) into
+  ``work/chips.pmtiles`` by default, passes ``--table`` and ``--out`` through, renders
+  ``--thumbnail`` into ``catalog/chips/thumbnail.webp`` with
+  ``catalog/chips/styles/split-admin2.json`` over the published tiles, and turns an ftwd
+  refusal into a one-line exit;
 - the style reads only layers and properties ftwd tiles, draws every layer, hands the
-  overview over to the chips at the chips' first zoom, points at the tiles by absolute
-  URL, and is published with the style content type;
+  overview over to the chips at the chips' first zoom, points at the published
+  ``chips/chips.pmtiles`` by absolute URL, and is published with the style content type;
 - README.md and catalog/README.md give the zooms ftwd tiles at.
 
 Run: python3 tests/test_chips_tiles.py
@@ -61,15 +62,15 @@ chips_tiles.build_tiles, chips_tiles.render_thumbnail = fake_build, fake_render
 try:
     with contextlib.redirect_stdout(io.StringIO()):
         chips_tiles.main([])
-        check(seen.get("build") == (f"{PUBLIC_BASE}/chips.parquet", ROOT / "work" / "chips.pmtiles"),
+        check(seen.get("build") == (f"{PUBLIC_BASE}/chips/chips.parquet", ROOT / "work" / "chips.pmtiles"),
               f"by default the published table is tiled into work/: {seen.get('build')}")
         chips_tiles.main(["--table", "t.parquet", "--out", "o.pmtiles"])
         check(seen["build"] == ("t.parquet", Path("o.pmtiles")),
               f"--table and --out pass through: {seen['build']}")
         chips_tiles.main(["--thumbnail"])
-    check(seen.get("render") == (ROOT / "catalog" / "thumbnail.webp",
-                                 ROOT / "catalog" / "chips.style.json",
-                                 f"{PUBLIC_BASE}/chips.pmtiles", ftwd_tiles.DEFAULT_SERVER),
+    check(seen.get("render") == (ROOT / "catalog" / "chips" / "thumbnail.webp",
+                                 ROOT / "catalog" / "chips" / "styles" / "split-admin2.json",
+                                 f"{PUBLIC_BASE}/chips/chips.pmtiles", ftwd_tiles.DEFAULT_SERVER),
           f"--thumbnail renders the catalog's thumbnail and style over the published tiles: "
           f"{seen.get('render')}")
 
@@ -118,10 +119,12 @@ check(all(l.get("maxzoom") == first_chips_zoom
           for layer in ftwd_tiles.OVERVIEW_LAYERS for l in by_layer.get(layer, []))
       and all(l.get("minzoom") == first_chips_zoom for l in by_layer.get("chips", [])),
       "the overview hands over to the chips at the chips' first zoom, with no gap")
-check(publish.content_type_for(Path(chips_tiles.STYLE.name)) == publish.STYLE_TYPE,
-      "the root style is served with the style content type")
-check(style["sources"]["data"]["url"].startswith("pmtiles://https://"),
-      "the published style points at the tiles by absolute URL")
+rel = chips_tiles.STYLE.relative_to(ROOT / "catalog")
+check(publish.content_type_for(chips_tiles.STYLE, rel=rel) == publish.STYLE_TYPE,
+      "the all-chips style is served with the style content type")
+check(style["sources"]["data"]["url"] == f"pmtiles://{PUBLIC_BASE}/chips/chips.pmtiles",
+      f"the published style points at the published tiles by absolute URL: "
+      f"{style['sources']['data']['url']}")
 
 # the docs give the zooms ftwd tiles at
 readme = " ".join((ROOT / "README.md").read_text().split())
@@ -136,4 +139,4 @@ if errors:
     for e in errors:
         print(f"error  {e}")
     raise SystemExit(1)
-print("OK: tools/chips_tiles.py and the root style match ftwd's chip tiles")
+print("OK: tools/chips_tiles.py and the all-chips style match ftwd's chip tiles")

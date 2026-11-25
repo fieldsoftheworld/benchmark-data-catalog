@@ -18,7 +18,7 @@ repository](https://github.com/fieldsoftheworld/benchmark-data-catalog/tree/main
 so any collection can be rebuilt from the harmonized edition it names.
 
 [Browse the whole catalog](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json)
-· [map of every chip](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles)
+· [map of every chip](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/chips/collection.json)
 · [agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md)
 · [the paper](https://arxiv.org/abs/2409.16252)
 · [version 1.0](https://source.coop/kerner-lab/fields-of-the-world)
@@ -435,12 +435,13 @@ ships; the Browse column above opens a single collection in it.
 
 ## Splits across collections
 
-![Chip locations of every collection, coloured by their admin2 split: train green, validation orange, test purple](https://data.source.coop/ftw/benchmark-data/thumbnail.webp)
+![Chip locations of every collection, coloured by their admin2 split: train green, validation orange, test purple](https://data.source.coop/ftw/benchmark-data/chips/thumbnail.webp)
 
 Each collection assigns its own train / validation / test split, so a location in
 several collections (other years of a country, or overlapping regions) can be test in
 one and train in another.
-[`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips.parquet) lists
+[`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips/chips.parquet), in the
+[all-chips collection](https://source.coop/ftw/benchmark-data/chips), lists
 every chip of every collection with one column per split scheme:
 
 - `split_legacy`: the collection's own split, as in each collection's chips file.
@@ -460,17 +461,17 @@ then `non-commercial`, `restricted`, and `unknown` where the terms aren't clear 
 and `presence_only`.
 
 Read one collection's rows with
-`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips.parquet' WHERE dataset = 'at_2024'`,
+`SELECT * FROM 'https://data.source.coop/ftw/benchmark-data/chips/chips.parquet' WHERE dataset = 'at_2024'`,
 or the openly licensed chips with
 `... WHERE license_category IN ('public-domain', 'attribution', 'share-alike')`.
 
-[`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips.pmtiles) maps one
+[`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips/chips.pmtiles) maps one
 polygon per location from zoom 7, with its `split_admin2_v1`, `split_hash_v1`, whether
 any of its collections is presence-only, and whether the collections' own splits
 disagree there (`legacy_conflict`). Below zoom 7 its `overview_train`, `overview_val` and
 `overview_test` layers cluster each split's chip centres separately, each cluster counting
-its locations. [Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips.pmtiles),
-or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips.style.json)
+its locations. [Open it in a map viewer](https://pmtiles.io/#url=https://data.source.coop/ftw/benchmark-data/chips/chips.pmtiles),
+or use the [MapLibre style](https://data.source.coop/ftw/benchmark-data/chips/styles/split-admin2.json)
 the image above is rendered from: train green, validation orange, test purple. From zoom
 7, chips are filled by `split_admin2_v1`, paler where a collection is presence-only, and
 outlined in red where the collections' own splits disagree.

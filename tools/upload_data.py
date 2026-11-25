@@ -52,7 +52,7 @@ from publish import (  # noqa: E402
     split_s3_uri,
     upload_all,
 )
-from common import dataset_relpath  # noqa: E402
+from common import ALL_CHIPS, dataset_relpath  # noqa: E402
 
 # The suffixes that may reach the bucket. This is an allow-list, and it names
 # what may pass rather than what may not. A staging tree grows new scratch
@@ -155,9 +155,10 @@ def published_rel(rel: Path, places: dict[str, str], root: Path, config: dict[st
     ``staging/<id>/`` is flat; ``catalog/`` and the bucket group each dataset
     under its harmonized source (``common.dataset_relpath``). ``places``
     caches the lookup per dataset id. A file directly under ``data_dir`` is
-    not inside any dataset and keeps its path.
+    not inside any dataset and keeps its path, and so does the all-chips collection
+    (``staging/chips/`` is published at ``chips/``, in no source group).
     """
-    if len(rel.parts) < 2:
+    if len(rel.parts) < 2 or rel.parts[0] == ALL_CHIPS:
         return rel
     dataset_id = rel.parts[0]
     if dataset_id not in places:
@@ -189,6 +190,8 @@ def collect_data_uploads(
     ``only`` restricts the walk to the named dataset directories directly
     under ``data_dir`` (``{"at_2024"}`` uploads ``staging/at_2024/**`` alone), so one
     dataset can be published while another is still being built.
+    ``staging/chips/`` (the all-chips collection's table and tiles) uploads only when
+    ``only`` names it (``--only chips``), and nothing directly under ``data_dir`` ever does.
 
     The walk is rooted at ``data_dir`` and nothing else. Keys go under the
     same ``write_prefix`` the catalog publishes to, at the dataset's
@@ -207,9 +210,12 @@ def collect_data_uploads(
         rel = path.relative_to(base)
         if only is not None and (not rel.parts or rel.parts[0] not in only):
             continue
-        # A root file (the chips table) is shared by every dataset: upload it only when
-        # --only names it, never as a side effect of a dataset's upload.
-        if len(rel.parts) == 1 and (only is None or rel.name not in only):
+        # Nothing directly under data_dir has a place in the bucket.
+        if len(rel.parts) == 1:
+            continue
+        # The all-chips collection's table and tiles are shared by every dataset: upload
+        # them only when --only names it, never as a side effect of a dataset's upload.
+        if only is None and rel.parts[0] == ALL_CHIPS:
             continue
         if not is_uploadable(rel):
             continue
@@ -243,7 +249,8 @@ def main() -> int:
         "--only",
         action="append",
         metavar="DATASET",
-        help="upload only this dataset directory under data_dir (repeatable)",
+        help="upload only this dataset directory under data_dir (repeatable); "
+             "'chips' uploads the all-chips collection's table and tiles",
     )
     args = parser.parse_args()
 

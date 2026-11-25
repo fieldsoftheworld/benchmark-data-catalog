@@ -357,7 +357,7 @@ stages:
     admin_names: true
     # Mean and std of AlphaEarth and OlmoEarth v1.3 embeddings over each field.
     field_embeddings: true
-  # No splits stage: the root chips table holds the splits. A source with its own split
+  # No splits stage: the all-chips table holds the splits. A source with its own split
   # adds splits: {{split_type: predefined}} by hand (see wri_trazo_ml_*).
   masks:
     mask_types: {mask_types(presence_only, extent)}

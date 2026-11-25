@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from common import (  # noqa: E402
+    ALL_CHIPS,
     CATALOG,
     PORTOLAN_SCHEMA_RE,
     PUBLIC_BASE,
@@ -188,9 +189,13 @@ for missing in sorted(declared - built):
 for extra in sorted(built - declared):
     err(f"{PUBLISHED[extra].parent.relative_to(CATALOG.parent)}/ is published but not in datasets.yaml")
 
-# The root links one catalog per source group; each group links the collections under it.
+# The root links one catalog per source group, plus the all-chips collection; each group
+# links the collections under it.
 root = json.loads((CATALOG / "catalog.json").read_text())
-groups = {Path(link["href"]).parent.name for link in root["links"] if link["rel"] == "child"}
+children = {link["href"] for link in root["links"] if link["rel"] == "child"}
+if f"./{ALL_CHIPS}/collection.json" not in children:
+    err(f"catalog.json has no child link to the all-chips collection ./{ALL_CHIPS}/collection.json")
+groups = {Path(href).parent.name for href in children if href.endswith("/catalog.json")}
 published_groups = {path.parent.parent.name for path in PUBLISHED.values()}
 if groups != published_groups:
     err(f"catalog.json children {sorted(groups)} != source groups {sorted(published_groups)}")
@@ -212,14 +217,14 @@ for dataset_id, path in sorted(PUBLISHED.items()):
 for dataset_id in sorted(built):
     check_built_collection(dataset_id)
 
-# The root chips table holds the splits; a per-chip split is only the source's own. Every
+# The all-chips table holds the splits; a per-chip split is only the source's own. Every
 # recipe, listed in datasets.yaml or not.
 for dataset_id in sorted(recipes):
     splits = ((yaml.safe_load((RECIPES / f"{dataset_id}.yaml").read_text()) or {})
               .get("stages") or {}).get("splits")
     if splits is not None and (splits or {}).get("split_type") != "predefined":
         err(f"datasets/{dataset_id}.yaml: stages.splits is only for split_type: predefined "
-            f"(the root chips table holds every other split), got {splits!r}")
+            f"(the all-chips table holds every other split), got {splits!r}")
 
 # v2 masks: 2.5 m pixels with one-pixel boundary lines (no boundary_width_m), in every recipe.
 for dataset_id in sorted(recipes):

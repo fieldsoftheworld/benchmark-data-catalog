@@ -1,0 +1,252 @@
+{
+  "type": "Collection",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://schemas.portolan-sdi.org/portolan/v0.3.0/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "id": "chips",
+  "title": "All chips: every benchmark chip across the collections",
+  "description": "Every chip of every Fields of the World benchmark collection in one table, one row per collection and chip, with one column per split scheme: split_hash_v1 and split_admin2_v1 give a location the same split in every collection, so collections can be pooled without a location on both sides. The tiles map every chip location by its admin2 split. Each row carries its collection's license.",
+  "version": "2.0.0-alpha.1",
+  "updated": "2026-11-25T04:45:57Z",
+  "license": "other",
+  "keywords": [
+    "field-boundaries",
+    "benchmark",
+    "splits"
+  ],
+  "providers": [
+    {
+      "name": "Fields of the World",
+      "roles": [
+        "producer",
+        "processor"
+      ],
+      "url": "https://fieldsofthe.world"
+    },
+    {
+      "name": "Source Cooperative",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop"
+    }
+  ],
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -102.40393494344272,
+          -38.92610613948676,
+          145.6675081332936,
+          67.70990883522461
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2017-01-01T00:00:00Z",
+          "2025-12-31T23:59:59Z"
+        ]
+      ]
+    }
+  },
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "license",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Each row carries its own collection's license (README, License)"
+    },
+    {
+      "rel": "via",
+      "href": "https://source.coop/ftw/benchmark-data",
+      "type": "text/html",
+      "title": "Source: the benchmark collections the table is built from"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chip locations as vector tiles, with their splits",
+      "pmtiles:layers": [
+        "overview_train",
+        "overview_val",
+        "overview_test",
+        "chips"
+      ]
+    }
+  ],
+  "assets": {
+    "chips": {
+      "href": "./chips.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Chips of every collection, with one column per split scheme",
+      "roles": [
+        "data"
+      ],
+      "description": "One row per chip of every published collection, with its splits under each scheme, its admin units and its collection's license.",
+      "file:size": 204488756,
+      "file:checksum": "1220288ea4eaad45c7e02832598216656fc36ff08ae80b901a1bcdb320b509427360",
+      "table:columns": [
+        {
+          "name": "dataset",
+          "type": "varchar",
+          "description": "The collection the chip is in (its id, such as at_2024)."
+        },
+        {
+          "name": "group",
+          "type": "varchar",
+          "description": "The source group the collection is published under: the harmonized source collection it was cut from."
+        },
+        {
+          "name": "id",
+          "type": "varchar",
+          "description": "The chip's cell id on the FTW grid: the same id is the same square of ground in every collection."
+        },
+        {
+          "name": "block",
+          "type": "varchar",
+          "description": "The chip's 3x3 block of grid cells, the unit split_hash_v1 is drawn for."
+        },
+        {
+          "name": "admin0_iso3",
+          "type": "varchar",
+          "description": "ISO 3166-1 alpha-3 code of the chip's country (FAO GAUL 2024)."
+        },
+        {
+          "name": "admin0_name",
+          "type": "varchar",
+          "description": "The chip's country (FAO GAUL 2024)."
+        },
+        {
+          "name": "admin1_name",
+          "type": "varchar",
+          "description": "The chip's first-level administrative unit (FAO GAUL 2024)."
+        },
+        {
+          "name": "admin2_name",
+          "type": "varchar",
+          "description": "The chip's second-level administrative unit (FAO GAUL 2024)."
+        },
+        {
+          "name": "license",
+          "type": "varchar",
+          "description": "The collection's license, an SPDX id or other."
+        },
+        {
+          "name": "license_url",
+          "type": "varchar",
+          "description": "The collection's own license link (the SPDX page for a standard id)."
+        },
+        {
+          "name": "license_category",
+          "type": "varchar",
+          "description": "The license sorted for filtering: public-domain, attribution and share-alike allow any use, including commercial; then non-commercial, restricted, and unknown where the terms aren't judged yet."
+        },
+        {
+          "name": "presence_only",
+          "type": "boolean",
+          "description": "The collection's ftw:presence_only: its labels mark fields that exist, not where fields are absent."
+        },
+        {
+          "name": "split_legacy",
+          "type": "varchar",
+          "description": "What the collection published before this table (a seeded block3x3 or predefined split). Frozen, so chips added later are null."
+        },
+        {
+          "name": "split_predefined",
+          "type": "varchar",
+          "description": "The source's own split, for collections whose source defines one."
+        },
+        {
+          "name": "split_hash_v1",
+          "type": "varchar",
+          "description": "train, val or test from a stable hash of the chip's block, 80/10/10: a location has the same split in every collection and year."
+        },
+        {
+          "name": "unit_admin2_v1",
+          "type": "varchar",
+          "description": "The unit split_admin2_v1 assigns: the chip's admin2 area (its admin1 when it has no admin2 name, or its block where a country has too few admin2 areas to balance)."
+        },
+        {
+          "name": "split_admin2_v1",
+          "type": "varchar",
+          "description": "train, val or test for whole admin2 units, balanced to 80/10/10 within each country. A unit with a presence-only chip is train."
+        },
+        {
+          "name": "geometry",
+          "type": "geometry",
+          "description": "The chip's footprint (OGC:CRS84)."
+        },
+        {
+          "name": "bbox",
+          "type": "struct",
+          "description": "The footprint's bounding box."
+        }
+      ],
+      "table:row_count": 3082670
+    },
+    "chips_tiles": {
+      "href": "./chips.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Chip locations as vector tiles, with their splits",
+      "roles": [
+        "visual"
+      ],
+      "description": "Every chip location at every zoom: one polygon per location from zoom 7, each split's chip centres clustered below it.",
+      "file:size": 127753065,
+      "file:checksum": "1220653144081d7776a36133a21d13d5bc17da88e3b7d5341b16c0f1e60d253c535b"
+    },
+    "style-split-admin2": {
+      "href": "./styles/split-admin2.json",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Chips by admin2 split",
+      "roles": [
+        "style",
+        "default"
+      ],
+      "file:size": 3629,
+      "description": "MapLibre style: chip locations coloured by split_admin2_v1, train green, val orange, test purple.",
+      "file:checksum": "12204dfbe408c73df8395b73b807eea8dd8a5701ccbfd2c4570f79a3a8d5ddc6b255"
+    },
+    "thumbnail": {
+      "href": "./thumbnail.webp",
+      "type": "image/webp",
+      "roles": [
+        "thumbnail"
+      ],
+      "title": "Chip locations of every collection, by admin2 split",
+      "description": "Preview image of the collection rendered with its default map style.",
+      "file:size": 27514,
+      "file:checksum": "1220066133a9196f3d8a70e19cb58eb67fa2a76332ff66c4710daaa9f7e9e39e3603"
+    }
+  }
+}

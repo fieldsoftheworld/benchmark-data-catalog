@@ -95,6 +95,7 @@ with tempfile.TemporaryDirectory() as tmp:
     catalog = base / "catalog.json"
     catalog.write_text(json.dumps({"links": [
         {"rel": "root", "href": "./catalog.json"},
+        {"rel": "child", "href": "./chips/collection.json"},
         {"rel": "child", "href": "./bb/catalog.json"},
         {"rel": "child", "href": "./aa/catalog.json"},
     ]}))
@@ -107,7 +108,8 @@ with tempfile.TemporaryDirectory() as tmp:
         {"rel": "child", "href": "./bb_2022/collection.json"},
     ]}))
     ids = catalog_stats.published_datasets(catalog)
-    check(ids == ["aa/aa_2021", "bb/bb_2022"], f"published datasets follow the source groups: {ids}")
+    check(ids == ["aa/aa_2021", "bb/bb_2022"],
+          f"published datasets follow the source groups, not the all-chips collection: {ids}")
 
 if errors:
     for e in errors:

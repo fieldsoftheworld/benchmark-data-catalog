@@ -50,8 +50,14 @@ the full walkthrough; this is the command sequence):
     uv run python tools/upload_data.py --confirm
     uv run python tools/upload_data.py --only at_2024 --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
-    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
     uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
+
+The chips table and tiles are the all-chips collection, `catalog/chips/` (bucket `chips/`).
+Once, before its first publish, seed `chips/` with the files that used to sit at the
+bucket root (README, "Chips collection", one-time migration); the old root objects stay
+in the bucket until deleted by hand. Only `tools/chips_collection.py` measures
+`staging/chips/`; upload staged chips data only when it is the newer table.
 
 Imagery is a second pass, once selection is ready:
 
@@ -60,7 +66,7 @@ Imagery is a second pass, once selection is ready:
     uv run python tools/catalogize.py <id>
     uv run python tools/upload_data.py --confirm
     uv run python tools/publish.py --confirm
-    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
     uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 `tools/build.py` runs `ftwd` from the repository root. Two environment

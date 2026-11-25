@@ -24,6 +24,8 @@ the uploaders carry the bytes to the bucket.
   imagery, `*.parquet` (including `items.parquet`) and `*.pmtiles` stay in
   `staging/<id>/` (flat, no source folder) and are bucket-only, uploaded to
   `<source>/<id>/` beside the metadata.
+  `catalog/chips/` is the one collection outside a group: the chips table and tiles of
+  every dataset (see [Chips collection](#chips-collection)), staged at `staging/chips/`.
 - `tools/` builds (`build.py`, `catalogize.py`, `thumbnail.py`) and publishes
   (`publish.py`, `upload_data.py`).
 - `tests/run_all.py` runs every gate. The links, STAC and conformance gates read
@@ -126,9 +128,9 @@ uploaders:
     uv run python tools/prune_bucket.py <id>             # dry run: lists what it would delete
     uv run python tools/prune_bucket.py <id> --confirm   # delete
 
-## Root chips table
+## Chips collection
 
-`chips.parquet` at the bucket root lists every chip of every published dataset, one row
+`chips.parquet` lists every chip of every published dataset, one row
 per (dataset, chip), with one column per split scheme. Model code picks the column; #16
 has the reasoning. ftwd builds it (`ftwd chips-table` and `ftwd chips-tiles`, in
 `ftw_dataset_tools.api.chips_table` and `chips_tiles`); `tools/chips_table.py` and
@@ -166,31 +168,67 @@ admin names, `geometry` and `bbox`. Rows are sorted by group, dataset and id, so
 `read_parquet(...) WHERE dataset = 'at_2024'` reads few row groups.
 
     uv run python tools/chips_table.py --staged pt_2021   # after publishing a dataset
-    cp work/chips.parquet staging/chips.parquet
-    uv run python tools/upload_data.py --only chips.parquet --force --confirm
-    uv run python tools/chips_tiles.py                    # needs tippecanoe; reads the published table
-    cp work/chips.pmtiles staging/chips.pmtiles
-    uv run python tools/upload_data.py --only chips.pmtiles --force --confirm
+    uv run python tools/chips_tiles.py --table work/chips.parquet   # needs tippecanoe
+    mkdir -p staging/chips && cp work/chips.parquet work/chips.pmtiles staging/chips/
+    uv run python tools/upload_data.py --only chips --force --confirm
+    uv run python tools/chips_collection.py               # file sizes and row count into catalog/chips/
+    git commit -am "Rebuild the chips table"
+    uv run python tools/publish.py --only chips --confirm
+    uv run python tools/chips_tiles.py --thumbnail        # optional (needs chiitiler), then:
+    uv run python tools/chips_collection.py               # records the new thumbnail's size
+
+Only `chips_collection.py` measures `staging/chips/`; `catalogize.py --root` carries the
+committed measurements, so a table left in staging from an earlier build changes nothing.
+When `publish.py` reports staged all-chips data that differs from the bucket, upload it
+only if it is the newer table; otherwise remove `staging/chips/`.
+
+One-time migration: the table and tiles used to sit at the bucket root. Before the first
+publish of `catalog/chips/` (and before `chips_table.py` and `chips_tiles.py` can read the
+published table, which 404s at `chips/` until then), seed `chips/` with the current files
+and publish:
+
+    mkdir -p staging/chips
+    curl -fo staging/chips/chips.parquet https://data.source.coop/ftw/benchmark-data/chips.parquet
+    curl -fo staging/chips/chips.pmtiles https://data.source.coop/ftw/benchmark-data/chips.pmtiles
+    uv run python tools/upload_data.py --only chips --confirm   # --force if a partial upload exists
+    uv run python tools/publish.py --confirm
+
+The old root objects (`chips.parquet`, `chips.pmtiles`, `chips.style.json`,
+`thumbnail.webp`) stay in the bucket, since nothing deletes them; remove them by hand once
+nothing links them.
 
 `chips.pmtiles` shows every chip location at every zoom: `chips` (zoom 7-12, one polygon
 per location with `id`, `block`, `split_hash_v1`, `split_admin2_v1`, `datasets`,
 `presence_only`, `legacy_conflict` and `admin0_name`) and `overview_train`, `overview_val`
 and `overview_test` (zoom 0-6, the chip centres of each `split_admin2_v1` clustered on
-their own where they crowd, each summing `chips`, `conflicts` and `datasets`). The build refuses an archive where tippecanoe dropped features at any zoom. `catalog/chips.style.json` styles it, and
-`chips_tiles.py --thumbnail` renders `catalog/thumbnail.webp` from it over the published
-tiles (needs chiitiler, see "Thumbnails"). Upload it before publishing the root catalog:
-`publish.py` refuses a root that links a missing root file. The root
-`catalog.json` links both files (`ROOT_DATA_LINKS` in `tools/catalogize.py`).
+their own where they crowd, each summing `chips`, `conflicts` and `datasets`). The build refuses an archive where tippecanoe dropped features at any zoom.
+
+Both files are the data of one collection, `catalog/chips/` (bucket `chips/`), which the
+root catalog links as a child: the Portolan data browser maps collections only, and a
+Portolan catalog carries no assets. `tools/chips_collection.py` writes its
+`collection.json`, `README.md` and `AGENTS.md` (`catalogize.py --root` rewrites them
+too, without measuring): the table and tiles as assets, with `file:size`,
+`file:checksum`, `table:columns`, `table:row_count` and the table's bbox measured from
+`staging/chips/` by `chips_collection.py` (or carried from the committed
+`collection.json`), a `rel: pmtiles` link naming the tiles' layers, the time span of
+every published collection, and license `other`, since each row carries its own
+collection's license. `catalog/chips/styles/split-admin2.json` styles the tiles, by hand
+(its source points at the published `chips/chips.pmtiles`); it is the default style.
+`chips_tiles.py --thumbnail` renders `catalog/chips/thumbnail.webp` from it over the
+published tiles (needs chiitiler, see "Thumbnails"). Upload the data before publishing
+the collection: `publish.py` refuses a `catalog/chips/` (or a root catalog) whose table
+or tiles are not in the bucket at `chips/`, and one whose staged copies differ from the
+bucket's.
 
 Rebuild and upload it after each dataset publish and before `prune_bucket.py`, so the
-root table never lists a chip prune has deleted, with `--staged` naming the datasets just rebuilt:
+table never lists a chip prune has deleted, with `--staged` naming the datasets just rebuilt:
 they are read from `staging/`, and every other dataset's `split_legacy` and
 `split_predefined` are carried from the published table. The build refuses to lose a
 frozen split (a dataset left out, or chips that vanish from one) unless `--drop <id>`
 allows it for that dataset, and refuses to change a
 carried chip's `split_hash_v1`, or to put a presence-only chip in a frozen val or test
 admin2 unit. It writes to `work/` so a dataset's upload never
-publishes it, and `upload_data.py` uploads root files only when `--only` names them.
+publishes it, and `upload_data.py` uploads `staging/chips/` only when `--only chips` names it.
 `--force` matters: the table is a multipart upload, compared by size alone, and a
 changed table can keep its size.
 
@@ -244,7 +282,7 @@ background) before it's written and registered as the collection's
        git commit -am "Add <id>"
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
-       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+       uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 7. If the recipe downloads imagery, that's a second pass once selection is
@@ -256,7 +294,7 @@ background) before it's written and registered as the collection's
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm
        uv run python tools/publish.py --confirm
-       uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+       uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
        uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 ## Building region-years in batches

@@ -22,7 +22,7 @@ whole catalog those gates take hours. Run them unscoped before publishing.
 
 The imagery pass runs ``--from select_images``, ``--only docs`` and
 ``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
---root`` (after the thumbnails, so the root tables see them) and the gates.
+--root`` (after the thumbnails, so the root README tables see them) and the gates.
 
 Never uploads. It prints the upload commands for the datasets that built;
 run them yourself, then ``--mark-published``.
@@ -212,7 +212,7 @@ def batch_gates(dataset_ids: list[str], catalog: Path = CATALOG) -> tuple[list[s
 def finish_batch(dataset_ids: list[str]) -> str | None:
     """Regenerate the root catalog, then run the gates; why the batch failed, or None.
 
-    The root tables measure every collection's chips, imagery and thumbnail, so
+    The root README tables measure every collection's chips, imagery and thumbnail, so
     they are rebuilt after both passes, once the thumbnails are rendered.
     """
     root = subprocess.run(tool_argv(["catalogize.py", "--root"], ""), cwd=ROOT, check=False)
@@ -302,9 +302,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  uv run python tools/upload_data.py {only} --confirm")
         print("  uv run python tools/publish.py --confirm")
         if args.imagery:  # the last pass: staging is now the full build prune compares with
-            # The root chips table first, so it never lists a chip prune has deleted.
+            # The chips table first, so it never lists a chip prune has deleted.
             print(f"  uv run python tools/chips_table.py --staged {' '.join(ok)}"
-                  "   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, \"Root chips table\")")
+                  "   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/"
+                  " (README, \"Chips collection\")")
             print(f"  uv run python tools/prune_bucket.py {' '.join(ok)} --confirm"
                   "   # deletes objects that neither catalog/ nor the full staging has")
         print(f"  uv run python tools/run_batch.py {' '.join(ok)} --mark-published")
