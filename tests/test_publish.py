@@ -570,6 +570,10 @@ with tempfile.TemporaryDirectory() as tmp:
           "a change under catalog/chips/ checks the all-chips collection")
     blocking, _ = split_pending([up_chips], listing, cfg, root)
     check(blocking == {"chips": 1}, f"so it blocks the collection's publish: {blocking}")
+    from publish import pending_advice  # noqa: E402
+    check("only if it is the newer table" in pending_advice("chips")
+          and pending_advice("aa_2024") == "upload_data.py --only aa_2024",
+          "the advice for staged all-chips data warns it may be stale; a dataset's does not")
     check(pending_data(cfg, listing, root, only={"aa_2024"}) == {},
           "--only a dataset leaves the all-chips data out")
     (root / "staging/chips/chips.pmtiles").unlink()

@@ -655,7 +655,7 @@ def pending_data(
 
     Keyed by dataset id, valued by how many data files are missing or differ.
     Publishing a collection whose data is not there yet would put links to
-    missing objects live (and, for a new collection, its row in the root tables).
+    missing objects live (and, for a new collection, its row in the root README tables).
     ``split_pending`` decides which of these block a publish.
     """
     # Imported here: upload_data imports this module.
@@ -687,6 +687,20 @@ def pending_data(
     return pending
 
 
+def pending_advice(dataset_id: str) -> str:
+    """What to do about a collection's staged data that is not in the bucket.
+
+    A dataset's staging is its latest build. ``staging/chips/`` may instead be an older
+    table left behind, so uploading it could replace a newer published one.
+    """
+    from common import ALL_CHIPS
+
+    if dataset_id == ALL_CHIPS:
+        return (f"staging/{ALL_CHIPS}/ differs from the bucket: upload it with upload_data.py "
+                f"--only {ALL_CHIPS} only if it is the newer table, else remove it")
+    return f"upload_data.py --only {dataset_id}"
+
+
 def collections_to_check(
     uploads: list[Upload],
     listing: dict[str, tuple[int, str]],
@@ -697,7 +711,7 @@ def collections_to_check(
 
     A collection whose published files all match the bucket puts nothing new live,
     so a rebuild staging beside it does not hold up the others. The root files are
-    the exception: catalogize measures every collection's row in the root tables
+    the exception: catalogize measures every collection's row in the root README tables
     from its staging, so when any root file changes, every collection is checked.
     Compared against the bucket listing, not the upload list, so --force (which
     re-uploads everything) checks the same collections as a normal publish.
@@ -814,7 +828,7 @@ def main() -> int:
         return 1
     pending, unchanged_pending = split_pending(uploads, listing, config, only=only)
     if pending and collections_to_check(uploads, listing, config) is None:
-        print("\na root file changed, and the root tables are measured from staging, so every "
+        print("\na root file changed, and the root README tables are measured from staging, so every "
               "collection's data is checked", file=sys.stderr)
     if unchanged_pending:
         print("\nnot checked (this publish leaves their catalog as it is), data not all in the "
@@ -825,7 +839,7 @@ def main() -> int:
         print("\nnot publishing: these collections' data is not all uploaded yet:",
               file=sys.stderr)
         for dataset_id, count in sorted(pending.items()):
-            print(f"  {dataset_id}: {count} file(s)  (upload_data.py --only {dataset_id})",
+            print(f"  {dataset_id}: {count} file(s)  ({pending_advice(dataset_id)})",
                   file=sys.stderr)
         return 1
 
