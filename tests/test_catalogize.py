@@ -35,7 +35,7 @@ import json
 import struct
 import sys
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -581,6 +581,13 @@ with tempfile.TemporaryDirectory() as tmp:
     )
 
     collection = json.loads((be_wal_2022_dir / "collection.json").read_text())
+
+    # --- the items asset declares the rebuilt mirror: 2 chips + 2 child items ---
+    items_table = collection["assets"]["items"]
+    check(items_table.get("table:row_count") == 4,
+          f"items table:row_count is the rebuilt mirror's, got {items_table.get('table:row_count')}")
+    check("ftw:season" in {c["name"] for c in items_table.get("table:columns") or []},
+          "items table:columns lists the child items' ftw:season")
 
     # --- root link at depth 2 (catalog/<source>/<id>/), no self ---
     root_links = [l for l in collection["links"] if l["rel"] == "root"]
@@ -1419,6 +1426,82 @@ with tempfile.TemporaryDirectory() as tmp:
     n = catalogize._refresh_asset_sizes(doc, sd)
     check(n == 1 and doc["assets"]["items"]["file:size"] == 1234, "file:size is re-read from the staged file")
     check(doc["assets"]["remote"]["file:size"] == 7 and doc["assets"]["missing"]["file:size"] == 9, "remote and missing assets keep their size")
+
+# --- the items asset's table metadata follows the rebuilt mirror ---------------
+#
+# ftwd measures items.parquet before the imagery pass (chips only, no imagery
+# properties); the rebuilt mirror has a row per child item and their ftw:*
+# columns. Its declared row count and columns are re-measured, entries ftwd wrote
+# keep their description, and the imagery columns get ftwd's own description even
+# when AGENTS.md was written before the mirror had them.
+
+
+def _mirror_item(item_id: str, properties: dict) -> dict:
+    return {
+        "type": "Feature", "stac_version": "1.1.0", "id": item_id,
+        "geometry": {"type": "Point", "coordinates": [6.13, 49.61]}, "bbox": [6.12, 49.60, 6.14, 49.62],
+        "properties": {"datetime": "2024-06-01T00:00:00Z", **properties}, "links": [], "assets": {},
+    }
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    sd = Path(tmp) / "staging" / "si_2024"
+    sd.mkdir(parents=True)
+    catalogize.rustac.write_sync(str(sd / "items.parquet"), [
+        _mirror_item("ftw-1", {"ftw:split": "train"}),
+        _mirror_item("ftw-1_q1", {"ftw:season": "q1", "ftw:nodata_pct": 0.5, "ftw:mosaic_tile": "t"}),
+        _mirror_item("ftw-1_planting_s2", {"ftw:season": "planting", "eo:cloud_cover": 3.2}),
+    ], format="parquet")
+    doc = {"assets": {"items": {"href": "./items.parquet", "table:row_count": 1, "table:columns": [
+        {"name": "id", "type": "varchar", "description": "kept as ftwd wrote it"},
+        {"name": "gone", "type": "varchar"},
+    ]}}}
+    check(catalogize._refresh_items_table(doc, sd), "a stale items table is reported as changed")
+    items_asset = doc["assets"]["items"]
+    con = duckdb.connect()
+    described = con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(sd / "items.parquet")]).fetchall()
+    columns = {c["name"]: c for c in items_asset["table:columns"]}
+    check(items_asset["table:row_count"] == 3, f"row count is the rebuilt mirror's, got {items_asset['table:row_count']}")
+    check([c["name"] for c in items_asset["table:columns"]] == [row[0] for row in described],
+          f"columns are the rebuilt mirror's, in order: {list(columns)}")
+    check(columns["id"].get("description") == "kept as ftwd wrote it", "an existing column keeps its description")
+    check(columns["geometry"]["type"] == "geometry" and columns["ftw:nodata_pct"]["type"] == "double"
+          and columns["bbox"]["type"] == "struct", f"ftwd's type convention: {items_asset['table:columns']}")
+    check(not catalogize._refresh_items_table(doc, sd), "a second refresh changes nothing")
+
+    agents_dir = Path(tmp) / "catalog"
+    agents_dir.mkdir()
+    (agents_dir / "AGENTS.md").write_text(
+        "FTW properties on each STAC item:\n\n- `ftw:split`: the split as AGENTS.md has it\n"
+    )
+    out = io.StringIO()
+    with redirect_stdout(out):
+        catalogize.fill_table_column_descriptions(doc, group="si", dataset_dir=agents_dir)
+    check(out.getvalue() == "", f"every rebuilt mirror column has a description: {out.getvalue()!r}")
+    columns = {c["name"]: c for c in doc["assets"]["items"]["table:columns"]}
+    check(columns["ftw:split"].get("description") == "the split as AGENTS.md has it", "AGENTS.md comes first")
+    check(columns["ftw:season"].get("description") == catalogize._ftwd_item_property_notes()["ftw:season"],
+          f"an imagery column missing from AGENTS.md gets ftwd's note: {columns['ftw:season']}")
+
+    untouched = {"assets": {"items": {"href": "./items.parquet", "table:row_count": 1}}}
+    check(not catalogize._refresh_items_table(untouched, Path(tmp) / "nowhere")
+          and untouched["assets"]["items"] == {"href": "./items.parquet", "table:row_count": 1},
+          "without a staged mirror (a CI checkout) the declared table is kept")
+
+# --- rebuild_items (catalogize.py <id> --items-only): the mirror, before docs ----
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    build_staging_be_wal_2022(tmp / "staging")
+    build_catalog_root(tmp / "catalog")
+    path = catalogize.rebuild_items("be_wal_2022", staging=tmp / "staging", catalog=tmp / "catalog")
+    check(pq.read_metadata(path).num_rows == 4, "rebuild_items rebuilds the mirror with the child items")
+    check(not (tmp / "catalog" / "be_wal").exists(), "rebuild_items writes nothing to catalog/")
+try:
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        catalogize.main(["be_wal_2022", "--items-only", "--root"])
+    check(False, "--items-only with --root should be refused")
+except SystemExit as exc:
+    check(exc.code == 2, f"--items-only with --root is a usage error, got {exc.code!r}")
 
 # --- the root table's columns: thumbnail, imagery, and the two license forms --
 #
