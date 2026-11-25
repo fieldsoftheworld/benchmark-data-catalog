@@ -23,7 +23,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import duckdb  # noqa: E402
 from chips_collection import STYLE as STYLE_PATH, THUMBNAIL as THUMBNAIL_NAME  # noqa: E402
+from chips_table import with_seed_hint  # noqa: E402
 from common import ALL_CHIPS, CATALOG, PUBLIC_BASE, ROOT  # noqa: E402
 from ftw_dataset_tools.api.chips_table import TABLE_NAME  # noqa: E402
 from ftw_dataset_tools.api.chips_tiles import (  # noqa: E402
@@ -57,8 +59,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {out}")
             return 0
         count = build_tiles(args.table, args.out)
-    except ChipsTilesError as err:
-        sys.exit(f"chips tiles: {err}")
+    except (ChipsTilesError, duckdb.Error, OSError) as err:
+        sys.exit(f"chips tiles: {with_seed_hint(err, TILES_URL if args.thumbnail else args.table)}")
     print(f"wrote {args.out}: {count:,} chip locations")
     return 0
 

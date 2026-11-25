@@ -105,11 +105,17 @@ with tempfile.TemporaryDirectory() as tmp:
         check("cc_2023" in str(err), f"the refusal names the id: {err}")
 
     # ftwd accepts them: the published id keeps its catalog group, the new one gets its own
+    before = sorted(p.name for p in catalog.iterdir())
     with chips_table.datasets_catalog(catalog) as root_catalog:
-        check(root_catalog.parent == catalog and root_catalog.name.startswith("."),
-              f"the copy sits in catalog/ as a dotfile, never published: {root_catalog}")
+        check(catalog not in root_catalog.parents and sorted(p.name for p in catalog.iterdir()) == before,
+              f"the copy sits outside catalog/ and adds nothing there: {root_catalog}")
         inputs = ftwd_table.resolve_inputs(root_catalog, None, local_dirs, groups)
-    check(not root_catalog.exists(), "the copy is deleted afterwards")
+    check(not root_catalog.parent.exists(), "the copy is deleted afterwards")
+    hint = chips_table.with_seed_hint(RuntimeError("HTTP 404 Not Found"), "https://x/chips/chips.parquet")
+    check(chips_table.SEED_HINT in hint and "one-time migration" in hint,
+          f"a missing published table points at the seeding step: {hint}")
+    check(chips_table.with_seed_hint(RuntimeError("bad column"), "https://x") == "bad column",
+          "another error gets no hint")
     check([(i.dataset, i.group, i.local) for i in inputs]
           == [("aa_2021", "aa", True), ("bb_2022", "bb", True)],
           f"ftwd takes the staged dirs and groups, and not the all-chips collection: {inputs}")
@@ -120,7 +126,10 @@ with tempfile.TemporaryDirectory() as tmp:
     seen: dict = {}
 
     def fake_resolve(catalog_json, data_base_url, local_dirs, groups):
-        seen["resolve"] = (catalog_json.parent, data_base_url, list(local_dirs), dict(groups))
+        group = seen["group"] = next(p for p in catalog_json.parent.iterdir() if p.is_dir())
+        root_dir = CATALOG if (group.resolve() == (CATALOG / group.name).resolve()
+                               and CATALOG not in catalog_json.parents) else catalog_json.parent
+        seen["resolve"] = (root_dir, data_base_url, list(local_dirs), dict(groups))
         seen["children"] = [l["href"] for l in json.loads(catalog_json.read_text())["links"]
                             if l["rel"] == "child"]
         return ["x"]

@@ -50,24 +50,41 @@ from ftw_dataset_tools.api.chips_table import (  # noqa: E402
 __all__ = ["TABLE_NAME", "datasets_catalog", "main", "staged_inputs"]
 
 
+# Until the all-chips collection's data is first uploaded to chips/, the published table
+# and tiles are not there: the one-time seeding step in README, "Chips collection".
+SEED_HINT = ("if the published table is not at chips/ yet, seed the all-chips collection "
+             "first (README, \"Chips collection\", one-time migration)")
+
+
+def with_seed_hint(err: Exception, url: str) -> str:
+    """``err``, with the seeding hint when it looks like the published ``url`` is missing."""
+    text = str(err)
+    return f"{text}; {SEED_HINT}" if "404" in text or url in text else text
+
+
+# ftwd takes every collection the root links for a dataset. Its branch skip-root-collections
+# skips the ones the root links directly; drop this copy once the ftwd pin includes it.
 @contextlib.contextmanager
 def datasets_catalog(catalog: Path = CATALOG):
-    """A temporary copy of the root catalog without its child link to ``catalog/chips/``.
+    """A temporary root catalog without its child link to ``catalog/chips/``.
 
-    It sits in ``catalog/`` (a dotfile, never published) because ftwd reads each
-    collection relative to the catalog file it is given.
+    ftwd reads each collection relative to the catalog file it is given, so the copy
+    sits in a temporary directory (outside ``catalog/``) beside a symlink to each folder
+    the root links.
     """
     doc = json.loads((catalog / "catalog.json").read_text())
     skip = f"./{ALL_CHIPS}/collection.json"
     doc["links"] = [link for link in doc.get("links", [])
                     if not (link.get("rel") == "child" and link.get("href") == skip)]
-    fd, name = tempfile.mkstemp(prefix=".chips-table-", suffix=".json", dir=catalog)
-    try:
-        with os.fdopen(fd, "w") as handle:
-            json.dump(doc, handle)
-        yield Path(name)
-    finally:
-        Path(name).unlink(missing_ok=True)
+    with tempfile.TemporaryDirectory(prefix="chips-table-") as tmp:
+        for link in doc["links"]:
+            if link.get("rel") == "child":
+                folder = link["href"].removeprefix("./").split("/")[0]
+                if not (Path(tmp) / folder).exists():
+                    os.symlink((catalog / folder).resolve(), Path(tmp) / folder)
+        path = Path(tmp) / "catalog.json"
+        path.write_text(json.dumps(doc))
+        yield path
 
 
 def staged_inputs(staged: list[str], *, catalog: Path = CATALOG, staging: Path = STAGING,
@@ -100,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         rows = build_chips_table(inputs, args.out, args.previous, drop=args.drop,
                                  workers=args.workers)
     except (ChipsTableError, LayoutError, OSError, duckdb.Error) as err:
-        sys.exit(f"chips table: {err}")
+        sys.exit(f"chips table: {with_seed_hint(err, args.previous)}")
     print(f"wrote {args.out}: {rows:,} chips from {len(inputs)} datasets")
     return 0
 
