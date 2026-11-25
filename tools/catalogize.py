@@ -48,7 +48,9 @@ import rustac
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from build import _check_recipe as _check_dataset_recipe  # noqa: E402
+from chips_collection import TITLE as ALL_CHIPS_TITLE, write_chips_collection  # noqa: E402
 from common import (  # noqa: E402
+    ALL_CHIPS,
     CATALOG,
     PORTOLAN_SCHEMA_URI,
     PUBLIC_BASE,
@@ -776,7 +778,7 @@ def _chip_counts(chips_parquet: Path) -> dict[str, int | None]:
     """Total chips and the per-split count, from a chips parquet's ``split`` column.
 
     A dataset built with ftwd's splits stage off (every recipe but the predefined
-    ones; the root chips table holds the splits) has no ``split``: its per-split
+    ones; the all-chips table holds the splits) has no ``split``: its per-split
     counts are None.
     """
     con = duckdb.connect()
@@ -1075,11 +1077,12 @@ _ASSET_DESCRIPTIONS = {
     "thumbnail": "Preview image of the collection rendered with its default map style.",
 }
 
-# A chips file built with ftwd's splits stage off has no ``split`` column: the root
-# chips table (``chips.parquet`` at the bucket root) holds its splits.
+# A chips file built with ftwd's splits stage off has no ``split`` column: the chips
+# table of the all-chips collection (``chips/chips.parquet``) holds its splits.
 _CHIPS_WITHOUT_SPLIT = (
     "One row per chip: its grid location, how much of it is mapped field, its "
-    "dominant crop and administrative unit. Its benchmark splits are in the root chips table."
+    "dominant crop and administrative unit. Its benchmark splits are in the chips table of "
+    "the all-chips collection."
 )
 
 # AGENTS.md's "## Schema & field notes" bullet list: "- `name`: description".
@@ -1834,7 +1837,8 @@ def _group_catalog(
         "description": (
             f"Fields of the World benchmark collections cut from the harmonized field boundary "
             f"collection {title} ({group}), one per year. Train, validation and test splits for "
-            f"every chip are in the root chips table (chips.parquet)."
+            f"every chip are in the chips table of the all-chips collection "
+            f"({ALL_CHIPS}/chips.parquet)."
         ),
         "version": manifest["catalog"]["version"],
         # PTL-PRO-003 / PORTO-CORE-057: a sync tool (this one) MUST stamp
@@ -1897,9 +1901,11 @@ def _group_agents(
         "Every column and asset is documented in each collection's own agent guide; the "
         "collections in this group share one schema.\n\n"
         "## Data quality & usage notes\n\n"
-        "Years of the same source can overlap in space. Take splits from the root chips table "
-        "(`chips.parquet`), whose `split_hash_v1` and `split_admin2_v1` give a location the same "
-        "split in every year, so pooling years never puts the same field on both sides.\n\n"
+        "Years of the same source can overlap in space. Take splits from the chips table of the "
+        f"[all-chips collection]({human_url(manifest, f'{ALL_CHIPS}/AGENTS.md')}) "
+        f"([`chips.parquet`]({public_url(f'{ALL_CHIPS}/chips.parquet')})), whose `split_hash_v1` "
+        "and `split_admin2_v1` give a location the same split in every year, so pooling years "
+        "never puts the same field on both sides.\n\n"
         "## Example queries\n\n"
         "See each collection's agent guide for worked examples against its `items.parquet`.\n\n"
         "## Related collections\n\n"
@@ -2216,7 +2222,7 @@ _COVERAGE_NOTE = (
     "mosaics of the collection's year (and planting/harvest scenes, where a collection has "
     "them). `linked` means the chip's imagery items point at "
     "whole Sentinel-2 scenes on the source STAC API, for a reader to window. A chip with "
-    "no imagery still carries its masks (and its row in the root chips table) — pair it "
+    "no imagery still carries its masks (and its row in the all-chips table) — pair it "
     "with imagery of your own, on the footprint in `items.parquet`."
 )
 
@@ -2291,23 +2297,9 @@ def _replace_between_markers(path: Path, content: str) -> None:
     path.write_text(f"{before}{_MARK_START}{middle}{_MARK_END}{after}")
 
 
-# The root's links to the chips table and its tiles, built by tools/chips_table.py and
-# tools/chips_tiles.py and uploaded to the bucket root. Links, not assets: a Portolan
-# catalog carries no assets (PTL-AST-005).
-ROOT_DATA_LINKS = [
-    {
-        "rel": "related",
-        "href": "./chips.parquet",
-        "type": "application/vnd.apache.parquet",
-        "title": "Chips of every collection, with one column per split scheme",
-    },
-    {
-        "rel": "related",
-        "href": "./chips.pmtiles",
-        "type": "application/vnd.pmtiles",
-        "title": "Chip locations as vector tiles, with their splits",
-    },
-]
+# The links the root once had to the chips table and tiles at the bucket root, before
+# they moved into the all-chips collection (``tools/chips_collection.py``): dropped on a rerun.
+_RETIRED_ROOT_HREFS = {"./chips.parquet", "./chips.pmtiles"}
 
 
 def regenerate_root(
@@ -2322,9 +2314,10 @@ def regenerate_root(
 
     Rewrites every ``catalog/<source>/`` group (``write_group``). Keeps every
     fixed link in ``catalog/catalog.json`` exactly as it is; rebuilds the
-    ``child`` links, one per source group sorted by group id (after the links to
-    the chips table and tiles, ``ROOT_DATA_LINKS``), and drops any
-    ``rel: self`` link, so the tracked tree stays relative and validates at
+    ``child`` links: the all-chips collection (``catalog/chips/``, rewritten by
+    ``chips_collection.write_chips_collection``) first, then one per source group
+    sorted by group id. Drops the retired root links to the chips table and tiles
+    (``_RETIRED_ROOT_HREFS``) and any ``rel: self`` link, so the tracked tree stays relative and validates at
     any path (git-backed-catalogs best practice). PORTO-CORE-081 (a catalog
     served from one fixed URL SHOULD carry an absolute ``self`` link) is
     satisfied at publish time instead: ``tools/publish.py`` writes it onto
@@ -2353,11 +2346,11 @@ def regenerate_root(
         written += write_group(group, catalog=catalog, manifest=manifest, fetch_title=fetch_title, now=now)
         groups.append((f"./{group}/catalog.json", read_json(catalog / group / "catalog.json")["title"]))
 
-    data_hrefs = {link["href"] for link in ROOT_DATA_LINKS}
+    written += write_chips_collection(manifest, catalog=catalog, staging=staging, now=now)
     doc["links"] = [
         link for link in doc["links"]
-        if link.get("rel") not in ("child", "self") and link.get("href") not in data_hrefs
-    ] + ROOT_DATA_LINKS + _child_links(groups)
+        if link.get("rel") not in ("child", "self") and link.get("href") not in _RETIRED_ROOT_HREFS
+    ] + _child_links([(f"./{ALL_CHIPS}/collection.json", ALL_CHIPS_TITLE), *groups])
     doc["stac_extensions"] = [PORTOLAN_SCHEMA_URI, VERSION_EXTENSION_URI]
     doc["version"] = manifest["catalog"]["version"]
     doc["updated"] = _now_iso(now)

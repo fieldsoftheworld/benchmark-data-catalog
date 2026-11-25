@@ -81,6 +81,11 @@ def public_url(rel: str) -> str:
     return _config["public_base"].rstrip("/") + "/" + rel
 
 
+# The all-chips collection: the chips table and its tiles across every dataset, at
+# catalog/chips/ (staged at staging/chips/, published at <prefix>/chips/). The root
+# catalog links it directly, not through a source group, and it is not a dataset.
+ALL_CHIPS = "chips"
+
 # --- where a dataset sits: catalog/<source>/<id>/ and <prefix>/<source>/<id>/ --
 
 # A recipe's ``source_via``: the harmonized collection's JSON endpoint. Its

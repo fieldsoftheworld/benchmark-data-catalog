@@ -12,8 +12,9 @@ Resolution order for a relative href found in ``catalog/<source>/<rel_dir>/<doc>
    group). A committed sub-catalog's ``rel: item`` link
    (``./<item>/<item>.json``) and a collection's data-suffixed asset href
    (``./chips.pmtiles``, ``./items.parquet``, ...) point at files ftwd wrote
-   into ``staging/<id>/``, never committed. Checked only when ``staging/``
-   exists at all — locally, where the bytes are on disk.
+   into ``staging/<id>/``, never committed. The all-chips collection
+   (``catalog/chips/``) is staged at ``staging/chips/``. Checked only when
+   ``staging/`` exists at all — locally, where the bytes are on disk.
 
 CI clones the metadata and not the bytes, because .gitignore keeps data out of
 git and staging/ is never checked out. Set CI_LIGHT=1 there: a href still
@@ -38,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from common import CATALOG as BASE, STAGING  # noqa: E402
+from common import ALL_CHIPS, CATALOG as BASE, STAGING  # noqa: E402
 
 from scope import gate_scope  # noqa: E402
 
@@ -81,14 +82,14 @@ def resolve_href_status(
     if ci_light:
         return "skip" if (is_item or is_data) else "missing"
     if staging.exists():
-        # catalog/<source>/<id>/... is staging/<id>/...; the group catalogs have no
-        # staging copy, and the root's data files (the chips table) sit at staging/.
+        # catalog/<source>/<id>/... is staging/<id>/...; catalog/chips/ (the all-chips
+        # collection) is staging/chips/; the root and the group catalogs have no staging copy.
         parts = path.parent.relative_to(base).parts
         if len(parts) >= 2 and (staging / Path(*parts[1:]) / href).resolve().exists():
             return "ok"
         name = href.removeprefix("./")
-        if not parts and is_data and "/" not in name and name not in ("", ".", "..") \
-                and (staging / name).exists():
+        if parts == (ALL_CHIPS,) and "/" not in name and name not in ("", ".", "..") \
+                and (staging / ALL_CHIPS / name).exists():
             return "ok"
     return "missing"
 
@@ -144,31 +145,41 @@ def _self_test() -> None:
             "staging fallback follows the document's own rel_dir, not just any match",
         )
 
-        # The root's data files are staged at staging/ itself.
-        root_doc = base / "catalog.json"
-        (staging / "chips.parquet").write_text("x")
+        # The all-chips collection's data is staged at staging/chips/.
+        chips_doc = base / ALL_CHIPS / "collection.json"
+        (staging / ALL_CHIPS).mkdir()
+        (staging / ALL_CHIPS / "chips.parquet").write_text("x")
         _self_check(
             resolve_href_status(
-                root_doc, "./chips.parquet", is_item=False, is_data=True,
+                chips_doc, "./chips.parquet", is_item=False, is_data=True,
                 base=base, staging=staging, ci_light=False,
             ) == "ok",
-            "a root data asset resolves under staging/",
+            "the all-chips collection's data resolves under staging/chips/",
         )
         _self_check(
             resolve_href_status(
                 doc_path, "./chips.parquet", is_item=False, is_data=True,
                 base=base, staging=staging, ci_light=False,
             ) == "missing",
-            "a dataset's asset does not resolve against staging/'s root files",
+            "a dataset's asset does not resolve against staging/chips/",
+        )
+        root_doc = base / "catalog.json"
+        (staging / "chips.parquet").write_text("x")
+        _self_check(
+            resolve_href_status(
+                root_doc, "./chips.parquet", is_item=False, is_data=True,
+                base=base, staging=staging, ci_light=False,
+            ) == "missing",
+            "the root has no staged data: a root link to staging/chips.parquet is not ok",
         )
         (staging / "lu" / "lu_chips.parquet").write_text("x")
         for nested in ("./lu/lu_chips.parquet", "../chips.parquet"):
             _self_check(
                 resolve_href_status(
-                    root_doc, nested, is_item=False, is_data=True,
+                    chips_doc, nested, is_item=False, is_data=True,
                     base=base, staging=staging, ci_light=False,
                 ) == "missing",
-                f"a root href that upload_data can't publish at the root ({nested}) is not ok",
+                f"an all-chips href that upload_data can't publish there ({nested}) is not ok",
             )
 
         # Outcome 3: missing everywhere. CI_LIGHT skips item/data hrefs and

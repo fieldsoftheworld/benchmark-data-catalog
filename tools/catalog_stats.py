@@ -42,7 +42,8 @@ def published_datasets(catalog_json: Path = CATALOG / "catalog.json", rel: str =
     """``<source>/<id>`` for every collection the root catalog links, through its groups.
 
     Follows ``rel: child`` links: a child ``catalog.json`` (a source group) is
-    walked in turn, a child ``collection.json`` is a published dataset.
+    walked in turn, a child ``collection.json`` in a group is a published dataset. The
+    collection the root links directly (the all-chips collection, ``ALL_CHIPS``) is not.
     """
     links = json.loads(catalog_json.read_text())["links"]
     found: list[str] = []
@@ -52,7 +53,8 @@ def published_datasets(catalog_json: Path = CATALOG / "catalog.json", rel: str =
         child = link["href"].removeprefix("./")
         folder = child.rsplit("/", 1)[0]
         if child.endswith("/collection.json"):
-            found.append(f"{rel}{folder}")
+            if rel:
+                found.append(f"{rel}{folder}")
         elif child.endswith("/catalog.json"):
             found += published_datasets(catalog_json.parent / child, f"{rel}{folder}/")
     return sorted(found)
