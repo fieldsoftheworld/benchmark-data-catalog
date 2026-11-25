@@ -190,7 +190,8 @@ def collect_uploads(
     that makes "nothing outside the published directory is published" true.
     ``only`` narrows it further, to those datasets' ``<source>/<id>/`` folders
     and their source groups' own files (``<source>/catalog.json``, README,
-    AGENTS: a new dataset changes its group's child links), with no root files.
+    AGENTS: a new dataset changes its group's child links), with no root files;
+    ``chips`` in ``only`` is the all-chips collection's folder, ``catalog/chips/``.
     """
     _, prefix = split_s3_uri(config["write_prefix"])
     base = root / config["publish_dir"]
@@ -242,16 +243,23 @@ def plan_root_files(
 ) -> tuple[list[Upload], str | None]:
     """``uploads`` with the root files added, and a line saying why.
 
-    ``--only`` adds them when a dataset's group is new, so the root links it.
+    ``--only`` adds them when a dataset's group is new, or the all-chips collection
+    (``--only chips``) is, so the root links it.
     """
     if only is None:
         return uploads, None
+    from common import ALL_CHIPS
+
+    _, prefix = split_s3_uri(config["write_prefix"])
+    head = f"{prefix}/" if prefix else ""
     fresh = new_groups(only, index, config, root)
+    if ALL_CHIPS in only and f"{head}{ALL_CHIPS}/collection.json" not in index:
+        fresh.add(ALL_CHIPS)
     if not fresh:
         return uploads, None
     return uploads + root_uploads(config, root), (
-        f"new source group(s) {', '.join(sorted(fresh))}: publishing the root files too, "
-        "so the root catalog links them")
+        f"new source group(s) or collection {', '.join(sorted(fresh))}: publishing the root "
+        "files too, so the root catalog links them")
 
 
 def missing_data(
@@ -269,12 +277,14 @@ def missing_data(
     ``<prefix>/<source>/<id>/<href>``. Publishing a collection before its data
     is uploaded would put links to missing objects live.
 
-    The root catalog's own data links (``rel: related`` to a root file such as
-    ``chips.pmtiles``) are checked when the root catalog or README changes, under
-    ``(root)``. A root file must already be in the bucket at ``<prefix>/<href>``:
-    staging it is not enough, because a dataset upload never carries it
-    (``upload_data.py --only <file>`` does).
+    The all-chips collection's data (``catalog/chips/``'s ``chips.parquet`` and
+    ``chips.pmtiles``) is checked when one of its files or the root catalog (which links
+    it) changes, under ``chips``. It must already be in the bucket at
+    ``<prefix>/chips/<href>``: staging it is not enough, because a dataset upload never
+    carries it (``upload_data.py --only chips`` does).
     """
+    from common import ALL_CHIPS
+
     _, prefix = split_s3_uri(config["write_prefix"])
     head = f"{prefix}/" if prefix else ""
     base = root / config["publish_dir"]
@@ -283,6 +293,7 @@ def missing_data(
     changed = {
         u.local.relative_to(base).parts[:2] for u in uploads
         if len(u.local.relative_to(base).parts) >= 3 and not is_unchanged(u, listing)
+        and u.local.relative_to(base).parts[0] != ALL_CHIPS
     }
     missing: dict[str, list[str]] = {}
     for group, dataset_id in sorted(changed):
@@ -295,24 +306,17 @@ def missing_data(
                 continue
             if f"{head}{group}/{dataset_id}/{rel}" not in listing:
                 missing.setdefault(dataset_id, []).append(rel)
-    root_changed = any(u.local.relative_to(base).parts in (("catalog.json",), ("README.md",))
-                       and not is_unchanged(u, listing) for u in uploads)
-    if root_changed:
-        for rel in _root_data_hrefs(json.loads((base / "catalog.json").read_text())):
-            if f"{head}{rel}" not in listing:
-                missing.setdefault("(root)", []).append(rel)
+    collection = base / ALL_CHIPS / "collection.json"
+    chips_changed = any(
+        u.local.relative_to(base).parts[0] in (ALL_CHIPS, "catalog.json")
+        and not is_unchanged(u, listing) for u in uploads
+    )
+    if chips_changed and collection.is_file():
+        for href in _data_hrefs(json.loads(collection.read_text())):
+            rel = href.removeprefix("./")
+            if not (collection.parent / rel).exists() and f"{head}{ALL_CHIPS}/{rel}" not in listing:
+                missing.setdefault(ALL_CHIPS, []).append(rel)
     return missing
-
-
-def _root_data_hrefs(doc: dict) -> list[str]:
-    """The root files a catalog's ``rel: related`` links point at (``chips.parquet``)."""
-    hrefs = []
-    for link in doc.get("links", []):
-        rel = link.get("href", "").removeprefix("./")
-        if (link.get("rel") == "related" and "://" not in rel and "/" not in rel
-                and rel.lower().endswith((".parquet", ".pmtiles"))):
-            hrefs.append(rel)
-    return hrefs
 
 
 def _data_hrefs(doc: dict) -> list[str]:
@@ -336,7 +340,14 @@ def _groups_of(only: set[str] | None, base: Path) -> set[str]:
 
 
 def _in_only(parts: tuple[str, ...], only: set[str], groups: set[str]) -> bool:
-    """True for a file inside an ``only`` dataset, or one of its group's own files."""
+    """True for a file inside an ``only`` dataset, or one of its group's own files.
+
+    ``chips`` in ``only`` names the all-chips collection, ``catalog/chips/``.
+    """
+    from common import ALL_CHIPS
+
+    if parts[0] == ALL_CHIPS and len(parts) >= 2:
+        return ALL_CHIPS in only
     if len(parts) >= 3:
         return parts[0] in groups and parts[1] in only
     return len(parts) == 2 and parts[0] in groups
@@ -476,11 +487,13 @@ def remote_index(
     Every key this tool writes is ``<prefix>/<rel>``. The listing covers the
     root files at ``<prefix>/`` and the source groups ``catalog/`` publishes
     (``<prefix>/<source>/``, recursively); any other top-level folder is never
-    walked, so it is not split chip by chip. ``only`` narrows that to those datasets'
+    walked, so it is not split chip by chip. The all-chips collection's folder
+    (``<prefix>/chips/``) is always listed: it holds a few objects, and a publish that
+    changes the root catalog checks them. ``only`` narrows the rest to those datasets'
     ``<source>/<id>/`` folders plus their groups' own files and the root files
     (placed by ``common.dataset_relpath`` against ``root``'s publish_dir).
     """
-    from common import dataset_relpath, published_collections
+    from common import ALL_CHIPS, dataset_relpath, published_collections
 
     top = f"{prefix.rstrip('/')}/" if prefix else ""
     catalog = root / config["publish_dir"]
@@ -489,11 +502,12 @@ def remote_index(
         roots = [(f"{top}{group}/", 1) for group in groups]
         levels = [top]
     else:
-        # A root file named in ``only`` (``chips.parquet``) is in the root level listed below.
-        datasets = sorted(name for name in only if "." not in name)
+        datasets = sorted(name for name in only if name != ALL_CHIPS)
         rels = [dataset_relpath(dataset_id, catalog=catalog, root=root) for dataset_id in datasets]
         roots = [(f"{top}{rel}/", DATASET_DEPTH) for rel in rels]
         levels = [top, *sorted({f"{top}{rel.split('/')[0]}/" for rel in rels})]
+    if (catalog / ALL_CHIPS).is_dir():  # a few objects; the root catalog links them
+        roots.append((f"{top}{ALL_CHIPS}/", 1))
     try:
         client = s3_client(
             aws_session(config), config.get("endpoint_url"), pool_size=LIST_WORKERS
@@ -647,17 +661,19 @@ def pending_data(
     # Imported here: upload_data imports this module.
     from upload_data import collect_data_uploads
 
-    from common import published_collections
+    from common import ALL_CHIPS, published_collections
 
     published = published_collections(root / config["publish_dir"])
     ids = set(published)
+    if (root / config["publish_dir"] / ALL_CHIPS / "collection.json").is_file():
+        ids.add(ALL_CHIPS)  # its staged table and tiles, when staging/chips/ has them
     if only is not None:
         ids &= only
     if not ids:
         return {}
     pending: dict[str, int] = {}
     _, prefix = split_s3_uri(config["write_prefix"])
-    for dataset_id in sorted(ids):
+    for dataset_id in sorted(ids - {ALL_CHIPS}):
         # Staging pruned after upload, or never here: the bucket must hold its mirror.
         if not (data_root(config, root) / dataset_id).is_dir():
             rel = f"{published[dataset_id].parent.parent.name}/{dataset_id}/items.parquet"
@@ -686,12 +702,16 @@ def collections_to_check(
     Compared against the bucket listing, not the upload list, so --force (which
     re-uploads everything) checks the same collections as a normal publish.
     """
+    from common import ALL_CHIPS
+
     base = root / config["publish_dir"]
     parts = [u.local.relative_to(base).parts for u in uploads if not is_unchanged(u, listing)]
     if any(len(p) == 1 for p in parts):
         return None
     # <source>/<id>/...; a group's own files (<source>/catalog.json) measure nothing.
-    return {p[1] for p in parts if len(p) >= 3}
+    # chips/...: the all-chips collection, whose staged table and tiles it describes.
+    ids = {p[1] for p in parts if len(p) >= 3 and p[0] != ALL_CHIPS}
+    return ids | ({ALL_CHIPS} if any(p[0] == ALL_CHIPS for p in parts) else set())
 
 
 def split_pending(
@@ -739,7 +759,8 @@ def main() -> int:
         action="append",
         metavar="DATASET",
         help="publish only this dataset's folder and its source group's files, listing only "
-             "them (repeatable; root files only when the group is new)",
+             "them (repeatable; root files only when the group is new); 'chips' publishes the "
+             "all-chips collection's folder",
     )
     args = parser.parse_args()
     only = set(args.only) if args.only else None

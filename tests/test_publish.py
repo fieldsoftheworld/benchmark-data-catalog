@@ -479,6 +479,23 @@ with tempfile.TemporaryDirectory() as tmp:
     check(planned == group_only and why is None,
           "--only on a group already in the bucket leaves the root files out")
 
+    # --only chips: the all-chips collection's folder, and the root files when it is new
+    write(root / "catalog/chips/collection.json")
+    write(root / "catalog/chips/styles/split-admin2.json")
+    chips_only = collect_uploads(cfg, root, only={"chips"})
+    check({u.key for u in chips_only} == {"pre/chips/collection.json",
+                                          "pre/chips/styles/split-admin2.json"},
+          f"--only chips publishes catalog/chips/ alone: {sorted(u.key for u in chips_only)}")
+    check("pre/chips/collection.json" not in {u.key for u in group_only},
+          "--only a dataset leaves catalog/chips/ out")
+    planned, why = plan_root_files(chips_only, {"chips"}, {}, cfg, root)
+    check("pre/catalog.json" in {u.key for u in planned} and why and "chips" in why,
+          "--only chips on a collection the bucket lacks adds the root files")
+    planned, why = plan_root_files(chips_only, {"chips"}, {"pre/chips/collection.json": (1, "x")},
+                                   cfg, root)
+    check(planned == chips_only and why is None,
+          "--only chips on a collection already in the bucket leaves the root files out")
+
 # --- a collection is not published before its data is in the bucket --------------
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
@@ -507,26 +524,55 @@ with tempfile.TemporaryDirectory() as tmp:
     check(missing_data([up_coll], listing, cfg, root) == {},
           "a collection this publish leaves unchanged is not checked")
 
-    # the root catalog's links to root data files (the chips table and tiles)
+    # the all-chips collection's data (the chips table and tiles) must be in the bucket at chips/
     root_cat = write(root / "catalog/catalog.json", json.dumps({"type": "Catalog", "links": [
-        {"rel": "related", "href": "./chips.parquet"}, {"rel": "related", "href": "./chips.pmtiles"},
-        {"rel": "related", "href": "https://example.org/x.parquet"},
+        {"rel": "child", "href": "./chips/collection.json"},
         {"rel": "child", "href": "./aa/catalog.json"}]}))
     up_root = Upload(root_cat, "pre/catalog.json", "application/json")
-    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root)
-          == {"(root)": ["chips.pmtiles"]},
-          "a root data link that is neither staged nor in the bucket blocks the root's publish")
-    write(root / "staging/chips.pmtiles", "staged")
-    check(missing_data([up_root], {"pre/chips.parquet": (1, "x")}, cfg, root)
-          == {"(root)": ["chips.pmtiles"]},
-          "a staged root file is not enough: a dataset upload never carries it")
-    check(missing_data([up_root], {"pre/chips.parquet": (1, "x"), "pre/chips.pmtiles": (1, "y")},
-                       cfg, root) == {},
-          "root files in the bucket are enough")
-    root_readme = write(root / "catalog/README.md", "links chips.pmtiles")
-    check(missing_data([Upload(root_readme, "pre/README.md", "text/markdown")],
-                       {"pre/chips.parquet": (1, "x")}, cfg, root) == {"(root)": ["chips.pmtiles"]},
-          "a change to the root README alone is checked too")
+    chips_coll = write(root / "catalog/chips/collection.json", json.dumps({
+        "type": "Collection", "id": "chips",
+        "assets": {"chips": {"href": "./chips.parquet"}, "chips_tiles": {"href": "./chips.pmtiles"},
+                   "style-split-admin2": {"href": "./styles/split-admin2.json"}},
+        "links": [{"rel": "pmtiles", "href": "./chips.pmtiles"},
+                  {"rel": "root", "href": "../catalog.json"}]}))
+    style = write(root / "catalog/chips/styles/split-admin2.json", "{}")
+    up_chips = Upload(chips_coll, "pre/chips/collection.json", "application/json")
+    up_style = Upload(style, "pre/chips/styles/split-admin2.json", "application/vnd.mapbox.style+json")
+    check(missing_data([up_chips], {"pre/chips/chips.parquet": (1, "x")}, cfg, root)
+          == {"chips": ["chips.pmtiles"]},
+          "all-chips data not in the bucket blocks the collection's publish; its style is committed")
+    write(root / "staging/chips/chips.pmtiles", "staged")
+    check(missing_data([up_chips], {"pre/chips/chips.parquet": (1, "x")}, cfg, root)
+          == {"chips": ["chips.pmtiles"]},
+          "staged all-chips data is not enough: a dataset upload never carries it")
+    check(missing_data([up_chips], {"pre/chips.parquet": (1, "x"), "pre/chips.pmtiles": (1, "y")},
+                       cfg, root) == {"chips": ["chips.parquet", "chips.pmtiles"]},
+          "the old root files do not count for the collection")
+    in_bucket = {"pre/chips/chips.parquet": (1, "x"), "pre/chips/chips.pmtiles": (1, "y")}
+    check(missing_data([up_chips], in_bucket, cfg, root) == {},
+          "all-chips data in the bucket is enough")
+    check(missing_data([up_root], {}, cfg, root) == {"chips": ["chips.parquet", "chips.pmtiles"]},
+          "a change to the root catalog, which links the collection, is checked too")
+    check(missing_data([up_style], {}, cfg, root) == {"chips": ["chips.parquet", "chips.pmtiles"]},
+          "a change to the collection's style alone is checked too")
+    listing = {}
+    uploaded(listing, up_chips)
+    uploaded(listing, up_root)
+    check(missing_data([up_chips, up_root], listing, cfg, root) == {},
+          "an all-chips collection this publish leaves unchanged is not checked")
+
+    # its staged data must be uploaded before its collection.json, which describes it, is
+    listing = dict(in_bucket)
+    check(pending_data(cfg, listing, root) == {"chips": 1},
+          f"staged all-chips data that differs from the bucket is pending: {pending_data(cfg, listing, root)}")
+    check(collections_to_check([up_chips], {}, cfg, root) == {"chips"}
+          and collections_to_check([up_style], {}, cfg, root) == {"chips"},
+          "a change under catalog/chips/ checks the all-chips collection")
+    blocking, _ = split_pending([up_chips], listing, cfg, root)
+    check(blocking == {"chips": 1}, f"so it blocks the collection's publish: {blocking}")
+    check(pending_data(cfg, listing, root, only={"aa_2024"}) == {},
+          "--only a dataset leaves the all-chips data out")
+    (root / "staging/chips/chips.pmtiles").unlink()
 
 # --- retry and transfer settings for the data proxy ----------------------------
 if importlib.util.find_spec("botocore") is not None:
@@ -659,12 +705,26 @@ try:
         f"only= splits to the same tile depth, got {_flat}",
     )
 
-    _lister = FakeLister(_keys + ["bd/chips.parquet"])
+    _chips_keys = ["bd/chips/collection.json", "bd/chips/chips.parquet",
+                   "bd/chips/styles/split-admin2.json"]
+    write(_listing_root / "catalog" / "chips" / "collection.json")
+    _lister = FakeLister(_keys + _chips_keys)
     with redirect_stdout(_out):
-        _root_file = _publish.remote_index("b", "bd", _cfg, only={"aa_2024", "chips.parquet"},
-                                           root=_listing_root)
-    check("bd/chips.parquet" in _root_file and "bd/aa/aa_2024/items.parquet" in _root_file,
-          "only= naming a root file (upload_data --only chips.parquet) lists the root level")
+        _all = _publish.remote_index("b", "bd", _cfg, root=_listing_root)
+    check(all(k in _all for k in _chips_keys),
+          f"the full listing covers the all-chips collection's folder: {sorted(_all)}")
+    _lister = FakeLister(_keys + _chips_keys)
+    with redirect_stdout(_out):
+        _with_chips = _publish.remote_index("b", "bd", _cfg, only={"aa_2024", "chips"},
+                                            root=_listing_root)
+    check(all(k in _with_chips for k in _chips_keys) and "bd/aa/aa_2024/items.parquet" in _with_chips,
+          "only= naming chips (upload_data --only chips) lists the all-chips folder too")
+    _lister = FakeLister(_keys + _chips_keys)
+    with redirect_stdout(_out):
+        _without = _publish.remote_index("b", "bd", _cfg, only={"aa_2024"}, root=_listing_root)
+    check(all(k in _without for k in _chips_keys),
+          "only= a dataset lists the all-chips folder too: a new group's root publish checks it")
+    (_listing_root / "catalog" / "chips" / "collection.json").unlink()
 
     _lister = FakeLister(_keys, fail_prefix="bd/aa/aa_2024/chips/31TBF/")
     _out = io.StringIO()

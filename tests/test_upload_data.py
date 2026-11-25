@@ -192,13 +192,23 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     expected = expected | {"a/prefix/g/lu/items.parquet"}
 
-    # A root file (the chips table) uploads only when --only names it.
+    # The all-chips collection's table and tiles upload only when --only names it, to
+    # chips/ (no source group); a file directly under staging/ never uploads.
+    write(root / "staging/chips/chips.parquet")
+    write(root / "staging/chips/chips.pmtiles")
     write(root / "staging/chips.parquet")
-    check("a/prefix/chips.parquet" not in {u.key for u in collect_data_uploads(config, root)},
-          "a plain upload never carries a root file along")
-    check({u.key for u in collect_data_uploads(config, root, only={"chips.parquet"})}
-          == {"a/prefix/chips.parquet"}, "--only chips.parquet uploads the root file alone")
-    (root / "staging/chips.parquet").unlink()
+    plain = {u.key for u in collect_data_uploads(config, root)}
+    check(not any("chips.p" in k and "/lu/" not in k and "/roads/" not in k for k in plain),
+          f"a plain upload never carries the all-chips data or a root file along: {plain}")
+    chips_uploads = collect_data_uploads(config, root, only={"chips"})
+    check({u.key for u in chips_uploads} == {"a/prefix/chips/chips.parquet", "a/prefix/chips/chips.pmtiles"},
+          f"--only chips uploads the all-chips collection's data alone: {chips_uploads}")
+    check({u.content_type for u in chips_uploads} == {"application/vnd.apache.parquet", "application/vnd.pmtiles"},
+          "with the data content types")
+    check(not collect_data_uploads(config, root, only={"chips.parquet"}),
+          "--only chips.parquet (the old root file) uploads nothing")
+    for name in ("chips/chips.parquet", "chips/chips.pmtiles", "chips.parquet"):
+        (root / "staging" / name).unlink()
 
     # The bare-prefix case: no prefix at all.
     flat = dict(config, write_prefix="s3://a-bucket")
