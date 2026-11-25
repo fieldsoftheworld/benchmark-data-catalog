@@ -50,7 +50,7 @@ the full walkthrough; this is the command sequence):
     uv run python tools/upload_data.py --confirm
     uv run python tools/upload_data.py --only at_2024 --confirm   # one dataset while another builds
     uv run python tools/publish.py --confirm
-    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
     uv run python tools/prune_bucket.py <id> --confirm   # a rebuild without imagery: objects that neither catalog/ nor the full staging has
 
 Imagery is a second pass, once selection is ready:
@@ -60,7 +60,7 @@ Imagery is a second pass, once selection is ready:
     uv run python tools/catalogize.py <id>
     uv run python tools/upload_data.py --confirm
     uv run python tools/publish.py --confirm
-    uv run python tools/chips_table.py --staged <id>   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, "Root chips table")
+    uv run python tools/chips_table.py --staged <id>   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/ (README, "Chips collection")
     uv run python tools/prune_bucket.py <id> --confirm   # a rebuild: objects that neither catalog/ nor the full staging has
 
 `tools/build.py` runs `ftwd` from the repository root. Two environment

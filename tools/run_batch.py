@@ -302,9 +302,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  uv run python tools/upload_data.py {only} --confirm")
         print("  uv run python tools/publish.py --confirm")
         if args.imagery:  # the last pass: staging is now the full build prune compares with
-            # The root chips table first, so it never lists a chip prune has deleted.
+            # The chips table first, so it never lists a chip prune has deleted.
             print(f"  uv run python tools/chips_table.py --staged {' '.join(ok)}"
-                  "   # upload chips.parquet, then chips_tiles.py and upload chips.pmtiles (README, \"Root chips table\")")
+                  "   # then chips_tiles.py, upload staging/chips/, publish catalog/chips/"
+                  " (README, \"Chips collection\")")
             print(f"  uv run python tools/prune_bucket.py {' '.join(ok)} --confirm"
                   "   # deletes objects that neither catalog/ nor the full staging has")
         print(f"  uv run python tools/run_batch.py {' '.join(ok)} --mark-published")

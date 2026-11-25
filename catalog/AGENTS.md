@@ -54,6 +54,15 @@ results. The STAC entry point is
 same tree is browsable in the
 [Portolan data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json).
 
+Splits across collections are in the
+[all-chips collection](https://source.coop/ftw/benchmark-data/chips/AGENTS.md):
+[`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips/chips.parquet) lists
+every chip of every collection with one column per split scheme (`split_hash_v1` and
+`split_admin2_v1` give a location the same split in every collection) and its
+collection's license, and
+[`chips.pmtiles`](https://data.source.coop/ftw/benchmark-data/chips/chips.pmtiles) maps
+them.
+
 Links in these documents are absolute: `source.coop` URLs are pages for people,
 `data.source.coop` URLs are the bytes.
 
