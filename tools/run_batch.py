@@ -20,8 +20,9 @@ scoped to the batch's datasets that reached catalog/ (BDC_SCOPE_DATASETS, see
 tests/scope.py). A builder holds staging only for its own batch, and over the
 whole catalog those gates take hours. Run them unscoped before publishing.
 
-The imagery pass runs ``--from select_images``, ``--only docs`` and
-``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
+The imagery pass runs ``--from select_images``, ``catalogize.py <id>
+--items-only`` (so ``docs`` sees the imagery items in ``items.parquet``),
+``--only docs`` and ``catalogize.py <id>`` per dataset. Both passes end with ``catalogize.py
 --root`` (after the thumbnails, so the root tables see them) and the gates.
 
 Never uploads. It prints the upload commands for the datasets that built;
@@ -65,6 +66,9 @@ METADATA_STEPS = (
 )
 IMAGERY_STEPS = (
     ("build --from select_images", ["build.py", "{id}", "--from", "select_images"]),
+    # ftwd's docs document the item properties items.parquet has, so it is rebuilt
+    # with the imagery child items first.
+    ("rebuild items.parquet", ["catalogize.py", "{id}", "--items-only"]),
     ("build --only docs", ["build.py", "{id}", "--only", "docs"]),
     ("catalogize", ["catalogize.py", "{id}"]),
 )

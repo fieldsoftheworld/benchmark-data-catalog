@@ -56,6 +56,7 @@ the full walkthrough; this is the command sequence):
 Imagery is a second pass, once selection is ready:
 
     uv run python tools/build.py <id> --from select_images
+    uv run python tools/catalogize.py <id> --items-only   # docs reads the imagery columns from it
     uv run python tools/build.py <id> --only docs
     uv run python tools/catalogize.py <id>
     uv run python tools/upload_data.py --confirm
