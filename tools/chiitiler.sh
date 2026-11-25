@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Bootstrap and run chiitiler (https://github.com/Kanahiro/chiitiler), the tile
-# server tools/thumbnail.py renders through. Clones it into .cache/chiitiler if
-# missing, npm installs if node_modules is missing, then runs the tile server
-# in the foreground on port 13579 with an in-memory tile cache.
+# server tools/thumbnail.py renders through. Clones release v1.25.1 into
+# .cache/chiitiler (replacing a clone of any other version; stop a server running
+# from it first), npm installs if node_modules is missing, then runs the tile
+# server in the foreground on port 13579 with an in-memory tile cache.
 #
 # Usage:
 #   tools/chiitiler.sh              # run in the foreground (Ctrl-C to stop)
@@ -19,10 +20,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CACHE_DIR="$ROOT/.cache/chiitiler"
 PORT="${CHIITILER_PORT:-13579}"
+# chiitiler 2 dropped the `tile-server` command-line interface used below, so stay on 1.x.
+REF="v1.25.1"
+
+# An older bootstrap cloned chiitiler's default branch; replace a clone of any other version.
+if [[ -d "$CACHE_DIR" && "$(git -C "$CACHE_DIR" describe --tags --exact-match 2>/dev/null)" != "$REF" ]]; then
+    echo "replacing $CACHE_DIR: not chiitiler $REF"
+    rm -rf "$CACHE_DIR"
+fi
 
 if [[ ! -d "$CACHE_DIR" ]]; then
-    echo "cloning Kanahiro/chiitiler into $CACHE_DIR"
-    git clone --depth 1 https://github.com/Kanahiro/chiitiler "$CACHE_DIR"
+    echo "cloning Kanahiro/chiitiler $REF into $CACHE_DIR"
+    git clone --depth 1 --branch "$REF" https://github.com/Kanahiro/chiitiler "$CACHE_DIR"
 fi
 
 if [[ ! -d "$CACHE_DIR/node_modules" ]]; then
