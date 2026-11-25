@@ -249,9 +249,12 @@ background) before it's written and registered as the collection's
 
 7. If the recipe downloads imagery, that's a second pass once selection is
    ready — rebuild from `select_images`, regenerate docs and the catalog copy,
-   and upload again (no `--root`; the dataset already exists):
+   and upload again (no `--root`; the dataset already exists). `--items-only`
+   rebuilds `items.parquet` with the imagery child items before `docs` reads
+   the item properties from it:
 
        uv run python tools/build.py <id> --from select_images
+       uv run python tools/catalogize.py <id> --items-only
        uv run python tools/build.py <id> --only docs
        uv run python tools/catalogize.py <id>
        uv run python tools/upload_data.py --confirm

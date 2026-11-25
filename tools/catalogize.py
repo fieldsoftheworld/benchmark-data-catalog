@@ -847,6 +847,47 @@ def _refresh_asset_sizes(doc: dict, staging_dir: Path) -> int:
     return changed
 
 
+def _measured_table(path: Path) -> dict:
+    """``table:columns`` and ``table:row_count`` of a parquet file, as ftwd measures them.
+
+    ftwd's own ``add_table_columns`` (DuckDB ``DESCRIBE``, the top-level type
+    lowercased, the geometry column typed ``geometry``), so a refreshed asset
+    matches what ftwd writes. It sets the table extension on a pystac asset,
+    which needs an owner, hence the throwaway item.
+    """
+    import pystac
+    from ftw_dataset_tools.api.assets import add_table_columns
+
+    owner = pystac.Item("probe", geometry=None, bbox=None, datetime=datetime.now(UTC), properties={})
+    asset = pystac.Asset(href=str(path))
+    owner.add_asset("table", asset)
+    add_table_columns(asset, path)
+    return {key: asset.extra_fields[key] for key in ("table:columns", "table:row_count")}
+
+
+def _refresh_items_table(doc: dict, staging_dir: Path) -> bool:
+    """Re-measure the ``items`` asset's ``table:columns`` and ``table:row_count``.
+
+    ftwd measures the mirror its ``stac`` stage writes: chip items only, none
+    of the imagery properties. ``rewrite_items_parquet`` then rebuilds it with
+    every imagery child item, so the declared row count and columns went
+    stale. Columns follow the rebuilt file's order and type; an entry ftwd
+    already wrote keeps its other keys (its description). Returns whether the
+    asset changed; a collection with no staged mirror is left alone.
+    """
+    asset = (doc.get("assets") or {}).get("items")
+    path = staging_dir / "items.parquet"
+    if asset is None or asset.get("href") != "./items.parquet" or not path.is_file():
+        return False
+    measured = _measured_table(path)
+    declared = {c.get("name"): c for c in asset.get("table:columns") or []}
+    columns = [{**c, **declared.get(c["name"], {}), "type": c["type"]} for c in measured["table:columns"]]
+    before = (asset.get("table:columns"), asset.get("table:row_count"))
+    asset["table:columns"] = columns
+    asset["table:row_count"] = measured["table:row_count"]
+    return before != (columns, measured["table:row_count"])
+
+
 # The repository's own top-level folders that ftwd reads files from (filters,
 # recipes, label extents), and the folder name a builder clones it under.
 _REPO_FOLDERS = ("datasets", "work")
@@ -979,7 +1020,8 @@ _ES_MERGE_FIELD_COLUMNS = {
 # all of these; the ftw:* columns next to them are this collection's own item
 # properties, documented per collection in AGENTS.md's "FTW properties on
 # each STAC item" section instead, since their meaning is dataset-specific).
-# Same set on every collection in the catalog (verified across all 180).
+# Same set on every collection in the catalog (verified across all 180), plus
+# eo:cloud_cover, which the imagery child items add.
 _ITEM_MIRROR_STRUCTURAL_COLUMNS = {
     "type": "STAC object type; always \"Feature\" for an item.",
     "stac_version": "The STAC specification version this item conforms to.",
@@ -993,6 +1035,8 @@ _ITEM_MIRROR_STRUCTURAL_COLUMNS = {
     "end_datetime": "End of the item's temporal extent, for an item spanning a range rather than an instant.",
     "renders": "Named, ready-to-render visualizations of this item's assets (STAC render extension).",
     "bbox": "Bounding box of the item's geometry.",
+    # Only on the Sentinel-2 scene child items (planting / harvest) of a chip.
+    "eo:cloud_cover": "Cloud cover of the selected Sentinel-2 scene, in percent (STAC eo extension).",
     "geometry": "The item's footprint geometry (the chip square), in EPSG:4326.",
     # Present on 22 of 180 collections (all from ftwd); not documented upstream
     # or anywhere in this repository. Stated per the brief's rule for
@@ -1126,6 +1170,13 @@ def _agents_column_notes(dataset_dir: Path) -> dict[str, str]:
     }
 
 
+def _ftwd_item_property_notes() -> dict[str, str]:
+    """ftwd's own descriptions of the ``ftw:*`` item properties, the text of AGENTS.md's list."""
+    from ftw_dataset_tools.api.docs import ITEM_PROPERTY_NOTES
+
+    return dict(ITEM_PROPERTY_NOTES)
+
+
 #: Which column-description sources apply to which asset, in lookup order.
 #: Scoped per asset key rather than one flat merged dict: "id" means a
 #: different thing in "chips" (the chip id) than in "fields" (the field id),
@@ -1139,11 +1190,11 @@ def _column_sources_for_asset(asset_key: str, *, agents_notes: dict, fiboa_notes
     if asset_key == "chips":
         return (agents_notes,)
     if asset_key == "items":
-        # ftw:* item properties from AGENTS.md; plain STAC fields from the
-        # static dict. Order does not matter: the two never share a key
-        # (every structural key is a bare STAC field name, every AGENTS.md
-        # key here starts with "ftw:" or is "portolan:render_order").
-        return (agents_notes, _ITEM_MIRROR_STRUCTURAL_COLUMNS)
+        # ftw:* item properties from AGENTS.md, then from the notes ftwd writes
+        # AGENTS.md from (the imagery properties of an AGENTS.md written before
+        # the mirror had them); plain STAC fields from the static dict. AGENTS.md's
+        # chips-table notes also name id, geometry and bbox, and win for those.
+        return (agents_notes, _ftwd_item_property_notes(), _ITEM_MIRROR_STRUCTURAL_COLUMNS)
     if asset_key == "field_embeddings":
         return (_FIELD_EMBEDDING_COLUMNS,)
     return ()
@@ -1305,6 +1356,7 @@ def enrich_collection(
     _ensure_license_link(doc, recipe)
     _ensure_pmtiles_links(doc)
     _refresh_asset_sizes(doc, staging / dataset_id)
+    _refresh_items_table(doc, staging / dataset_id)
     canonicalize_portolan_schema(doc)
     fill_table_column_descriptions(doc, group=dataset_relpath(dataset_id, catalog=catalog).split("/")[0],
                                     dataset_dir=dataset_dir)
@@ -2412,6 +2464,22 @@ def _check_group(dataset_id: str, recipe: dict, catalog: Path) -> None:
         )
 
 
+def rebuild_items(
+    dataset_id: str, *, staging: Path = STAGING, catalog: Path = CATALOG, recipe: dict | None = None
+) -> Path:
+    """Publish the staged item JSON's links and rebuild ``items.parquet`` from it.
+
+    The first half of ``catalogize``, and ``catalogize.py <id> --items-only``:
+    the imagery pass runs it before ftwd's ``docs`` stage, which documents the
+    item properties it finds in ``items.parquet`` and would otherwise see the
+    ``stac`` stage's mirror, without the imagery child items' properties.
+    """
+    _check_staged(dataset_id, staging)
+    _check_group(dataset_id, recipe if recipe is not None else _load_recipe(dataset_id), catalog)
+    rewrite_staging_items(dataset_id, staging=staging, catalog=catalog)
+    return rewrite_items_parquet(dataset_id, staging=staging, catalog=catalog)
+
+
 def catalogize(
     dataset_id: str,
     *,
@@ -2426,12 +2494,8 @@ def catalogize(
     rewritten too, but stays in ``staging/<id>/`` (it is data, never
     committed), so it is not part of the returned list.
     """
-    _check_staged(dataset_id, staging)
     recipe = _load_recipe(dataset_id)
-    _check_group(dataset_id, recipe, catalog)
-
-    rewrite_staging_items(dataset_id, staging=staging, catalog=catalog)
-    rewrite_items_parquet(dataset_id, staging=staging, catalog=catalog)
+    rebuild_items(dataset_id, staging=staging, catalog=catalog, recipe=recipe)
 
     written = copy_committed(dataset_id, staging=staging, catalog=catalog)
     written += enrich_collection(
@@ -2461,9 +2525,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--root", action="store_true", help="also regenerate the root catalog and its docs"
     )
+    parser.add_argument(
+        "--items-only",
+        action="store_true",
+        help="only rebuild staging/<id>/items.parquet (the imagery pass runs this before ftwd's docs)",
+    )
     args = parser.parse_args(argv)
     if not args.dataset_id and not args.root:
         parser.error("a dataset_id is required unless --root is given alone")
+    if args.items_only and (args.root or not args.dataset_id):
+        parser.error("--items-only takes a dataset_id and no --root")
+    if args.items_only:
+        _check_dataset_recipe(args.dataset_id)
+        print(rebuild_items(args.dataset_id))
+        return 0
 
     from common import load_manifest
 

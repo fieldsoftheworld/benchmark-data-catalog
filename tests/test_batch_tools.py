@@ -392,6 +392,11 @@ with tempfile.TemporaryDirectory() as tmp:
     steps = run_batch.IMAGERY_STEPS
     run_batch.reads_extent = lambda d: d == "ext_2021"
     check(run_batch.run_dataset("ext_2021", steps, scaffold=False) is None, "extent ok, steps run")
+    imagery_argv = [template for _, template in steps]
+    items_step = ["catalogize.py", "{id}", "--items-only"]
+    check(items_step in imagery_argv
+          and imagery_argv.index(items_step) < imagery_argv.index(["build.py", "{id}", "--only", "docs"]),
+          f"the imagery pass rebuilds items.parquet before docs reads its columns: {imagery_argv}")
     check(calls[:1] == ["label_extent.py"] and calls.count("build.py") == 2,
           f"the extent is checked first, then the build: {calls}")
     calls.clear()
