@@ -666,13 +666,18 @@ def _ensure_version(doc: dict, manifest: dict) -> None:
         _add_stac_extension(doc, VERSION_EXTENSION_URI)
 
 
+# The via link's title when neither the collection nor its recipe (``source_title``) names one.
+VIA_TITLE = "Source field boundary collection"
+
+
 def _ensure_via(doc: dict, recipe: dict) -> None:
     links = doc.setdefault("links", [])
     if any(link.get("rel") == "via" for link in links):
         return
     source_via = recipe.get("source_via")
     if source_via:
-        links.append({"rel": "via", "href": source_via, "type": "application/json", "title": "Source collection"})
+        links.append({"rel": "via", "href": source_via, "type": "application/json",
+                      "title": recipe.get("source_title") or VIA_TITLE})
 
 
 def _rewrite_via_link(doc: dict) -> None:
@@ -684,7 +689,8 @@ def _rewrite_via_link(doc: dict) -> None:
     ``source.coop/<org>/<repo>/<id>`` path; any other via href is left as is
     apart from the type. Idempotent: a href already rewritten to the
     source.coop page no longer matches the data.source.coop pattern, so a
-    second run only re-confirms the type.
+    second run only re-confirms the type. The link's own title (ftwd writes the
+    recipe's ``source_title``) is kept; ``VIA_TITLE`` fills in only when it has none.
     """
     links = doc.get("links", [])
     for i, link in enumerate(links):
@@ -696,7 +702,7 @@ def _rewrite_via_link(doc: dict) -> None:
                 **link,
                 "href": "https://source.coop/{org}/{repo}/{id}".format(**match.groupdict()),
                 "type": "text/html",
-                "title": "Source field boundary collection",
+                "title": link.get("title") or VIA_TITLE,
             }
         else:
             links[i] = {**link, "type": "text/html"}
@@ -770,30 +776,6 @@ def _ensure_license_link(doc: dict, recipe: dict) -> None:
     license_url = (recipe.get("metadata") or {}).get("license_url")
     if license_url:
         links.append({"rel": "license", "href": license_url, "type": "text/html", "title": "License terms"})
-
-
-def _chip_counts(chips_parquet: Path) -> dict[str, int | None]:
-    """Total chips and the per-split count, from a chips parquet's ``split`` column.
-
-    A dataset built with ftwd's splits stage off (every recipe but the predefined
-    ones; the root chips table holds the splits) has no ``split``: its per-split
-    counts are None.
-    """
-    con = duckdb.connect()
-    columns = {
-        r[0] for r in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(chips_parquet)]).fetchall()
-    }
-    if "split" not in columns:
-        return {"total": _row_count(chips_parquet), "train": None, "val": None, "test": None}
-    total, train, val, test = con.execute(
-        "SELECT count(*), "
-        "count(*) FILTER (split = 'train'), "
-        "count(*) FILTER (split = 'val'), "
-        "count(*) FILTER (split = 'test') "
-        "FROM read_parquet(?)",
-        [str(chips_parquet)],
-    ).fetchone()
-    return {"total": total, "train": train, "val": val, "test": test}
 
 
 def _row_count(parquet_path: Path) -> int:
@@ -1861,6 +1843,15 @@ def _group_title(group: str, source_via: str | None, *, catalog: Path, fetch_tit
     return (fetch_title(source_via) if source_via else None) or group
 
 
+def _members_via_title(members: list[tuple[str, dict]]) -> str:
+    """The via title the group's collections give their source, or ``VIA_TITLE``."""
+    for _, doc in members:
+        for link in doc.get("links") or []:
+            if link.get("rel") == "via" and link.get("title"):
+                return link["title"]
+    return VIA_TITLE
+
+
 def _group_catalog(
     group: str, title: str, source_page: str | None, members: list[tuple[str, dict]], *,
     manifest: dict, now: datetime | None = None,
@@ -1873,7 +1864,7 @@ def _group_catalog(
     ]
     if source_page:
         links.append({"rel": "via", "href": source_page, "type": "text/html",
-                      "title": "Source field boundary collection"})
+                      "title": _members_via_title(members)})
     links += _child_links(
         [(f"./{dataset_id}/collection.json", doc.get("title", dataset_id)) for dataset_id, doc in members]
     )
@@ -2145,7 +2136,7 @@ def _imagery_cell(imagery: int | None, mode: str | None) -> str:
     Three distinguishable answers, because the collections here genuinely
     differ and a single number would imply they do not: ``—`` for not
     measurable, ``none`` for measured and zero (a labels-only collection,
-    whose chips still carry masks and a split), and a count qualified by
+    whose chips still carry masks), and a count qualified by
     ``stored`` or ``linked`` (see ``_imagery_mode``) where scenes exist. An
     unqualified count is the fallback when the resolved recipe is not on disk
     to say which shape was built.
@@ -2162,7 +2153,8 @@ def _collection_row(
 ) -> dict:
     """One row of facts about a published collection, every cell already a link.
 
-    Chips and splits are measured from the staged chips parquet, fields from
+    Chips are counted from the staged chips parquet (benchmark splits are in the
+    root chips table, not here), fields from
     the field polygons the chips were cut from, imagery and crop labels from
     the collection's own item JSON and items mirror; the thumbnail cell is a
     markdown image only when the thumbnail has actually been rendered into the
@@ -2179,11 +2171,11 @@ def _collection_row(
     title = doc.get("title", dataset_id)
     dataset_dir = staging / dataset_id
     chips_path = dataset_dir / f"{dataset_id}_chips.parquet"
-    counts = _chip_counts(chips_path) if chips_path.exists() else None
-    if counts is None:
+    n_chips = _row_count(chips_path) if chips_path.exists() else None
+    if n_chips is None:
         print(
             f"warning  {dataset_id}: {chips_path} is missing; root tables will show "
-            "'—' for its chips/splits instead of the real counts"
+            "'—' for its chips instead of the real count"
         )
     imagery = _imagery_count(dataset_dir)
     crops = _crop_label_count(dataset_dir / "items.parquet")
@@ -2196,18 +2188,13 @@ def _collection_row(
         "title": title,
         "thumbnail": _thumbnail_cell(relpath, title, rendered=has_thumbnail),
         "collection": f"[{title}]({human_url(manifest, relpath)})",
-        "chips": f"{counts['total']:,}" if counts else "—",
-        "splits": (
-            f"{counts['train']:,}/{counts['val']:,}/{counts['test']:,}"
-            if counts and counts["train"] is not None
-            else "—"
-        ),
+        "chips": f"{n_chips:,}" if n_chips is not None else "—",
         "imagery": _imagery_cell(imagery, _imagery_mode(dataset_dir)),
         "imagery_n": _count_cell(imagery),
         "license": _license_cell(doc),
         "source": _source_cell(doc),
         "browse": f"[browse]({browser_url(f'{relpath}/collection.json')})",
-        "n_chips": counts["total"] if counts else None,
+        "n_chips": n_chips,
         "n_imagery": imagery,
         "n_crops": crops,
         "n_fields": fields,
@@ -2221,7 +2208,6 @@ _TABLE_COLUMNS = (
     ("Thumbnail", "thumbnail"),
     ("Collection", "collection"),
     ("Chips", "chips"),
-    ("Splits (train/val/test)", "splits"),
     ("Imagery", "imagery"),
     ("License", "license"),
     ("Source", "source"),
@@ -2247,8 +2233,8 @@ def _collections_list(rows: list[dict]) -> str:
     for row in rows:
         collection_url = public_url(f"{row['relpath']}/collection.json")
         lines.append(
-            f"- [{row['title']}]({collection_url}): {row['chips']} chips "
-            f"({row['splits']} train/val/test), {row['imagery_n']} with imagery, "
+            f"- [{row['title']}]({collection_url}): {row['chips']} chips, "
+            f"{row['imagery_n']} with imagery, "
             f"license {row['license']}, source {row['source']}, {row['browse']}\n"
         )
     return "".join(lines)
