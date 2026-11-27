@@ -152,6 +152,29 @@ with tempfile.TemporaryDirectory() as tmp:
               shapely.box(-61.0, -9.0, -60.98, -8.98)).area < 1e-12,
           "a lon/lat raster's footprint is its bounds")
 
+    # --- Rwanda: neighbouring tiles' few-metre gaps close; outer edges stay ------
+    rw = tmp / "rw"
+    rw.mkdir()
+    # UTM 36S: train_00 and train_01 side by side with a 10 m gap (two source pixels), test_00 1 km away.
+    for name, bounds in [("train_00", (800000, 9830000, 801000, 9831000)),
+                         ("train_01", (801010, 9830000, 802010, 9831000)),
+                         ("test_00", (803010, 9830000, 804010, 9831000))]:
+        write_raster(rw / f"{name}.tif", "EPSG:32736", bounds)
+    label_extent.RWANDA_TILE = str(rw / "{split}_{index:02d}.tif")
+    label_extent.RWANDA_TILES = {"train": 2, "test": 1}
+    rw_extent = build({"dataset_id": "rw_rwanda_ml_2021", "harmonized_id": "rw_rwanda_ml", "year": "2021"},
+                      label_extent.rwanda_tiles, tmp / "rw.parquet")
+    to_lonlat = Transformer.from_crs("EPSG:32736", "EPSG:4326", always_xy=True)
+    shape = shapely.union_all(list(rw_extent.values()))
+
+    def covered(x: float, y: float) -> bool:
+        return shape.contains(shapely.Point(*to_lonlat.transform(x, y)))
+
+    check(covered(801005, 9830500), "the 10 m gap between neighbouring tiles is closed")
+    check(not covered(802510, 9830500), "the 1 km gap to a distant tile stays open")
+    check(not covered(799995, 9830500) and covered(800005, 9830500),
+          "a tile's outer edge stays where it was")
+
     # --- Trazo: chips from their label masks, not the chips parquet geometry --
     trazo = tmp / "trazo"
     for region, aoi, bounds in [("acre", "tile_1", (-73.19, -7.44, -73.17, -7.42)),
