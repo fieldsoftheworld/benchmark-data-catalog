@@ -33,9 +33,10 @@ The extent per harmonized collection (``BUILDERS``; the keys must match
 - ``ai4sf_ml``: the 62 AI4SmallFarms tiles of about 5x5 km (``tiles_asia.gpkg``
   from DANS, the file the converter takes the split from), from UTM 48N.
 - ``rw_rwanda_ml``: the NASA Harvest competition's 57 train and 13 test tiles,
-  read from the image headers. The harmonized set holds both splits. Neighbouring
-  tiles' footprints leave strips of one or two source pixels between them, which would mark
-  labelled land as unknown; the extent closes gaps narrower than ``RWANDA_GAP_M``.
+  read from the image headers. The harmonized set holds both splits. Each tile was
+  digitised on its own and fields cut by its edge were left out, so the land along every
+  tile edge, shared or not, is mostly unlabelled field; each tile counts as labelled only
+  ``RWANDA_EDGE_M`` inside its edges.
 - ``wri_trazo_ml``: WRI's 256x256 Sentinel-2 chips (``chips_<region>.parquet``) of
   every region annotated that year, empty chips included.
 """
@@ -61,9 +62,11 @@ RWANDA_TILE = (
     "{index:02d}_B01.tif"
 )
 RWANDA_TILES = {"train": 57, "test": 13}
-# Gaps between neighbouring tiles' footprints are one or two 4.8 m source pixels (up to
-# 9.6 m); everything narrower than this closes.
-RWANDA_GAP_M = 15.0
+# Fields cover 0.1% of the land within 10 m of the tiles' outer edges, 4.9% at 40-50 m, and
+# about as little along the edges tiles share (0.2% within 10 m, 3.4% within 50 m), against
+# 33% overall (rw_rwanda_ml_2021, 2026-11-28): fields an edge cut were left out. Inside this
+# margin the masks say unknown instead of background.
+RWANDA_EDGE_M = 50.0
 TRAZO = "https://data.source.coop/wri-data-lab/trazoannotations"
 # The year each Trazo region was annotated, from fiboa-cli's wri_trazo converter
 # (REGIONS there, which reads it from the source file names).
@@ -193,11 +196,11 @@ def _footprints_query(con, table: str, sources: dict[str, str]) -> str:
     return f"SELECT extent_id, ST_GeomFromWKB(wkb) AS geometry FROM {table}"
 
 
-def close_gaps(shapes, gap_m: float, crs: str):
-    """The union of lon/lat ``shapes`` with gaps narrower than ``gap_m`` closed.
+def inset_tiles(shapes, inset_m: float, crs: str):
+    """The union of lon/lat tile footprints ``shapes``, each first shrunk by ``inset_m``.
 
-    Closing (grow by half the gap, then shrink by as much) in the metric ``crs`` fills
-    the strips between neighbouring footprints without moving their outer edges.
+    Insetting each tile before the union (in the metric ``crs``) moves every tile edge
+    inwards, including the edges neighbouring tiles share.
     """
     import numpy as np
     import shapely
@@ -210,9 +213,8 @@ def close_gaps(shapes, gap_m: float, crs: str):
     # Snap to a 1 cm grid before and after: PROJ differs in the last bit between platforms,
     # and the buffers would carry that into vertices the GRID snap later can't reconcile.
     metric = shapely.set_precision(reproject(np.asarray(shapes), "EPSG:4326", crs), 0.01)
-    half = gap_m / 2
-    closed = shapely.union_all(metric).buffer(half, join_style="mitre").buffer(-half, join_style="mitre")
-    return reproject(shapely.set_precision(closed, 0.01), crs, "EPSG:4326")
+    inset = shapely.union_all(shapely.buffer(metric, -inset_m, join_style="mitre"))
+    return reproject(shapely.set_precision(inset, 0.01), crs, "EPSG:4326")
 
 
 def rwanda_tiles(con, row: dict[str, str]) -> str:
@@ -226,9 +228,9 @@ def rwanda_tiles(con, row: dict[str, str]) -> str:
     query = _footprints_query(con, "rwanda_tiles", sources)
     shapes = shapely.from_wkb([w for (w,) in con.execute(f"SELECT ST_AsWKB(geometry) FROM ({query})").fetchall()])
     # The tiles lie at about 30.3-30.4 E, in UTM 36S.
-    closed = close_gaps(shapes, RWANDA_GAP_M, "EPSG:32736")
+    extent = inset_tiles(shapes, RWANDA_EDGE_M, "EPSG:32736")
     con.execute("CREATE OR REPLACE TEMP TABLE rwanda_extent (extent_id VARCHAR, wkb BLOB)")
-    con.execute("INSERT INTO rwanda_extent VALUES ('tiles', ?)", [shapely.to_wkb(closed)])
+    con.execute("INSERT INTO rwanda_extent VALUES ('tiles', ?)", [shapely.to_wkb(extent)])
     return "SELECT extent_id, ST_GeomFromWKB(wkb) AS geometry FROM rwanda_extent"
 
 
