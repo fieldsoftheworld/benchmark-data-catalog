@@ -172,8 +172,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
     check(covered(801005, 9830500), "the 10 m gap between neighbouring tiles is closed")
     check(not covered(802510, 9830500), "the 1 km gap to a distant tile stays open")
-    check(not covered(799995, 9830500) and covered(800005, 9830500),
-          "a tile's outer edge stays where it was")
+    check(not covered(800000 + label_extent.RWANDA_EDGE_M - 5, 9830500)
+          and covered(800000 + label_extent.RWANDA_EDGE_M + 5, 9830500),
+          "the outer edge moves in by RWANDA_EDGE_M: fields the tile edge cut were not digitised")
+    check(covered(801005, 9830500 + label_extent.RWANDA_EDGE_M + 5),
+          "the closed gap between tiles is not inset")
 
     # --- Trazo: chips from their label masks, not the chips parquet geometry --
     trazo = tmp / "trazo"
