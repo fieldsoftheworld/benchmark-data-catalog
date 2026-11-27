@@ -33,7 +33,9 @@ The extent per harmonized collection (``BUILDERS``; the keys must match
 - ``ai4sf_ml``: the 62 AI4SmallFarms tiles of about 5x5 km (``tiles_asia.gpkg``
   from DANS, the file the converter takes the split from), from UTM 48N.
 - ``rw_rwanda_ml``: the NASA Harvest competition's 57 train and 13 test tiles,
-  read from the image headers. The harmonized set holds both splits.
+  read from the image headers. The harmonized set holds both splits. Neighbouring
+  tiles' footprints leave strips of a few metres between them, which would mark
+  labelled land as unknown; the extent closes gaps narrower than ``RWANDA_GAP_M``.
 - ``wri_trazo_ml``: WRI's 256x256 Sentinel-2 chips (``chips_<region>.parquet``) of
   every region annotated that year, empty chips included.
 """
@@ -59,6 +61,8 @@ RWANDA_TILE = (
     "{index:02d}_B01.tif"
 )
 RWANDA_TILES = {"train": 57, "test": 13}
+# Gaps between neighbouring tiles' footprints are under 5 m wide; they close at this width.
+RWANDA_GAP_M = 10.0
 TRAZO = "https://data.source.coop/wri-data-lab/trazoannotations"
 # The year each Trazo region was annotated, from fiboa-cli's wri_trazo converter
 # (REGIONS there, which reads it from the source file names).
@@ -188,13 +192,43 @@ def _footprints_query(con, table: str, sources: dict[str, str]) -> str:
     return f"SELECT extent_id, ST_GeomFromWKB(wkb) AS geometry FROM {table}"
 
 
+def close_gaps(shapes, gap_m: float, crs: str):
+    """The union of lon/lat ``shapes`` with gaps narrower than ``gap_m`` closed.
+
+    Closing (grow by half the gap, then shrink by as much) in the metric ``crs`` fills
+    the strips between neighbouring footprints without moving their outer edges.
+    """
+    import numpy as np
+    import shapely
+    from pyproj import Transformer
+
+    def reproject(geom, src: str, dst: str):
+        t = Transformer.from_crs(src, dst, always_xy=True)
+        return shapely.transform(geom, lambda xy: np.column_stack(t.transform(xy[:, 0], xy[:, 1])))
+
+    # Snap to a 1 cm grid before and after: PROJ differs in the last bit between platforms,
+    # and the buffers would carry that into vertices the GRID snap later can't reconcile.
+    metric = shapely.set_precision(reproject(np.asarray(shapes), "EPSG:4326", crs), 0.01)
+    half = gap_m / 2
+    closed = shapely.union_all(metric).buffer(half, join_style="mitre").buffer(-half, join_style="mitre")
+    return reproject(shapely.set_precision(closed, 0.01), crs, "EPSG:4326")
+
+
 def rwanda_tiles(con, row: dict[str, str]) -> str:
+    import shapely
+
     sources = {
         f"{split}_{index:02d}": RWANDA_TILE.format(split=split, index=index)
         for split, count in RWANDA_TILES.items()
         for index in range(count)
     }
-    return _footprints_query(con, "rwanda_tiles", sources)
+    query = _footprints_query(con, "rwanda_tiles", sources)
+    shapes = shapely.from_wkb([w for (w,) in con.execute(f"SELECT ST_AsWKB(geometry) FROM ({query})").fetchall()])
+    # UTM 35S covers the competition area.
+    closed = close_gaps(shapes, RWANDA_GAP_M, "EPSG:32735")
+    con.execute("CREATE OR REPLACE TEMP TABLE rwanda_extent (extent_id VARCHAR, wkb BLOB)")
+    con.execute("INSERT INTO rwanda_extent VALUES ('tiles', ?)", [shapely.to_wkb(closed)])
+    return "SELECT extent_id, ST_GeomFromWKB(wkb) AS geometry FROM rwanda_extent"
 
 
 def trazo_chips(con, row: dict[str, str]) -> str:
