@@ -9,7 +9,8 @@ HTTPS, then writes:
 
 - ``datasets/<id>.yaml``: the ftwd recipe. ``fields_file`` is the year's own
   parquet (``<hid>/year=<Y>/<hid>-<Y>.parquet``), never ``latest``. The title
-  is the harmonized year item's link title; license and producer/licensor
+  is the harmonized year item's link title, and ``source_title`` (the title of
+  the ``source_via`` link) the harmonized collection's; license and producer/licensor
   providers are copied from the harmonized year item where it states them (one
   canton of a multi-source collection), else from the collection, which is the attested
   source. Fields of the World is appended as processor.
@@ -309,6 +310,8 @@ def recipe_text(
     title = item_title(collection, urls["item"], f"{row['region']} — {year}")
     name = tracking.filter_file(row)
     filter_line = f"    class_filter: filters/{name}\n" if name else ""
+    source_title = collection.get("title")
+    source_title_line = f"source_title: {_yaml_str(source_title)}\n" if source_title else ""
     keywords = ["field-boundaries", "benchmark", tracking.source_stem(row), str(year)]
     presence_only = row.get("wall_to_wall") == PRESENCE_ONLY
     extent = has_label_extent(row)
@@ -332,7 +335,7 @@ version: 1
 
 fields_file: {fields_file(dataset_id, urls)}
 source_via: {urls["collection"]}
-output_dir: {STAGING.relative_to(ROOT)}/{dataset_id}
+{source_title_line}output_dir: {STAGING.relative_to(ROOT)}/{dataset_id}
 name: {dataset_id}
 year: {year}
 

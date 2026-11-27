@@ -6,6 +6,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/glocab/year=2020/glocab-2020.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/glocab/collection.json
+source_title: "GloCAB cropland field boundaries (Brazil, Canada, Russia, Ukraine, USA)"
 output_dir: staging/glocab_2020
 name: glocab_2020
 year: 2020
