@@ -487,7 +487,7 @@ doc = {
             "rel": "via",
             "href": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json",
             "type": "application/json",
-            "title": "Source collection",
+            "title": "Wallonia field boundaries",
         }
     ]
 }
@@ -498,10 +498,28 @@ check(
         "rel": "via",
         "href": "https://source.coop/ftw/harmonized-field-data/be_wal",
         "type": "text/html",
-        "title": "Source field boundary collection",
+        "title": "Wallonia field boundaries",
     },
-    f"a data.source.coop via href is rewritten to the human page, got {doc['links'][0]}",
+    f"a data.source.coop via href is rewritten to the human page, its title kept, got {doc['links'][0]}",
 )
+
+doc = {"links": [{"rel": "via", "href": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json"}]}
+catalogize._rewrite_via_link(doc)
+check(
+    doc["links"][0]["title"] == catalogize.VIA_TITLE,
+    f"a via link without a title gets the default one, got {doc['links'][0]}",
+)
+
+# _ensure_via: the recipe's source_title names the link; without one, the default.
+for recipe, want in (
+    ({"source_via": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json",
+      "source_title": "Wallonia field boundaries"}, "Wallonia field boundaries"),
+    ({"source_via": "https://data.source.coop/ftw/harmonized-field-data/be_wal/collection.json"},
+     catalogize.VIA_TITLE),
+):
+    doc = {"links": []}
+    catalogize._ensure_via(doc, recipe)
+    check(doc["links"][0]["title"] == want, f"_ensure_via titles the link {want!r}, got {doc['links']}")
 
 doc = {"links": [{"rel": "via", "href": "https://example.com/some/other/page", "type": "application/json"}]}
 catalogize._rewrite_via_link(doc)
@@ -612,7 +630,10 @@ with tempfile.TemporaryDirectory() as tmp:
         f"via link rewritten to the source.coop page, got {via_links}",
     )
     check(via_links[0]["type"] == "text/html", "via link type is text/html")
-    check(via_links[0]["title"] == "Source field boundary collection", "via link title set")
+    check(
+        via_links[0]["title"] == (recipe_be_wal_2022.get("source_title") or catalogize.VIA_TITLE),
+        f"via link titled from the recipe's source_title, or the default, got {via_links[0]}",
+    )
 
     # --- parent link to the root catalog (PTL-LNK-001) ---
     parent_links = [l for l in collection["links"] if l["rel"] == "parent"]
@@ -1075,7 +1096,7 @@ with tempfile.TemporaryDirectory() as tmp:
     root_readme = (catalog / "README.md").read_text()
     check(
         "| — | [Slovenia](" in root_readme and "| — | — | — |" in root_readme,
-        f"hr_2024's row falls back to '—' for thumbnail, chips, splits and imagery, got {root_readme}",
+        f"hr_2024's row falls back to '—' for thumbnail, chips, imagery and license, got {root_readme}",
     )
 
 
@@ -1605,10 +1626,8 @@ with tempfile.TemporaryDirectory() as tmp:
         f"the Collection cell links the human page from the manifest, got {be_wal_2022_row['collection']!r}",
     )
     check(be_wal_2022_row["chips"] == "1,234", f"chips carry thousands separators, got {be_wal_2022_row['chips']!r}")
-    check(
-        be_wal_2022_row["splits"] == "1,200/20/14", f"splits are measured per split, got {be_wal_2022_row['splits']!r}"
-    )
-    # A dataset built with the splits stage off has no split column: chips counted, splits '—'.
+    check("splits" not in be_wal_2022_row, "the root tables carry no per-collection splits (the root chips table does)")
+    # A dataset built with the splits stage off has no split column: its chips are counted.
     write_json(catalog / "at" / "at_2024" / "collection.json",
                {"type": "Collection", "id": "at_2024", "title": "Austria", "license": "CC-BY-4.0"})
     unsplit = staging / "at_2024" / "at_2024_chips.parquet"
@@ -1622,8 +1641,8 @@ with tempfile.TemporaryDirectory() as tmp:
         manifest=MANIFEST,
     )
     check(
-        (at_2024_row["chips"], at_2024_row["splits"], at_2024_row["n_chips"]) == ("3", "—", 3),
-        f"chips without a split column are counted, their splits are '—': {at_2024_row}",
+        (at_2024_row["chips"], at_2024_row["n_chips"]) == ("3", 3),
+        f"chips without a split column are counted: {at_2024_row}",
     )
     check(
         be_wal_2022_row["imagery"] == "1",
@@ -1654,8 +1673,7 @@ with tempfile.TemporaryDirectory() as tmp:
     table = catalogize._collections_table([be_wal_2022_row, hr_2024_row])
     header = table.splitlines()[0]
     check(
-        header == "| Thumbnail | Collection | Chips | Splits (train/val/test) | Imagery | License "
-        "| Source | Browse |",
+        header == "| Thumbnail | Collection | Chips | Imagery | License | Source | Browse |",
         f"the README table's header names every column, got {header!r}",
     )
     check(table.count("\n") == 4, f"header, separator and one row per collection, got {table!r}")
@@ -1672,7 +1690,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     listed = catalogize._collections_list([be_wal_2022_row, hr_2024_row])
     check(
-        f"[Luxembourg]({public_url('be_wal/be_wal_2022/collection.json')}): 1,234 chips" in listed,
+        f"[Luxembourg]({public_url('be_wal/be_wal_2022/collection.json')}): 1,234 chips, 1 with imagery" in listed,
         f"llms.txt lists each collection by public URL with its chip count, got {listed!r}",
     )
     check("1 with imagery" in listed, f"llms.txt carries the imagery count, got {listed!r}")
@@ -1870,6 +1888,19 @@ with tempfile.TemporaryDirectory() as tmp:
     group = json.loads((catalog / "be_wal" / "catalog.json").read_text())
     check(fetched == [via] and group["title"] == "Wallonia field boundaries",
           f"the source title is fetched once, from source_via, and kept: {fetched}, {group['title']}")
+    group_via = [l for l in group["links"] if l["rel"] == "via"]
+    check(len(group_via) == 1 and group_via[0]["title"] == catalogize.VIA_TITLE,
+          f"a group whose collections' via links have no title gets the default: {group_via}")
+    member = catalog / "be_wal" / "be_wal_2022" / "collection.json"
+    member_doc = json.loads(member.read_text())
+    member_doc["links"] = [{"rel": "via", "href": "https://source.coop/ftw/harmonized-field-data/be_wal",
+                            "type": "text/html", "title": "Wallonia field boundaries"}]
+    write_json(member, member_doc)
+    catalogize.write_group("be_wal", catalog=catalog, manifest=group_manifest, fetch_title=fetch_once)
+    group_via = [l for l in json.loads((catalog / "be_wal" / "catalog.json").read_text())["links"]
+                 if l["rel"] == "via"]
+    check(group_via[0]["title"] == "Wallonia field boundaries",
+          f"the group's via link takes its collections' via title: {group_via}")
     readme = (catalog / "be_wal" / "README.md").read_text()
     check("](https://source.coop/ftw/benchmark-data/be_wal/be_wal_2022)" in readme
           and "](https://source.coop/ftw/harmonized-field-data/be_wal)" in readme
