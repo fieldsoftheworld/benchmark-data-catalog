@@ -27,23 +27,25 @@ no name or no unit there.
 Collection-level assets carry the field polygons the masks were cut from, their
 boundary lines, the chips table (`<id>_chips.parquet`: footprint, field coverage,
 admin names and, where the source has HCAT codes, dominant crop),
-`<id>_field_embeddings.parquet` (per field, the mean and standard deviation of
-each of 64 dimensions of the
-[AlphaEarth Foundations](https://source.coop/tge-labs/aef) embeddings, `aef_*`,
-CC-BY-4.0, and the
-[OlmoEarth v1.3](https://source.coop/olmoearth/olmoearth-v1-3-embeddings)
-embeddings, `olmoearth_*`, first 64 of 128 dimensions, under the
-[OlmoEarth Artifact License](https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt);
-join on the fields table's `id`), and `items.parquet`, a stac-geoparquet mirror
-of every item.
+`<id>_field_embeddings.parquet` (one row per field, keyed by the fields table's
+`id`: `pixels` and `pixel_rule`, then for each product the mean and standard
+deviation of every dimension over the field's 10 m pixels as 64-value float
+lists, and the pixels used — `aef_mean`, `aef_std`, `aef_pixels` from
+[AlphaEarth Foundations](https://source.coop/tge-labs/aef), CC-BY-4.0, and
+`olmoearth_mean`, `olmoearth_std`, `olmoearth_pixels` from
+[OlmoEarth v1.3](https://source.coop/olmoearth/olmoearth-v1-3-embeddings), first
+64 of 128 dimensions, under the
+[OlmoEarth Artifact License](https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt)),
+and `items.parquet`, a stac-geoparquet mirror of every item.
 
 Collections carry no train / validation / test split, except the five
 `wri_trazo_ml` years, which keep their source's own (`ftw:split`, and `split` in
 their chips table). The benchmark splits are in the root chips table,
 [`chips.parquet`](https://data.source.coop/ftw/benchmark-data/chips.parquet):
-one row per chip of every collection (`dataset`, `id` without the year suffix,
-`block`, admin names, `license`, `license_url`, `license_category`,
-`presence_only`, `geometry`, `bbox`) and one column per split scheme, each
+one row per chip of every collection (`dataset`, `group`, `id` without the year
+suffix, `block`, admin names, `license`, `license_url`, `license_category`,
+`presence_only`, `unit_admin2_v1`, `geometry`, `bbox`) and one column per split
+scheme, each
 `train`, `val`, `test` or null:
 
 - `split_legacy`: the split each collection published before the table existed,

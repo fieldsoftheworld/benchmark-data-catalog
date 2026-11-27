@@ -666,8 +666,10 @@ def _ensure_version(doc: dict, manifest: dict) -> None:
         _add_stac_extension(doc, VERSION_EXTENSION_URI)
 
 
-# The via link's title when neither the collection nor its recipe (``source_title``) names one.
-VIA_TITLE = "Source field boundary collection"
+# The via link's title when neither the collection nor its recipe (``source_title``) names
+# one: ftwd's own default (``SOURCE_VIA_TITLE`` in its api/stac.py), so a collection ftwd
+# titled and one titled here read the same.
+VIA_TITLE = "Field boundary collection the chips were cut from"
 
 
 def _ensure_via(doc: dict, recipe: dict) -> None:

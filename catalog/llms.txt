@@ -1,10 +1,11 @@
 # Fields of the World Benchmark Data
 
-> Training and evaluation chips for field boundary delineation models — Sentinel-2 imagery paired with instance, semantic and DECODE label masks cut from harmonized official field boundaries, one collection per country, published as a Portolan catalog.
+> Training and evaluation chips for field boundary delineation models — Sentinel-2 imagery paired with instance, semantic and DECODE label masks cut from harmonized official field boundaries, one collection per country or region and year, published as a Portolan catalog.
 
 - [Catalog README](https://source.coop/ftw/benchmark-data/README.md)
 - [Agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md)
 - [STAC root catalog](https://data.source.coop/ftw/benchmark-data/catalog.json)
+- [Root chips table](https://data.source.coop/ftw/benchmark-data/chips.parquet): every chip of every collection, with the benchmark splits
 - [Data browser](https://browser.portolan-sdi.org/#/external/data.source.coop/ftw/benchmark-data/catalog.json)
 - [Source field boundaries](https://source.coop/ftw/harmonized-field-data)
 - [Source repository](https://github.com/fieldsoftheworld/benchmark-data-catalog)

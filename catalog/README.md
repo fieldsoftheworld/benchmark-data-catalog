@@ -464,7 +464,8 @@ every chip of every collection with one column per split scheme:
   is train, since presence-only labels can't be scored; countries whose chips are all
   presence-only (India and most of Africa) are train only.
 
-Each row also has the chip's `block` (its 3x3 block of grid cells), its
+Each row also has the chip's `dataset`, `group` (its source folder), `id`, `block`
+(its 3x3 block of grid cells), `unit_admin2_v1`, its
 `admin0_iso3`, `admin0_name`, `admin1_name` and `admin2_name`, and the collection's
 `license`, `license_url` and `license_category`
 (`public-domain`, `attribution` and `share-alike` allow any use, including commercial;
@@ -533,11 +534,17 @@ cut from and a mirror of the items themselves:
   split, except in the `wri_trazo_ml` years; the splits are in the root
   `chips.parquet`.
 - `<id>_field_embeddings.parquet`: one row per field of `<id>_fields.parquet`,
-  with the mean and standard deviation of each of 64 embedding dimensions over the
-  field's 10 m pixels, from
-  [AlphaEarth Foundations](https://source.coop/tge-labs/aef) (`aef_*`, CC-BY-4.0)
-  and [OlmoEarth v1.3](https://source.coop/olmoearth/olmoearth-v1-3-embeddings)
-  (`olmoearth_*`, its first 64 of 128 dimensions, under the
+  keyed by `id`. For each product it holds the mean (`<product>_mean`) and
+  standard deviation (`<product>_std`) of every embedding dimension over the
+  field's 10 m pixels, as 64-value float lists, and the pixels used
+  (`<product>_pixels`); `pixels` and `pixel_rule` say which pixels the field took
+  (centre inside it, or every pixel it touches for a field too small to hold
+  one). The products are
+  [AlphaEarth Foundations](https://source.coop/tge-labs/aef) (`aef_mean`,
+  `aef_std`, `aef_pixels`; CC-BY-4.0) and
+  [OlmoEarth v1.3](https://source.coop/olmoearth/olmoearth-v1-3-embeddings)
+  (`olmoearth_mean`, `olmoearth_std`, `olmoearth_pixels`; its first 64 of 128
+  dimensions, under the
   [OlmoEarth Artifact License](https://data.source.coop/olmoearth/olmoearth-v1-3-embeddings/LICENSE.txt),
   whose use restrictions apply to anything derived from those columns).
 - `items.parquet`: the stac-geoparquet mirror the quick start queries.
