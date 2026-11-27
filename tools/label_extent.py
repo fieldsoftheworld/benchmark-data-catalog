@@ -34,7 +34,7 @@ The extent per harmonized collection (``BUILDERS``; the keys must match
   from DANS, the file the converter takes the split from), from UTM 48N.
 - ``rw_rwanda_ml``: the NASA Harvest competition's 57 train and 13 test tiles,
   read from the image headers. The harmonized set holds both splits. Neighbouring
-  tiles' footprints leave strips of a few metres between them, which would mark
+  tiles' footprints leave strips of one or two source pixels between them, which would mark
   labelled land as unknown; the extent closes gaps narrower than ``RWANDA_GAP_M``.
 - ``wri_trazo_ml``: WRI's 256x256 Sentinel-2 chips (``chips_<region>.parquet``) of
   every region annotated that year, empty chips included.
@@ -61,8 +61,9 @@ RWANDA_TILE = (
     "{index:02d}_B01.tif"
 )
 RWANDA_TILES = {"train": 57, "test": 13}
-# Gaps between neighbouring tiles' footprints are under 5 m wide; they close at this width.
-RWANDA_GAP_M = 10.0
+# Gaps between neighbouring tiles' footprints are one or two 4.8 m source pixels (up to
+# 9.6 m); everything narrower than this closes.
+RWANDA_GAP_M = 15.0
 TRAZO = "https://data.source.coop/wri-data-lab/trazoannotations"
 # The year each Trazo region was annotated, from fiboa-cli's wri_trazo converter
 # (REGIONS there, which reads it from the source file names).
@@ -224,8 +225,8 @@ def rwanda_tiles(con, row: dict[str, str]) -> str:
     }
     query = _footprints_query(con, "rwanda_tiles", sources)
     shapes = shapely.from_wkb([w for (w,) in con.execute(f"SELECT ST_AsWKB(geometry) FROM ({query})").fetchall()])
-    # UTM 35S covers the competition area.
-    closed = close_gaps(shapes, RWANDA_GAP_M, "EPSG:32735")
+    # The tiles lie at about 30.3-30.4 E, in UTM 36S.
+    closed = close_gaps(shapes, RWANDA_GAP_M, "EPSG:32736")
     con.execute("CREATE OR REPLACE TEMP TABLE rwanda_extent (extent_id VARCHAR, wkb BLOB)")
     con.execute("INSERT INTO rwanda_extent VALUES ('tiles', ?)", [shapely.to_wkb(closed)])
     return "SELECT extent_id, ST_GeomFromWKB(wkb) AS geometry FROM rwanda_extent"
