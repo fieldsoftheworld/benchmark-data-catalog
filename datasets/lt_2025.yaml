@@ -21,7 +21,10 @@ metadata:
   providers:
     - name: "Nacionalinė mokėjimo agentūra prie Žemės ūkio ministerijos"
       roles: [producer, licensor]
-      url: https://www.nma.lt>, Europe-LAND HE Project <https://doi.org/10.5281/zenodo.14230620
+      url: https://www.nma.lt
+    - name: "Europe-LAND HE Project"
+      roles: [processor]
+      url: https://doi.org/10.5281/zenodo.14230620
     - name: "Fields of the World"
       roles: [processor]
       url: https://fieldsofthe.world
