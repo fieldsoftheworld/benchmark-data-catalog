@@ -152,10 +152,10 @@ with tempfile.TemporaryDirectory() as tmp:
               shapely.box(-61.0, -9.0, -60.98, -8.98)).area < 1e-12,
           "a lon/lat raster's footprint is its bounds")
 
-    # --- Rwanda: neighbouring tiles' few-metre gaps close; outer edges stay ------
+    # --- Rwanda: every tile edge, shared or outer, moves in by RWANDA_EDGE_M ----
     rw = tmp / "rw"
     rw.mkdir()
-    # UTM 36S: train_00 and train_01 side by side with a 10 m gap (two source pixels), test_00 1 km away.
+    # UTM 36S: train_00 and train_01 side by side with a 10 m gap, test_00 1 km away.
     for name, bounds in [("train_00", (800000, 9830000, 801000, 9831000)),
                          ("train_01", (801010, 9830000, 802010, 9831000)),
                          ("test_00", (803010, 9830000, 804010, 9831000))]:
@@ -166,17 +166,17 @@ with tempfile.TemporaryDirectory() as tmp:
                       label_extent.rwanda_tiles, tmp / "rw.parquet")
     to_lonlat = Transformer.from_crs("EPSG:32736", "EPSG:4326", always_xy=True)
     shape = shapely.union_all(list(rw_extent.values()))
+    edge = label_extent.RWANDA_EDGE_M
 
     def covered(x: float, y: float) -> bool:
         return shape.contains(shapely.Point(*to_lonlat.transform(x, y)))
 
-    check(covered(801005, 9830500), "the 10 m gap between neighbouring tiles is closed")
-    check(not covered(802510, 9830500), "the 1 km gap to a distant tile stays open")
-    check(not covered(800000 + label_extent.RWANDA_EDGE_M - 5, 9830500)
-          and covered(800000 + label_extent.RWANDA_EDGE_M + 5, 9830500),
-          "the outer edge moves in by RWANDA_EDGE_M: fields the tile edge cut were not digitised")
-    check(covered(801005, 9830500 + label_extent.RWANDA_EDGE_M + 5),
-          "the closed gap between tiles is not inset")
+    check(not covered(800000 + edge - 5, 9830500) and covered(800000 + edge + 5, 9830500),
+          "a tile's outer edge moves in by RWANDA_EDGE_M: fields the edge cut were not digitised")
+    check(not covered(801000 - edge + 5, 9830500) and not covered(801010 + edge - 5, 9830500),
+          "the edges neighbouring tiles share move in too: each tile was digitised on its own")
+    check(covered(801000 - edge - 5, 9830500) and covered(801010 + edge + 5, 9830500),
+          "both neighbours keep their inner land")
 
     # --- Trazo: chips from their label masks, not the chips parquet geometry --
     trazo = tmp / "trazo"
