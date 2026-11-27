@@ -13,7 +13,10 @@ metadata:
   title: "Catalonia — 2024"
   description: >
     Benchmark chips for Spain-CAT cut from the 2024 edition of the
-    harmonized field boundary collection es_cat.
+    harmonized field boundary collection es_cat. The harmonized collection leaves out
+    89 source records whose geometry is more than twice their declared area: each holds
+    copies of neighbouring parcels (fiboa-cli 152fef3). A few parcels that contain
+    smaller ones remain, so those smaller parcels may not show in the masks.
   license: other
   license_url: https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/llicencies/
   version: 2.0.0-alpha.1
