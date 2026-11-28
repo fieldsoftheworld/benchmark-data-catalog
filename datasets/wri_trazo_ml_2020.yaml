@@ -44,6 +44,8 @@ stages:
     split_type: predefined
     random_seed: 42
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [semantic_2_class, semantic_3_class]
     resolution: 2.5
     workers: null
