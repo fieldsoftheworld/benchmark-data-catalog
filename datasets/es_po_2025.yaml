@@ -39,7 +39,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
-    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    # Drop fields at least 95% under fields drawn over them: their outlines no longer cross the
+    # covering field as boundary, and their visible rest (at most 5%) becomes background or unknown.
     drop_hidden_fields: true
     mask_types: [semantic_2_class, semantic_3_class]
     resolution: 2.5
