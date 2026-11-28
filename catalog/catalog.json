@@ -7,7 +7,7 @@
   ],
   "id": "benchmark-data",
   "title": "Fields of the World Benchmark Data",
-  "description": "Training and evaluation chips for field boundary delineation models: Sentinel-2 imagery paired with instance and semantic label masks, cut from harmonized (fiboa) field boundary data by Fields of the World. Each collection is one country or region with train, validation and test splits. Start with the [agent guide](AGENTS.md).",
+  "description": "Training and evaluation chips for field boundary delineation models: quarterly Sentinel-2 mosaics paired with instance, semantic and DECODE label masks, cut from harmonized (fiboa) field boundary data by Fields of the World. Each collection is one country or region and year; the train, validation and test splits of every chip are in the root chips table (chips.parquet). Start with the [agent guide](https://source.coop/ftw/benchmark-data/AGENTS.md).",
   "links": [
     {
       "rel": "root",
