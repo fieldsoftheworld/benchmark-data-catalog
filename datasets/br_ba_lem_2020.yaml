@@ -36,6 +36,7 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    class_filter: filters/br_ba_lem_filter.yaml
     mask_types: [semantic_2_class, semantic_3_class]
     resolution: 2.5
     workers: null
