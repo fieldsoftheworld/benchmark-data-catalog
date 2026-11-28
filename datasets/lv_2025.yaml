@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/lv/year=2025/lv-2025.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/lv/collection.json
+source_title: "Latvia Lauki Parcels"
 output_dir: staging/lv_2025
 name: lv_2025
 year: 2025
@@ -14,7 +15,8 @@ metadata:
   description: >
     Benchmark chips for Latvia cut from the 2025 edition of the
     harmonized field boundary collection lv.
-  license: CC-BY-SA-4.0
+  # data.gov.lv (LAD, Lauksaimnieku deklarētās platības): CC0 1.0.
+  license: CC0-1.0
   version: 2.0.0-alpha.1
   attribution: "Lauku atbalsta dienests"
   keywords: [field-boundaries, benchmark, lv, 2025]
@@ -33,6 +35,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null

@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/ee/year=2020/ee-2020.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/ee/collection.json
+source_title: "Field boundaries for Estonia"
 output_dir: staging/ee_2020
 name: ee_2020
 year: 2020
@@ -36,6 +37,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null

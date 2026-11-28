@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/ec_lt/year=2021/ec_lt-2021.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/ec_lt/collection.json
+source_title: "Field boundaries for Lithuania - Eurocrops 2021"
 output_dir: staging/ec_lt_2021
 name: ec_lt_2021
 year: 2021
@@ -14,7 +15,9 @@ metadata:
   description: >
     Benchmark chips for Lithuania cut from the 2021 edition of the
     harmonized field boundary collection ec_lt.
-  license: CC-BY-SA-4.0
+  # NMA's geoportal.lt record: "Tik nekomerciniam naudojimui (Non-commercial use only)", copyright.
+  license: other
+  license_url: "https://www.geoportal.lt/metadata-catalog/catalog/search/resource/details.page?uuid=%7B7AF3F5B2-DC58-4EC5-916C-813E994B2DCF%7D"
   version: 2.0.0-alpha.1
   attribution: "Nacionalinė mokėjimo agentūra prie Žemės ūkio ministerijos"
   keywords: [field-boundaries, benchmark, ec_lt, 2021]
@@ -36,6 +39,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null

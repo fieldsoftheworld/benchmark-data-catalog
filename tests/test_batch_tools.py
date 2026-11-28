@@ -94,6 +94,7 @@ check(tracking.imagery_modes({"imagery": "mosaics"}) == ("mosaics",), "mosaics-o
 
 # --- new_dataset.py writes a recipe the manifest gate accepts --------------
 COLLECTION = {
+    "title": "Field boundaries for Place",
     "license": "CC-BY-4.0",
     "assets": {"data": {}, "style-hcat-crops": {}},
     "providers": [
@@ -133,6 +134,11 @@ recipe = yaml.safe_load(new_dataset.recipe_text("xx_2022", ROW, COLLECTION, urls
 check(recipe["name"] == "xx_2022" and recipe["year"] == 2022, "name and year")
 check(recipe["output_dir"] == "staging/xx_2022", "output_dir is staging/<id>")
 check(recipe["metadata"]["title"] == "Place — 2022", "title is the harmonized item's title")
+check(recipe["source_title"] == "Field boundaries for Place",
+      f"source_title is the harmonized collection's title: {recipe.get('source_title')!r}")
+untitled = yaml.safe_load(new_dataset.recipe_text(
+    "xx_2022", ROW, {k: v for k, v in COLLECTION.items() if k != "title"}, urls, "9.9.9"))
+check("source_title" not in untitled, "a collection without a title gets no source_title (ftwd's default)")
 check(recipe["metadata"]["attribution"] == "Agency", "attribution falls back to the producer")
 check(recipe["metadata"]["version"] == "9.9.9", "version comes from the manifest")
 names = [p["name"] for p in recipe["metadata"]["providers"]]

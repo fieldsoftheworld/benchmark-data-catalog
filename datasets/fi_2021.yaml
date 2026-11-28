@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/fi/year=2021/fi-2021.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/fi/collection.json
+source_title: "Finnish Crop Fields (Maatalousmaa)"
 output_dir: staging/fi_2021
 name: fi_2021
 year: 2021
@@ -33,6 +34,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null

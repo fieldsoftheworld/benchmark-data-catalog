@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/lacuna/year=2018/lacuna-2018.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/lacuna/collection.json
+source_title: "Mapping Africa: crop field boundary labels for Africa, 2017-2023"
 output_dir: staging/lacuna_2018
 name: lacuna_2018
 year: 2018
@@ -36,6 +37,9 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them: their outlines no longer cross the
+    # covering field as boundary, and their visible rest (at most 5%) becomes background or unknown.
+    drop_hidden_fields: true
     mask_types: [semantic_2_class, semantic_3_class]
     resolution: 2.5
     workers: null

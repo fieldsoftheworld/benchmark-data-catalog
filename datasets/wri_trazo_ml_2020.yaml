@@ -6,6 +6,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/year=2020/wri_trazo_ml-2020.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/wri_trazo_ml/collection.json
+source_title: "Trazo field boundary annotations for South America with splits"
 output_dir: staging/wri_trazo_ml_2020
 name: wri_trazo_ml_2020
 year: 2020

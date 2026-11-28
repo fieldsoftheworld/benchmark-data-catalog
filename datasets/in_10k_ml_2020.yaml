@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/in_10k_ml/year=2020/in_10k_ml-2020.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/in_10k_ml/collection.json
+source_title: "10,000 Crop Field Boundaries across India with splits"
 output_dir: staging/in_10k_ml_2020
 name: in_10k_ml_2020
 year: 2020

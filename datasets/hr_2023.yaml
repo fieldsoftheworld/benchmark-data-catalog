@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/hr/year=2023/hr-2023.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/hr/collection.json
+source_title: "Croatian Field Boundaries"
 output_dir: staging/hr_2023
 name: hr_2023
 year: 2023
@@ -14,10 +15,12 @@ metadata:
   description: >
     Benchmark chips for Croatia cut from the 2023 edition of the
     harmonized field boundary collection hr.
+  # NIPP register record for the year-end archive (http://registri.nipp.hr/izvori/1873):
+  # "Nema uvjeta za pristup i korištenje" (no conditions for access and use).
   license: other
-  license_url: https://www.apprrr.hr/prostorni-podaci-servisi/
+  license_url: http://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply
   version: 2.0.0-alpha.1
-  attribution: "copyright © 2024. Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"
+  attribution: "Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"
   keywords: [field-boundaries, benchmark, hr, 2023]
   providers:
     - name: "Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"

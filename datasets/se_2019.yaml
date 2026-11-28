@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/se/year=2019/se-2019.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/se/collection.json
+source_title: "Swedish Crop Fields (Jordbruksskiften)"
 output_dir: staging/se_2019
 name: se_2019
 year: 2019
@@ -33,6 +34,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null

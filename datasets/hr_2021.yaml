@@ -5,6 +5,7 @@ version: 1
 
 fields_file: https://data.source.coop/ftw/harmonized-field-data/hr/year=2021/hr-2021.parquet
 source_via: https://data.source.coop/ftw/harmonized-field-data/hr/collection.json
+source_title: "Croatian Field Boundaries"
 output_dir: staging/hr_2021
 name: hr_2021
 year: 2021
@@ -14,10 +15,12 @@ metadata:
   description: >
     Benchmark chips for Croatia cut from the 2021 edition of the
     harmonized field boundary collection hr.
+  # NIPP register record for the year-end archive (http://registri.nipp.hr/izvori/1310):
+  # "Nema uvjeta za pristup i korištenje" (no conditions for access and use).
   license: other
-  license_url: https://www.apprrr.hr/prostorni-podaci-servisi/
+  license_url: http://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply
   version: 2.0.0-alpha.1
-  attribution: "copyright © 2024. Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"
+  attribution: "Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"
   keywords: [field-boundaries, benchmark, hr, 2021]
   providers:
     - name: "Agencija za plaćanja u poljoprivredi, ribarstvu i ruralnom razvoju"
@@ -34,6 +37,8 @@ stages:
     admin_names: true
     field_embeddings: true
   masks:
+    # Drop fields at least 95% under fields drawn over them (the instance mask can't show them).
+    drop_hidden_fields: true
     mask_types: [instance, semantic_2_class, semantic_3_class, decode_boundary, decode_distance]
     resolution: 2.5
     workers: null
